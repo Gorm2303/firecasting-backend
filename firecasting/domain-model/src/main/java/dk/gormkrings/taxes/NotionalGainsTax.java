@@ -1,6 +1,7 @@
 package dk.gormkrings.taxes;
 
-import dk.gormkrings.simulation.SimulationUpdateEvent;
+import dk.gormkrings.event.date.SimulationYearEvent;
+import dk.gormkrings.event.date.Type;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -12,11 +13,10 @@ public class NotionalGainsTax implements TaxRule {
     }
 
     @EventListener
-    public void onSimulationUpdate(SimulationUpdateEvent event) {
-        int day = event.getDay();
-        if (day % 365 == 0 && day != 0) {
-            System.out.println("Day " + day + ": Executing tax calculations.");
-            // Implement your tax calculation logic here
-        }
+    public void onSimulationUpdate(SimulationYearEvent event) {
+        if (event.getType() != Type.END) return;
+        int day = event.getData().getCurrentTimeSpan();
+        System.out.println("Year " + (day / 365) + ": Executing tax calculations.");
+        // Implement your tax calculation logic here
     }
 }

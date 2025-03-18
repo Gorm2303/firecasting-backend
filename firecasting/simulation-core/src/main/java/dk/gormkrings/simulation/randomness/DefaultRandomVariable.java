@@ -1,4 +1,4 @@
-package dk.gormkrings.randomness;
+package dk.gormkrings.simulation.randomness;
 
 public class DefaultRandomVariable implements RandomVariable {
     private final Distribution distribution;

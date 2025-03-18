@@ -1,8 +1,8 @@
-package dk.gormkrings.simulations;
+package dk.gormkrings.simulation.simulations;
 
-import dk.gormkrings.simulation.LiveData;
-import dk.gormkrings.Result;
-import dk.gormkrings.Runner;
+import dk.gormkrings.data.LiveData;
+import dk.gormkrings.simulation.data.Result;
+import dk.gormkrings.simulation.Runner;
 
 public class MonteCarloSimulation implements Runner {
     public Result run(LiveData liveData) {

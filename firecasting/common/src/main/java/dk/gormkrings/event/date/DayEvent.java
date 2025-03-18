@@ -1,16 +1,15 @@
-package dk.gormkrings.simulation;
+package dk.gormkrings.event.date;
 
+import dk.gormkrings.data.LiveData;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 @Getter
 public class DayEvent extends ApplicationEvent implements SimulationUpdateEvent {
-    private final int day;
     private final LiveData data;
 
-    public DayEvent(Object source, int day, LiveData data) {
+    public DayEvent(Object source, LiveData data) {
         super(source);
-        this.day = day;
         this.data = data;
     }
 }

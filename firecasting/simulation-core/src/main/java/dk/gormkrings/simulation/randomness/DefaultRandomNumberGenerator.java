@@ -1,4 +1,4 @@
-package dk.gormkrings.randomness;
+package dk.gormkrings.simulation.randomness;
 
 import java.util.Random;
 

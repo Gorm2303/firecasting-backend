@@ -1,4 +1,4 @@
-package dk.gormkrings.randomness;
+package dk.gormkrings.simulation.randomness;
 
 public class BrownianMotionDistribution implements Distribution {
     private final double drift;

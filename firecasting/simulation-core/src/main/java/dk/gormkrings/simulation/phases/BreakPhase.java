@@ -1,4 +1,4 @@
-package dk.gormkrings.phases;
+package dk.gormkrings.simulation.phases;
 
 public class BreakPhase implements Phase {
     @Override

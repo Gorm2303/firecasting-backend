@@ -1,6 +1,7 @@
 package dk.gormkrings;
 
-import dk.gormkrings.simulation.LiveData;
+import dk.gormkrings.data.LiveData;
+import dk.gormkrings.simulation.Engine;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,8 +22,6 @@ public class FirecastingApplication implements CommandLineRunner {
     @Override
     public void run(String... args) {
         System.out.println("Application started");
-        // For example, simulate 730 days (2 years)
-        LiveData data = new LiveData(730, 1000);
-        simulationEngine.runSimulation(data);
+        simulationEngine.runSimulation();
     }
 }
