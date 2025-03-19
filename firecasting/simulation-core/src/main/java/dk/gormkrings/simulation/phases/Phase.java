@@ -12,6 +12,7 @@ public interface Phase extends ApplicationListener<ApplicationEvent> {
     LocalDate getStartDate();
     long getDuration();
     String getName();
-    List<ApplicationListener<ApplicationEvent>> getListeners();
     void incrementTime();
+    LocalDate getCurrentLocalDate();
+
 }

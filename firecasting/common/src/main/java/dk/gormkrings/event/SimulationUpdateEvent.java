@@ -1,4 +1,4 @@
-package dk.gormkrings.event.date;
+package dk.gormkrings.event;
 
 import dk.gormkrings.data.LiveData;
 

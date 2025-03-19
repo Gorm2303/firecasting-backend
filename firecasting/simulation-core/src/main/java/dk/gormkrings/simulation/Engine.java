@@ -1,39 +1,40 @@
 package dk.gormkrings.simulation;
 
 import dk.gormkrings.data.LiveData;
-import dk.gormkrings.event.date.DayEvent;
-import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.event.date.Type;
-import dk.gormkrings.event.date.YearEvent;
+import dk.gormkrings.event.RunEvent;
+import dk.gormkrings.event.Type;
+import dk.gormkrings.event.date.*;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.data.Snapshot;
 import dk.gormkrings.simulation.phases.Phase;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Component
 public class Engine {
 
-    private final List<ApplicationListener<ApplicationEvent>> listeners = new ArrayList<>();
+    private final EventDispatcher dispatcher;
+
+    public Engine(EventDispatcher dispatcher) {
+        this.dispatcher = dispatcher;
+    }
 
     private void notifyListeners(ApplicationEvent event) {
-        for (ApplicationListener<ApplicationEvent> listener : listeners) {
-            listener.onApplicationEvent(event);
-        }
+        dispatcher.notifyListeners(event);
     }
 
     public void runSimulation(Phase phase) {
         LiveData data = phase.getLiveData();
         LocalDate startDate = phase.getStartDate();
-        listeners.add(phase);
+        dispatcher.register(phase);
         Result result = new Result();
         System.out.println("Simulation running for " + phase.getDuration() + " days");
         result.addSnapshot(new Snapshot(data));
+
+        RunEvent simStart = new RunEvent(this, data, Type.START);
+        notifyListeners(simStart);
 
         while (data.isLive(phase.getDuration())) {
             data.incrementTime();
@@ -68,8 +69,11 @@ public class Engine {
                 notifyListeners(yearEnd);
             }
         }
+        RunEvent simEnd = new RunEvent(this, data, Type.END);
+        notifyListeners(simEnd);
+
         result.addSnapshot(new Snapshot(data));
         result.print();
-        listeners.remove(phase);
+        dispatcher.unregister(phase);
     }
 }

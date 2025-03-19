@@ -1,8 +1,9 @@
 package dk.gormkrings.simulation.phases;
 
 import dk.gormkrings.Deposit;
-import dk.gormkrings.event.date.SimulationMonthEvent;
-import dk.gormkrings.event.date.Type;
+import dk.gormkrings.data.LiveData;
+import dk.gormkrings.event.Type;
+import dk.gormkrings.event.date.MonthEvent;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
-@Component
 public class DepositPhase extends SimulationPhase {
     private Deposit deposit;
 
@@ -19,14 +19,31 @@ public class DepositPhase extends SimulationPhase {
         setName("Deposit Phase");
     }
 
+    @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        if (!(event instanceof SimulationMonthEvent monthEvent)) return;
-
+        MonthEvent monthEvent = (MonthEvent) event;
         if (monthEvent.getType() != Type.END) return;
 
-        int currentDay = monthEvent.getData().getCurrentTimeSpan();
-        System.out.println("Day " + currentDay + ": Depositing money.");
-        deposit.addMonthly();
+        LiveData data = getLiveData();
+        depositMoney(data);
+        printPretty(data);
     }
+
+    public void depositMoney(LiveData data) {
+        deposit.increaseMonthly();
+        deposit.addMonthly();
+        data.addToDeposit(deposit.getMonthly());
+        data.addToCapital(deposit.getMonthly());
+    }
+
+    public void printPretty(LiveData data) {
+        System.out.println();
+        System.out.println(getPrettyCurrentDate());
+        System.out.println("Depositing money: " + deposit.getMonthly() +
+                ", Total Deposit: " + data.getDeposit() +
+                ", Capital: " + data.getCapital());
+
+    }
+
 
 }

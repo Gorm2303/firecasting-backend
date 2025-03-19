@@ -1,7 +1,7 @@
 package dk.gormkrings.taxes;
 
 import dk.gormkrings.event.date.SimulationYearEvent;
-import dk.gormkrings.event.date.Type;
+import dk.gormkrings.event.Type;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
