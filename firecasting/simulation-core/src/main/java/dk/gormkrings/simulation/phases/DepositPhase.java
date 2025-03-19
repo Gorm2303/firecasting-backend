@@ -8,12 +8,12 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
 public class DepositPhase extends SimulationPhase {
     private Deposit deposit;
+    private boolean isFirstTime = true;
 
     public DepositPhase() {
         setName("Deposit Phase");
@@ -30,6 +30,11 @@ public class DepositPhase extends SimulationPhase {
     }
 
     public void depositMoney(LiveData data) {
+        if (isFirstTime) {
+            data.addToDeposit(deposit.getInitial());
+            data.addToCapital(deposit.getInitial());
+            isFirstTime = false;
+        }
         deposit.increaseMonthly();
         deposit.addMonthly();
         data.addToDeposit(deposit.getMonthly());

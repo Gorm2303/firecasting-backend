@@ -25,7 +25,7 @@ public class Engine {
         dispatcher.notifyListeners(event);
     }
 
-    public void runSimulation(Phase phase) {
+    public Phase runSimulation(Phase phase) {
         LiveData data = phase.getLiveData();
         LocalDate startDate = phase.getStartDate();
         dispatcher.register(phase);
@@ -75,5 +75,6 @@ public class Engine {
         result.addSnapshot(new Snapshot(data));
         result.print();
         dispatcher.unregister(phase);
+        return phase;
     }
 }

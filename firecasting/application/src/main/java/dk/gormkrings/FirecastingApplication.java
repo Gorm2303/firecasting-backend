@@ -2,8 +2,10 @@ package dk.gormkrings;
 
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.simulation.Engine;
+import dk.gormkrings.simulation.phases.BreakPhase;
 import dk.gormkrings.simulation.phases.DepositPhase;
 import dk.gormkrings.simulation.phases.Phase;
+import dk.gormkrings.simulation.phases.WithdrawPhase;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -31,22 +33,35 @@ public class FirecastingApplication implements CommandLineRunner {
         List<Phase> phases = new ArrayList<>();
         System.out.println("Application Started");
 
-        runOldSimulations();
+        LiveData liveData = new LiveData();
+        LocalDate startDate = LocalDate.of(2025,1,1);
+        int durationInYears = 10;
+        Deposit deposit = new Deposit(10000, 5000);
+
+        Phase currentPhase = makeDepositPhase(startDate, durationInYears, deposit, liveData);
     }
 
-    private void runOldSimulations() {
-        System.out.println("Starting Deposit Simulation");
-        LocalDate startDate = LocalDate.of(2025,1,1);
-        LocalDate endDate = startDate.plusYears(10);
+    private Phase makeDepositPhase(LocalDate startDate, int durationInYears, Deposit deposit, LiveData liveData) {
+        System.out.println("Initializing Deposit Phase");
+
+        LocalDate endDate = startDate.plusYears(durationInYears);
         int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-        Deposit deposit = new Deposit(10000, 5000);
 
         DepositPhase depositPhase = new DepositPhase();
         depositPhase.setStartDate(startDate);
         depositPhase.setDeposit(deposit);
         depositPhase.setDuration(days);
-        depositPhase.setLiveData(new LiveData());
+        depositPhase.setLiveData(liveData);
 
-        simulationEngine.runSimulation(depositPhase);
+        return simulationEngine.runSimulation(depositPhase);
     }
+
+    private Phase makeBreakPhase(Phase phase) {
+        return new BreakPhase();
+    }
+
+    private Phase makeWithdrawPhase(Phase phase) {
+        return new WithdrawPhase();
+    }
+
 }
