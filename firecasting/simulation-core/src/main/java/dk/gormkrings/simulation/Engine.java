@@ -16,6 +16,7 @@ import java.time.LocalDate;
 public class Engine {
 
     private final EventDispatcher dispatcher;
+    private final Result result = new Result();
 
     public Engine(EventDispatcher dispatcher) {
         this.dispatcher = dispatcher;
@@ -30,7 +31,7 @@ public class Engine {
         LocalDate startDate = phase.getStartDate();
         dispatcher.register(phase);
         if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule()) ;
-        Result result = new Result();
+
         System.out.println("Simulation running for " + phase.getDuration() + " days");
         result.addSnapshot(new Snapshot(data));
 

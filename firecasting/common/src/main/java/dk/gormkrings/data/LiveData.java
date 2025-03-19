@@ -31,6 +31,7 @@ public class LiveData implements Live {
         this.capital = liveData.capital;
         this.deposit = liveData.deposit;
         this.totalDurationAlive = liveData.totalDurationAlive;
+        this.passiveMoney = liveData.passiveMoney;
     }
 
     @Override
@@ -50,12 +51,14 @@ public class LiveData implements Live {
 
     @Override
     public String toString() {
-        return "LiveData {" +
-                "timeSpan=" + sessionDuration +
-                ", capital=" + capital +
-                ", inflation=" + inflation +
-                ", rateOfReturn=" + rateOfReturn +
-                '}';
+        return "LiveData: " +
+                "Alive " + totalDurationAlive +
+                " - Session " + sessionDuration +
+                " - Deposit " + deposit +
+                " - Capital " + capital +
+                " - Passive " + passiveMoney +
+                " - Inflation " + inflation +
+                " - RateOfReturn " + rateOfReturn;
     }
 
     public void addToCapital(double capital) {

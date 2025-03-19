@@ -20,12 +20,6 @@ public class Withdraw {
         this.amount = 0;
     }
 
-    public double withdraw(double capital) {
-        if (amount > 0) return capital - amount;
-        else if (percent > 0) return capital - capital * percent;
-        return capital;
-    }
-
     public double getAmount(double capital) {
         if (amount > 0) return amount;
         else if (percent > 0) return percent * capital;

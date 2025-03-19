@@ -42,8 +42,7 @@ public class WithdrawPhase extends SimulationPhase {
         oldCapital = data.getCapital();
         oldAmount = withdraw.getAmount(oldCapital);
 
-        double newCapital = withdraw.withdraw(oldCapital);
-        data.setCapital(newCapital);
+        data.subtractFromCapital(oldAmount);
     }
 
     public void printPretty(LiveData data) {

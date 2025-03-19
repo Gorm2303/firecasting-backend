@@ -40,7 +40,6 @@ public class DepositPhase extends SimulationPhase {
             firstTime = false;
         }
         deposit.increaseMonthly();
-        deposit.addMonthly();
         data.addToDeposit(deposit.getMonthly());
         data.addToCapital(deposit.getMonthly());
     }
