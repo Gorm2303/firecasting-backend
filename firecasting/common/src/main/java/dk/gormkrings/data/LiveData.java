@@ -7,21 +7,18 @@ import lombok.Setter;
 @Setter
 public class LiveData implements Live {
     private int currentTimeSpan;
-    private final int duration;
     private double capital;
     private float inflation;
     private float rateOfReturn;
 
-    public LiveData(int duration, double capital) {
+    public LiveData() {
         this.currentTimeSpan = 0;
-        this.duration = duration;
-        this.capital = capital;
+        this.capital = 0;
         this.inflation = 0;
         this.rateOfReturn = 0;
     }
 
     private LiveData(LiveData liveData) {
-        this.duration = liveData.duration;
         this.currentTimeSpan = liveData.currentTimeSpan;
         this.inflation = liveData.inflation;
         this.rateOfReturn = liveData.rateOfReturn;
@@ -30,13 +27,11 @@ public class LiveData implements Live {
 
     @Override
     public void incrementTime() {
-        if (currentTimeSpan < duration) {
-            currentTimeSpan++;
-        }
+        currentTimeSpan++;
     }
 
     @Override
-    public boolean isLive() {
+    public boolean isLive(long duration) {
         return currentTimeSpan < duration;
     }
 
@@ -44,7 +39,6 @@ public class LiveData implements Live {
     public String toString() {
         return "LiveData {" +
                 "timeSpan=" + currentTimeSpan +
-                "/" + duration +
                 ", capital=" + capital +
                 ", inflation=" + inflation +
                 ", rateOfReturn=" + rateOfReturn +

@@ -1,24 +1,30 @@
-package dk.gormkrings.simulation.phases;
+package dk.gormkrings;
 
-import dk.gormkrings.Deposit;
 import dk.gormkrings.event.date.SimulationMonthEvent;
 import dk.gormkrings.event.date.Type;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
 @Getter
-@Setter
 @Component
-public class DepositPhase extends SimulationPhase {
-    private Deposit deposit;
+public class Break implements ApplicationListener<ApplicationEvent> {
+    private double total;
+    private double initial;
 
-    public DepositPhase() {
-        setName("Deposit Phase");
+    public Break() {
+        this.initial = 0;
+        this.total = initial;
     }
 
+    public void setInitial(double initial) {
+        this.initial = initial;
+        total = initial;
+    }
+
+    @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
         if (!(event instanceof SimulationMonthEvent monthEvent)) return;
 
@@ -26,7 +32,5 @@ public class DepositPhase extends SimulationPhase {
 
         int currentDay = monthEvent.getData().getCurrentTimeSpan();
         System.out.println("Day " + currentDay + ": Depositing money.");
-        deposit.addMonthly();
     }
-
 }

@@ -2,6 +2,7 @@ package dk.gormkrings;
 
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.simulation.Engine;
+import dk.gormkrings.simulation.phases.DepositPhase;
 import dk.gormkrings.simulation.phases.Phase;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -30,7 +31,7 @@ public class FirecastingApplication implements CommandLineRunner {
         List<Phase> phases = new ArrayList<>();
         System.out.println("Application Started");
 
-
+        runOldSimulations();
     }
 
     private void runOldSimulations() {
@@ -38,27 +39,14 @@ public class FirecastingApplication implements CommandLineRunner {
         LocalDate startDate = LocalDate.of(2025,1,1);
         LocalDate endDate = startDate.plusYears(10);
         int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-        double initialCapital = 10000;
+        Deposit deposit = new Deposit(10000, 5000);
 
-        simulationEngine.runSimulation(startDate, new LiveData(days, initialCapital));
+        DepositPhase depositPhase = new DepositPhase();
+        depositPhase.setStartDate(startDate);
+        depositPhase.setDeposit(deposit);
+        depositPhase.setDuration(days);
+        depositPhase.setLiveData(new LiveData());
 
-
-        System.out.println("Starting Break Simulation");
-        startDate = endDate;
-        endDate = startDate.plusYears(5);
-        days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-        initialCapital = 20000;
-
-        simulationEngine.runSimulation(startDate, new LiveData(days, initialCapital));
-
-
-        System.out.println("Starting Withdraw Simulation");
-        startDate = endDate;
-        endDate = startDate.plusYears(30);
-        days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-        initialCapital = 30000;
-
-        simulationEngine.runSimulation(startDate, new LiveData(days, initialCapital));
-
+        simulationEngine.runSimulation(depositPhase);
     }
 }

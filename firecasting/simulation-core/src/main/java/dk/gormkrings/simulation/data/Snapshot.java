@@ -15,10 +15,6 @@ public final class Snapshot implements ImmutableData {
         this.state = state.copy(state);
     }
 
-    public int getDuration() {
-        return state.getDuration();
-    }
-
     public int getCurrentTimeSpan() {
         return state.getCurrentTimeSpan();
     }
