@@ -1,12 +1,55 @@
 package dk.gormkrings.simulation.phases;
 
+import dk.gormkrings.Withdraw;
 import dk.gormkrings.data.LiveData;
+import dk.gormkrings.event.Type;
+import dk.gormkrings.event.date.MonthEvent;
+import dk.gormkrings.taxes.TaxRule;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
 
+import java.text.DecimalFormat;
+
+@Getter
+@Setter
 public class WithdrawPhase extends SimulationPhase {
+    private Withdraw withdraw;
+    private boolean firstTime = true;
+    private TaxRule taxRule;
+    private double oldCapital;
+    private double oldAmount;
+
+    public WithdrawPhase() {
+        setName("Withdraw");
+    }
 
     @Override
-    public void onApplicationEvent(ApplicationEvent event) {
+    public void onApplicationEvent(@NonNull ApplicationEvent event) {
+        MonthEvent monthEvent = (MonthEvent) event;
+        if (monthEvent.getType() != Type.END) return;
 
+        LiveData data = getLiveData();
+        withdrawMoney(data);
+        printPretty(data);
+    }
+
+    public void withdrawMoney(LiveData data) {
+        if (firstTime) {
+            firstTime = false;
+        }
+        oldCapital = data.getCapital();
+        oldAmount = withdraw.getAmount(oldCapital);
+
+        double newCapital = withdraw.withdraw(oldCapital);
+        data.setCapital(newCapital);
+    }
+
+    public void printPretty(LiveData data) {
+        System.out.println(getPrettyCurrentDate() +
+                " - Capital " + formatNumber(oldCapital) +
+                " - Monthly " + formatNumber(oldAmount) +
+                " - New Capital " + formatNumber(data.getCapital()));
     }
 }

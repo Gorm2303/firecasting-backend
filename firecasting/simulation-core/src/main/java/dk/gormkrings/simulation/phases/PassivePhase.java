@@ -1,10 +1,8 @@
 package dk.gormkrings.simulation.phases;
 
-import dk.gormkrings.Deposit;
 import dk.gormkrings.data.LiveData;
-import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.taxes.TaxRule;
+import dk.gormkrings.event.Type;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -14,13 +12,11 @@ import java.text.DecimalFormat;
 
 @Getter
 @Setter
-public class DepositPhase extends SimulationPhase {
-    private Deposit deposit;
+public class PassivePhase extends SimulationPhase {
     private boolean firstTime = true;
-    private TaxRule taxRule;
 
-    public DepositPhase() {
-        setName("Deposit");
+    public PassivePhase() {
+        setName("Passive");
     }
 
     @Override
@@ -29,26 +25,19 @@ public class DepositPhase extends SimulationPhase {
         if (monthEvent.getType() != Type.END) return;
 
         LiveData data = getLiveData();
-        depositMoney(data);
+        monthlyUpdate(data);
         printPretty(data);
     }
 
-    public void depositMoney(LiveData data) {
+    public void monthlyUpdate(LiveData data) {
         if (firstTime) {
-            data.addToDeposit(deposit.getInitial());
-            data.addToCapital(deposit.getInitial());
             firstTime = false;
         }
-        deposit.increaseMonthly();
-        deposit.addMonthly();
-        data.addToDeposit(deposit.getMonthly());
-        data.addToCapital(deposit.getMonthly());
     }
 
     public void printPretty(LiveData data) {
         System.out.println(getPrettyCurrentDate() +
-                " - Monthly " + formatNumber(deposit.getMonthly()) +
-                " - Deposited " + formatNumber(data.getDeposit()) +
+                " - Passive Earnings " + formatNumber(data.getPassiveMoney()) +
                 " - Capital " + formatNumber(data.getCapital()));
     }
 }

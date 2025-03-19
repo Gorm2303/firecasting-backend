@@ -1,7 +1,7 @@
 package dk.gormkrings.data;
 
 public interface Live {
-    int getCurrentTimeSpan();
+    long getSessionDuration();
     void incrementTime();
     boolean isLive(long duration);
 }

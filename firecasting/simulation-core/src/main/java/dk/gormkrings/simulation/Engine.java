@@ -29,6 +29,7 @@ public class Engine {
         LiveData data = phase.getLiveData();
         LocalDate startDate = phase.getStartDate();
         dispatcher.register(phase);
+        if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule()) ;
         Result result = new Result();
         System.out.println("Simulation running for " + phase.getDuration() + " days");
         result.addSnapshot(new Snapshot(data));
@@ -38,7 +39,7 @@ public class Engine {
 
         while (data.isLive(phase.getDuration())) {
             data.incrementTime();
-            int currentTime = data.getCurrentTimeSpan();
+            long currentTime = data.getSessionDuration();
             LocalDate currentDate = startDate.plusDays(currentTime - 1);
 
             // Publish Month Start Event
@@ -74,7 +75,8 @@ public class Engine {
 
         result.addSnapshot(new Snapshot(data));
         result.print();
-        dispatcher.unregister(phase);
+        data.resetSession();
+        dispatcher.clearRegistrations();
         return phase;
     }
 }

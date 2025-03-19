@@ -22,6 +22,10 @@ public class EventDispatcher {
         multicaster.removeApplicationListener(listener);
     }
 
+    public void clearRegistrations() {
+        multicaster.removeAllListeners();
+    }
+
     public void notifyListeners(ApplicationEvent event) {
         multicaster.multicastEvent(event);
     }

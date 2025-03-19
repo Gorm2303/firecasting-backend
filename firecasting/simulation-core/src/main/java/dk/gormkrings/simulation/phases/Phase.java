@@ -1,6 +1,7 @@
 package dk.gormkrings.simulation.phases;
 
 import dk.gormkrings.data.LiveData;
+import dk.gormkrings.taxes.TaxRule;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 
@@ -14,5 +15,5 @@ public interface Phase extends ApplicationListener<ApplicationEvent> {
     String getName();
     void incrementTime();
     LocalDate getCurrentLocalDate();
-
+    TaxRule getTaxRule();
 }

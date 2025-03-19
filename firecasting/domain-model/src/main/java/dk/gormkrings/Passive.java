@@ -1,13 +1,15 @@
 package dk.gormkrings;
 
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
-public class Break {
+@Setter
+public class Passive {
     private double total;
     private double initial;
 
-    public Break() {
+    public Passive() {
         this.initial = 0;
         this.total = initial;
     }
