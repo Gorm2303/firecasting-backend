@@ -1,9 +1,11 @@
 package dk.gormkrings.simulation.phases;
 
-public class DepositPhase implements Phase {
+import dk.gormkrings.data.LiveData;
 
-    @Override
-    public void simulate() {
-
+public class DepositPhase extends SimulationPhase {
+    public DepositPhase(LiveData liveData) {
+        super(liveData);
+        setName("Deposit Phase");
     }
+
 }

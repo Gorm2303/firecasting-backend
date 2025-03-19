@@ -1,5 +1,8 @@
 package dk.gormkrings.simulation.phases;
 
+import dk.gormkrings.data.LiveData;
+
 public interface Phase {
-    void simulate();
+    LiveData getLiveData();
+    String getName();
 }

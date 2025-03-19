@@ -29,7 +29,7 @@
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
+        <dependency> <!-- Dependencies for finding EventListeners -->
             <groupId>dk.gormkrings</groupId>
             <artifactId>domain-model</artifactId>
             <version>0.0.1-SNAPSHOT</version>
