@@ -18,7 +18,7 @@ public class PassivePhase extends SimulationPhase {
 
     public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, TaxRule taxRule) {
         super(previousPhase.getLiveData(), startDate, duration, taxRule,"Passive");
-        System.out.println("Initializing Passive Phase");
+        //System.out.println("Initializing Passive Phase");
     }
 
     @Override
@@ -28,7 +28,7 @@ public class PassivePhase extends SimulationPhase {
 
         LiveData data = getLiveData();
         monthlyUpdate(data);
-        printPretty(data);
+        //printPretty(data);
     }
 
     public void monthlyUpdate(LiveData data) {

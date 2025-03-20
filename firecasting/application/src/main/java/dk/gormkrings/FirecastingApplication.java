@@ -61,12 +61,17 @@ public class FirecastingApplication implements CommandLineRunner {
         currentPhase = new WithdrawPhase(currentPhase, startDate, days, withdraw, notionalTax);
         phases.add(currentPhase);
 
-        List<Result> results = simulation.runMonteCarlo(100, phases);
+        long startTime = System.currentTimeMillis();
+
+        List<Result> results = simulation.runMonteCarlo(10000, phases);
         System.out.println("These are the results");
         for (Result result : results) {
             System.out.println("Result: ");
             result.print();
         }
+        long endTime = System.currentTimeMillis();
+        long elapsedTime = endTime - startTime;
+        System.out.println("Elapsed time: " + ((double) elapsedTime)/1000 + " seconds");
         System.out.println("Application Ended");
     }
 

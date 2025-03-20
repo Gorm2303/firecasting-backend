@@ -20,13 +20,13 @@ public class DepositPhase extends SimulationPhase {
 
     public DepositPhase(Phase previousPhase, LocalDate startDate, long duration, Deposit deposit, TaxRule taxRule) {
         super(previousPhase.getLiveData(), startDate,duration,taxRule,"Deposit");
-        System.out.println("Initializing Additional Deposit Phase");
+        //System.out.println("Initializing Additional Deposit Phase");
         this.deposit = deposit;
     }
 
     public DepositPhase(LocalDate startDate, long duration, Deposit deposit, LiveData liveData, TaxRule taxRule) {
         super(liveData, startDate, duration, taxRule,"Deposit");
-        System.out.println("Initializing Deposit Phase");
+        //System.out.println("Initializing Deposit Phase");
         this.deposit = deposit;
     }
 
@@ -37,7 +37,7 @@ public class DepositPhase extends SimulationPhase {
 
         LiveData data = getLiveData();
         depositMoney(data);
-        printPretty(data);
+        //printPretty(data);
     }
 
     public void depositMoney(LiveData data) {

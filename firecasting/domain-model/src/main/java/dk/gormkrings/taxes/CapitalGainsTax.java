@@ -26,7 +26,7 @@ public class CapitalGainsTax implements TaxRule, SmartApplicationListener {
 
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        System.out.println("CapitalGainsTax calculating tax " + event);
+        //System.out.println("CapitalGainsTax calculating tax " + event);
     }
 
     @Override

@@ -22,7 +22,7 @@ public class WithdrawPhase extends SimulationPhase {
 
     public WithdrawPhase(Phase previousPhase, LocalDate startDate, long duration, Withdraw withdraw, TaxRule taxRule) {
         super(previousPhase.getLiveData(), startDate, duration, taxRule,"Withdraw");
-        System.out.println("Initializing Withdraw Phase");
+        //System.out.println("Initializing Withdraw Phase");
         this.withdraw = withdraw;
     }
 
@@ -33,7 +33,7 @@ public class WithdrawPhase extends SimulationPhase {
 
         LiveData data = getLiveData();
         withdrawMoney(data);
-        printPretty(data);
+        //printPretty(data);
     }
 
     public void withdrawMoney(LiveData data) {

@@ -25,6 +25,7 @@ public class Engine {
     }
 
     private Result simulatePhase(Phase phase) {
+        //System.out.println("Simulation running for " + phase.getDuration() + " days");
         Result result = new Result();
         LiveData data = phase.getLiveData();
         LocalDate startDate = phase.getStartDate();
@@ -32,7 +33,6 @@ public class Engine {
         dispatcher.register(phase);
         if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule()) ;
 
-        System.out.println("Simulation running for " + phase.getDuration() + " days");
         result.addSnapshot(new Snapshot(data));
 
         RunEvent simStart = new RunEvent(this, data, Type.START);
@@ -75,7 +75,6 @@ public class Engine {
         dispatcher.notifyListeners(simEnd);
 
         result.addSnapshot(new Snapshot(data));
-        result.print();
         data.resetSession();
         dispatcher.clearRegistrations();
         return result;

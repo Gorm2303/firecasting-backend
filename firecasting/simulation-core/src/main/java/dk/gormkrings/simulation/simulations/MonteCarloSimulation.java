@@ -17,7 +17,7 @@ public class MonteCarloSimulation {
     private final List<Result> results = new CopyOnWriteArrayList<>();
 
     // Create a fixed thread pool; adjust pool size as needed.
-    private final ExecutorService executorService = Executors.newFixedThreadPool(8);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(128);
 
     public MonteCarloSimulation(Engine engine) {
         this.engine = engine;
