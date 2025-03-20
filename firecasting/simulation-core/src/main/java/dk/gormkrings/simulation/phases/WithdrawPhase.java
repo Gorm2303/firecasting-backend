@@ -1,6 +1,6 @@
 package dk.gormkrings.simulation.phases;
 
-import dk.gormkrings.Withdraw;
+import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
@@ -11,7 +11,6 @@ import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 
 @Getter
 @Setter
@@ -21,23 +20,10 @@ public class WithdrawPhase extends SimulationPhase {
     private double oldCapital;
     private double oldAmount;
 
-    public WithdrawPhase(Phase precedingPhase, long durationInMonths, Withdraw withdraw, TaxRule taxRule) {
+    public WithdrawPhase(Phase previousPhase, LocalDate startDate, long duration, Withdraw withdraw, TaxRule taxRule) {
+        super(previousPhase.getLiveData(), startDate, duration, taxRule,"Withdraw");
         System.out.println("Initializing Withdraw Phase");
-        setName("Withdraw");
-
-        LocalDate startDate = precedingPhase.getStartDate().plusDays(precedingPhase.getDuration());
-        LocalDate endDate = startDate.plusMonths(durationInMonths);
-        int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-        
-        this.setStartDate(startDate);
         this.withdraw = withdraw;
-        this.setDuration(days);
-        this.setLiveData(precedingPhase.getLiveData());
-        this.setTaxRule(taxRule);
-    }
-
-    private WithdrawPhase(Withdraw withdraw) {
-        this.withdraw = withdraw.copy();
     }
 
     @Override
@@ -68,9 +54,13 @@ public class WithdrawPhase extends SimulationPhase {
     }
 
     @Override
-    public Phase copy() {
+    public Phase copy(Phase previousPhase) {
         return new WithdrawPhase(
-                this.withdraw
+                previousPhase,
+                getStartDate(),
+                getDuration(),
+                this.withdraw,
+                getTaxRule().copy()
         );
     }
 }

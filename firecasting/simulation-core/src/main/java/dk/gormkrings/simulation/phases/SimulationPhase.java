@@ -1,5 +1,6 @@
 package dk.gormkrings.simulation.phases;
 
+import dk.gormkrings.action.Action;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.taxes.TaxRule;
@@ -20,6 +21,7 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
     private LocalDate startDate;
     private long duration;
     private TaxRule taxRule;
+    private Action action;
 
     SimulationPhase(LiveData liveData, LocalDate startDate, long duration, TaxRule taxRule, String name) {
         this.liveData = liveData;

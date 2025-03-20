@@ -1,11 +1,9 @@
-package dk.gormkrings;
+package dk.gormkrings.action;
 
-import jdk.jfr.Percentage;
-import lombok.Getter;
 import lombok.Setter;
 
 @Setter
-public class Withdraw {
+public class Withdraw implements Action {
     private double amount;
     private float percent;
 

@@ -1,10 +1,10 @@
-package dk.gormkrings;
+package dk.gormkrings.action;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
-public class Deposit {
+public class Deposit implements Action {
     @Getter
     private double initial;
     @Getter

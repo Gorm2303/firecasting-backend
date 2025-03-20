@@ -1,5 +1,7 @@
 package dk.gormkrings;
 
+import dk.gormkrings.action.Deposit;
+import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.phases.PassivePhase;
@@ -43,17 +45,20 @@ public class FirecastingApplication implements CommandLineRunner {
         Withdraw withdraw = new Withdraw(0.04F);
 
         int depositDurationInMonths = 10 *12;
-        Phase currentPhase = new DepositPhase(startDate, depositDurationInMonths, deposit, liveData, notionalTax);
+        long days = getDurationInDays(startDate,depositDurationInMonths);
+        Phase currentPhase = new DepositPhase(startDate, days, deposit, liveData, notionalTax);
         phases.add(currentPhase);
 
         int passiveDurationInMonths = 5 *12;
         startDate = getNewStartDate(startDate, getDurationInDays(startDate, depositDurationInMonths));
-        long days = getDurationInDays(startDate, passiveDurationInMonths);
+        days = getDurationInDays(startDate, passiveDurationInMonths);
         currentPhase = new PassivePhase(currentPhase, startDate, days, notionalTax);
         phases.add(currentPhase);
 
         int withdrawDurationInMonths = 30 *12;
-        currentPhase = new WithdrawPhase(currentPhase, withdrawDurationInMonths, withdraw, notionalTax);
+        startDate = getNewStartDate(startDate, getDurationInDays(startDate, withdrawDurationInMonths));
+        days = getDurationInDays(startDate, withdrawDurationInMonths);
+        currentPhase = new WithdrawPhase(currentPhase, startDate, days, withdraw, notionalTax);
         phases.add(currentPhase);
 
         List<Result> results = simulation.runMonteCarlo(100, phases);

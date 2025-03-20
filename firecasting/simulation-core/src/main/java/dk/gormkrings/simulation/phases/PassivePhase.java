@@ -16,8 +16,8 @@ import java.time.LocalDate;
 public class PassivePhase extends SimulationPhase {
     private boolean firstTime = true;
 
-    public PassivePhase(Phase precedingPhase, LocalDate startDate, long days, TaxRule taxRule) {
-        super(precedingPhase.getLiveData(), startDate, days, taxRule,"Passive");
+    public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, TaxRule taxRule) {
+        super(previousPhase.getLiveData(), startDate, duration, taxRule,"Passive");
         System.out.println("Initializing Passive Phase");
     }
 
@@ -44,7 +44,12 @@ public class PassivePhase extends SimulationPhase {
     }
 
     @Override
-    public Phase copy() {
-        return null;
+    public Phase copy(Phase previousPhase) {
+        return new PassivePhase(
+                previousPhase,
+                getStartDate(),
+                getDuration(),
+                getTaxRule().copy()
+        );
     }
 }

@@ -1,11 +1,11 @@
-package dk.gormkrings;
+package dk.gormkrings.action;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class Passive {
+public class Passive implements Action {
     private double total;
     private double initial;
 
