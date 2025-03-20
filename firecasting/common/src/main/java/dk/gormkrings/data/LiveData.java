@@ -77,8 +77,8 @@ public class LiveData implements Live {
         this.deposit -= deposit;
     }
 
-    public LiveData copy(LiveData liveData) {
-        return new LiveData(liveData);
+    public LiveData copy() {
+        return new LiveData(this);
     }
 
 }

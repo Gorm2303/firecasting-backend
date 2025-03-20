@@ -5,5 +5,5 @@ import org.springframework.context.ApplicationListener;
 
 public interface TaxRule extends ApplicationListener<ApplicationEvent> {
     double calculateTax();
-
+    TaxRule copy();
 }

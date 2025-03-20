@@ -10,19 +10,34 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
 
-import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Getter
 @Setter
 public class WithdrawPhase extends SimulationPhase {
     private Withdraw withdraw;
     private boolean firstTime = true;
-    private TaxRule taxRule;
     private double oldCapital;
     private double oldAmount;
 
-    public WithdrawPhase() {
+    public WithdrawPhase(Phase precedingPhase, long durationInMonths, Withdraw withdraw, TaxRule taxRule) {
+        System.out.println("Initializing Withdraw Phase");
         setName("Withdraw");
+
+        LocalDate startDate = precedingPhase.getStartDate().plusDays(precedingPhase.getDuration());
+        LocalDate endDate = startDate.plusMonths(durationInMonths);
+        int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
+        
+        this.setStartDate(startDate);
+        this.withdraw = withdraw;
+        this.setDuration(days);
+        this.setLiveData(precedingPhase.getLiveData());
+        this.setTaxRule(taxRule);
+    }
+
+    private WithdrawPhase(Withdraw withdraw) {
+        this.withdraw = withdraw.copy();
     }
 
     @Override
@@ -50,5 +65,12 @@ public class WithdrawPhase extends SimulationPhase {
                 " - Capital " + formatNumber(oldCapital) +
                 " - Monthly " + formatNumber(oldAmount) +
                 " - New Capital " + formatNumber(data.getCapital()));
+    }
+
+    @Override
+    public Phase copy() {
+        return new WithdrawPhase(
+                this.withdraw
+        );
     }
 }

@@ -3,10 +3,11 @@ package dk.gormkrings;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
 @Setter
 public class Deposit {
+    @Getter
     private double initial;
+    @Getter
     private double monthly;
     private double increaseMonthlyAmount;
     private double increaseMonthlyPercentage;
@@ -25,11 +26,24 @@ public class Deposit {
         this.increaseMonthlyPercentage = 0;
     }
 
-    public void increaseMonthly() {
-       if (increaseMonthlyAmount != 0) {
-           monthly += increaseMonthlyAmount;
-       } else if (increaseMonthlyPercentage != 0) {
-           monthly += monthly * increaseMonthlyPercentage;
-       }
+    public double getMonthlyIncrease() {
+       if (increaseMonthlyAmount > 0)
+           return increaseMonthlyAmount;
+       else if (increaseMonthlyPercentage > 0)
+           return monthly * increaseMonthlyPercentage;
+       else return 0;
+    }
+
+    public void increaseMonthly(double amount) {
+        increaseMonthlyAmount += amount;
+    }
+
+    public Deposit copy() {
+        Deposit deposit = new Deposit();
+        deposit.setMonthly(this.getMonthly());
+        deposit.setInitial(this.getInitial());
+        deposit.setIncreaseMonthlyAmount(this.increaseMonthlyAmount);
+        deposit.setIncreaseMonthlyPercentage(this.increaseMonthlyPercentage);
+        return deposit;
     }
 }

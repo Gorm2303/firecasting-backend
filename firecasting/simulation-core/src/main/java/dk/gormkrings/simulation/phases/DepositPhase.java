@@ -10,17 +10,42 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
 
-import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Getter
 @Setter
 public class DepositPhase extends SimulationPhase {
     private Deposit deposit;
     private boolean firstTime = true;
-    private TaxRule taxRule;
 
-    public DepositPhase() {
+    public DepositPhase(Phase precedingPhase, long durationInMonths, Deposit deposit, TaxRule taxRule) {
+        System.out.println("Initializing Deposit Phase");
         setName("Deposit");
+
+        LocalDate startDate = precedingPhase.getStartDate().plusDays(precedingPhase.getDuration());
+        LocalDate endDate = startDate.plusMonths(durationInMonths);
+        int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
+
+        this.setStartDate(startDate);
+        this.deposit = deposit;
+        this.setDuration(days);
+        this.setLiveData(precedingPhase.getLiveData());
+        this.setTaxRule(taxRule);
+    }
+
+    public DepositPhase(LocalDate startDate, long durationInMonths, Deposit deposit, LiveData liveData, TaxRule taxRule) {
+        System.out.println("Initializing Deposit Phase");
+        setName("Deposit");
+
+        LocalDate endDate = startDate.plusMonths(durationInMonths);
+        int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
+
+        this.setStartDate(startDate);
+        this.deposit = deposit;
+        this.setDuration(days);
+        this.setLiveData(liveData);
+        this.setTaxRule(taxRule);
     }
 
     @Override
@@ -39,9 +64,9 @@ public class DepositPhase extends SimulationPhase {
             data.addToCapital(deposit.getInitial());
             firstTime = false;
         }
-        deposit.increaseMonthly();
         data.addToDeposit(deposit.getMonthly());
         data.addToCapital(deposit.getMonthly());
+        deposit.increaseMonthly(deposit.getMonthlyIncrease());
     }
 
     public void printPretty(LiveData data) {
@@ -49,5 +74,15 @@ public class DepositPhase extends SimulationPhase {
                 " - Monthly " + formatNumber(deposit.getMonthly()) +
                 " - Deposited " + formatNumber(data.getDeposit()) +
                 " - Capital " + formatNumber(data.getCapital()));
+    }
+
+    @Override
+    public Phase copy() {
+        return new DepositPhase(
+                this.getStartDate(),
+                getDuration(),
+                this.deposit.copy(),
+                getLiveData().copy(),
+                getTaxRule().copy());
     }
 }

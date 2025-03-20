@@ -21,6 +21,14 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
     private long duration;
     private TaxRule taxRule;
 
+    SimulationPhase(LiveData liveData, LocalDate startDate, long duration, TaxRule taxRule, String name) {
+        this.liveData = liveData;
+        this.startDate = startDate;
+        this.duration = duration;
+        this.taxRule = taxRule;
+        this.name = name;
+    }
+
     @Override
     public void incrementTime() {
         if (liveData.getSessionDuration() < getDuration()) {

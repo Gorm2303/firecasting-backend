@@ -20,10 +20,22 @@ public class Withdraw {
         this.amount = 0;
     }
 
+    private Withdraw(double amount, float percent) {
+        this.amount = amount;
+        this.percent = percent;
+    }
+
     public double getAmount(double capital) {
         if (amount > 0) return amount;
         else if (percent > 0) return percent * capital;
         else return 0;
+    }
+
+    public Withdraw copy() {
+        return new Withdraw(
+                this.amount,
+                this.percent
+        );
     }
 
 }

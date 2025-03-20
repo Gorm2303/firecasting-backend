@@ -1,12 +1,14 @@
 package dk.gormkrings;
 
 import dk.gormkrings.data.LiveData;
-import dk.gormkrings.simulation.Engine;
+import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.phases.PassivePhase;
 import dk.gormkrings.simulation.phases.DepositPhase;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.phases.WithdrawPhase;
+import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
 import dk.gormkrings.taxes.NotionalGainsTax;
+import dk.gormkrings.taxes.TaxRule;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,10 +21,10 @@ import java.util.List;
 @SpringBootApplication(scanBasePackages = "dk.gormkrings")
 public class FirecastingApplication implements CommandLineRunner {
 
-    private final Engine simulationEngine;
+    private MonteCarloSimulation simulation;
 
-    public FirecastingApplication(Engine simulationEngine) {
-        this.simulationEngine = simulationEngine;
+    public FirecastingApplication(MonteCarloSimulation simulation) {
+        this.simulation = simulation;
     }
 
     public static void main(String[] args) {
@@ -37,70 +39,38 @@ public class FirecastingApplication implements CommandLineRunner {
         LiveData liveData = new LiveData();
         LocalDate startDate = LocalDate.of(2025,1,1);
         Deposit deposit = new Deposit(10000, 5000);
-
-        int depositDurationInYears = 10;
-        Phase currentPhase = makeDepositPhase(startDate, depositDurationInYears, deposit, liveData);
-
-        int passiveDurationInYears = 5;
-        currentPhase = makePassivePhase(currentPhase, passiveDurationInYears);
-
+        TaxRule notionalTax = new NotionalGainsTax();
         Withdraw withdraw = new Withdraw(0.04F);
 
-        int withdrawDurationInYears = 30;
-        currentPhase = makeWithdrawPhase(currentPhase, withdrawDurationInYears, withdraw);
+        int depositDurationInMonths = 10 *12;
+        Phase currentPhase = new DepositPhase(startDate, depositDurationInMonths, deposit, liveData, notionalTax);
+        phases.add(currentPhase);
+
+        int passiveDurationInMonths = 5 *12;
+        startDate = getNewStartDate(startDate, getDurationInDays(startDate, depositDurationInMonths));
+        long days = getDurationInDays(startDate, passiveDurationInMonths);
+        currentPhase = new PassivePhase(currentPhase, startDate, days, notionalTax);
+        phases.add(currentPhase);
+
+        int withdrawDurationInMonths = 30 *12;
+        currentPhase = new WithdrawPhase(currentPhase, withdrawDurationInMonths, withdraw, notionalTax);
+        phases.add(currentPhase);
+
+        List<Result> results = simulation.runMonteCarlo(100, phases);
+        System.out.println("These are the results");
+        for (Result result : results) {
+            System.out.println("Result: ");
+            result.print();
+        }
+        System.out.println("Application Ended");
     }
 
-    private Phase makeDepositPhase(LocalDate startDate, int durationInYears, Deposit deposit, LiveData liveData) {
-        System.out.println("Initializing Deposit Phase");
-
-        LocalDate endDate = startDate.plusYears(durationInYears);
-        int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-
-        DepositPhase depositPhase = new DepositPhase();
-        depositPhase.setStartDate(startDate);
-        depositPhase.setDeposit(deposit);
-        depositPhase.setDuration(days);
-        depositPhase.setLiveData(liveData);
-        depositPhase.setTaxRule(new NotionalGainsTax());
-
-        return simulationEngine.runSimulation(depositPhase);
+    private LocalDate getNewStartDate(LocalDate oldStartDate, long durationInDays) {
+        return oldStartDate.plusDays(durationInDays);
     }
 
-    private Phase makeDepositPhase(Phase phase, int durationInYears, Deposit deposit) {
-        return makeDepositPhase(phase.getStartDate(), durationInYears, deposit, phase.getLiveData());
+    private long getDurationInDays(LocalDate startDate, long months) {
+        LocalDate endDate = startDate.plusMonths(months);
+        return startDate.until(endDate, ChronoUnit.DAYS);
     }
-
-    private Phase makePassivePhase(Phase phase, int durationInYears) {
-        System.out.println("Initializing Passive Phase");
-
-        LocalDate startDate = phase.getStartDate().plusDays(phase.getDuration());
-        LocalDate endDate = startDate.plusYears(durationInYears);
-        int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-
-        PassivePhase passivePhase = new PassivePhase();
-        passivePhase.setStartDate(startDate);
-        passivePhase.setDuration(days);
-        passivePhase.setLiveData(phase.getLiveData());
-        passivePhase.setTaxRule(new NotionalGainsTax());
-
-        return simulationEngine.runSimulation(passivePhase);
-    }
-
-    private Phase makeWithdrawPhase(Phase phase, int durationInYears, Withdraw withdraw) {
-        System.out.println("Initializing Withdraw Phase");
-
-        LocalDate startDate = phase.getStartDate().plusDays(phase.getDuration());
-        LocalDate endDate = startDate.plusYears(durationInYears);
-        int days = (int) startDate.until(endDate, ChronoUnit.DAYS);
-
-        WithdrawPhase withdrawPhase = new WithdrawPhase();
-        withdrawPhase.setStartDate(startDate);
-        withdrawPhase.setWithdraw(withdraw);
-        withdrawPhase.setDuration(days);
-        withdrawPhase.setLiveData(phase.getLiveData());
-        withdrawPhase.setTaxRule(new NotionalGainsTax());
-
-        return simulationEngine.runSimulation(withdrawPhase);
-    }
-
 }

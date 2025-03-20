@@ -13,6 +13,11 @@ public class NotionalGainsTax implements TaxRule, SmartApplicationListener {
     }
 
     @Override
+    public TaxRule copy() {
+        return new NotionalGainsTax();
+    }
+
+    @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
         YearEvent yearEvent = (YearEvent) event;
         if (yearEvent.getType() != Type.END) return;

@@ -12,7 +12,7 @@ public final class Snapshot implements ImmutableData {
     private String extraInfo;
 
     public Snapshot(LiveData state) {
-        this.state = state.copy(state);
+        this.state = state.copy();
     }
 
     public long getCurrentTimeSpan() {

@@ -7,28 +7,28 @@ import dk.gormkrings.event.date.*;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.data.Snapshot;
 import dk.gormkrings.simulation.phases.Phase;
-import org.springframework.context.ApplicationEvent;
+import org.springframework.context.event.SimpleApplicationEventMulticaster;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Component
 public class Engine {
 
-    private final EventDispatcher dispatcher;
-    private final Result result = new Result();
-
-    public Engine(EventDispatcher dispatcher) {
-        this.dispatcher = dispatcher;
+    public Result simulatePhases(List<Phase> phases) {
+        Result result = new Result();
+        for (Phase phase : phases) {
+            result.addResult(simulatePhase(phase));
+        }
+        return result;
     }
 
-    private void notifyListeners(ApplicationEvent event) {
-        dispatcher.notifyListeners(event);
-    }
-
-    public Phase runSimulation(Phase phase) {
+    private Result simulatePhase(Phase phase) {
+        Result result = new Result();
         LiveData data = phase.getLiveData();
         LocalDate startDate = phase.getStartDate();
+        EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);
         if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule()) ;
 
@@ -36,7 +36,7 @@ public class Engine {
         result.addSnapshot(new Snapshot(data));
 
         RunEvent simStart = new RunEvent(this, data, Type.START);
-        notifyListeners(simStart);
+        dispatcher.notifyListeners(simStart);
 
         while (data.isLive(phase.getDuration())) {
             data.incrementTime();
@@ -46,38 +46,38 @@ public class Engine {
             // Publish Month Start Event
             if (currentDate.getDayOfMonth() == 1 && !currentDate.equals(startDate)) {
                 MonthEvent monthStart = new MonthEvent(this, data, Type.START);
-                notifyListeners(monthStart);
+                dispatcher.notifyListeners(monthStart);
             }
 
             // Publish Year Start Event
             if (currentDate.getDayOfYear() == 1 && !currentDate.equals(startDate)) {
                 YearEvent yearStart = new YearEvent(this, data, Type.START);
-                notifyListeners(yearStart);
+                dispatcher.notifyListeners(yearStart);
             }
 
             // Publish Day Event
             DayEvent dayEvent = new DayEvent(this, data);
-            notifyListeners(dayEvent);
+            dispatcher.notifyListeners(dayEvent);
 
             // Publish Month End Event
             if (currentDate.getDayOfMonth() == currentDate.lengthOfMonth()) {
                 MonthEvent monthEnd = new MonthEvent(this, data, Type.END);
-                notifyListeners(monthEnd);
+                dispatcher.notifyListeners(monthEnd);
             }
 
             // Publish Year End Event
             if (currentDate.getDayOfYear() == currentDate.lengthOfYear()) {
                 YearEvent yearEnd = new YearEvent(this, data, Type.END);
-                notifyListeners(yearEnd);
+                dispatcher.notifyListeners(yearEnd);
             }
         }
         RunEvent simEnd = new RunEvent(this, data, Type.END);
-        notifyListeners(simEnd);
+        dispatcher.notifyListeners(simEnd);
 
         result.addSnapshot(new Snapshot(data));
         result.print();
         data.resetSession();
         dispatcher.clearRegistrations();
-        return phase;
+        return result;
     }
 }
