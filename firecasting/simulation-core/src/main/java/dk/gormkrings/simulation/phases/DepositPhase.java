@@ -4,6 +4,7 @@ import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
+import dk.gormkrings.investment.Return;
 import dk.gormkrings.taxes.TaxRule;
 import lombok.Getter;
 import lombok.NonNull;
@@ -19,14 +20,14 @@ public class DepositPhase extends SimulationPhase {
     private boolean firstTime = true;
 
     public DepositPhase(Phase previousPhase, LocalDate startDate, long duration, Deposit deposit, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate,duration,taxRule,"Deposit");
-        //System.out.println("Initializing Additional Deposit Phase");
+        super(previousPhase.getLiveData(), startDate,duration,taxRule, previousPhase.getReturner(), "Deposit");
+        System.out.println("Initializing Additional Deposit Phase");
         this.deposit = deposit;
     }
 
-    public DepositPhase(LocalDate startDate, long duration, Deposit deposit, LiveData liveData, TaxRule taxRule) {
-        super(liveData, startDate, duration, taxRule,"Deposit");
-        //System.out.println("Initializing Deposit Phase");
+    public DepositPhase(LocalDate startDate, long duration, Deposit deposit, LiveData liveData, Return returner, TaxRule taxRule) {
+        super(liveData, startDate, duration, taxRule, returner, "Deposit");
+        System.out.println("Initializing Deposit Phase");
         this.deposit = deposit;
     }
 
@@ -35,9 +36,10 @@ public class DepositPhase extends SimulationPhase {
         MonthEvent monthEvent = (MonthEvent) event;
         if (monthEvent.getType() != Type.END) return;
 
-        LiveData data = getLiveData();
+        LiveData data = monthEvent.getData();
+        addReturn(data);
         depositMoney(data);
-        //printPretty(data);
+        System.out.println(prettyString(data));
     }
 
     public void depositMoney(LiveData data) {
@@ -51,11 +53,11 @@ public class DepositPhase extends SimulationPhase {
         deposit.increaseMonthly(deposit.getMonthlyIncrease());
     }
 
-    public void printPretty(LiveData data) {
-        System.out.println(getPrettyCurrentDate() +
-                " - Monthly " + formatNumber(deposit.getMonthly()) +
-                " - Deposited " + formatNumber(data.getDeposit()) +
-                " - Capital " + formatNumber(data.getCapital()));
+    @Override
+    public String prettyString(LiveData data) {
+        return super.prettyString(data) +
+                " - Deposit " + formatNumber(deposit.getMonthly()
+        );
     }
 
     @Override
@@ -66,6 +68,7 @@ public class DepositPhase extends SimulationPhase {
                     getDuration(),
                     this.deposit.copy(),
                     getLiveData().copy(),
+                    getReturner().copy(),
                     getTaxRule().copy());
         } else {
             return new DepositPhase(

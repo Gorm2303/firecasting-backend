@@ -23,7 +23,7 @@ public class NotionalGainsTax implements TaxRule, SmartApplicationListener {
         if (yearEvent.getType() != Type.END) return;
 
         long day = yearEvent.getData().getSessionDuration();
-        //System.out.println("Year " + (day / 365) + ": NotionalGainsTax calculating tax.");
+        System.out.println("Year " + (day / 365) + ": NotionalGainsTax calculating tax.");
         // Implement your tax calculation logic here
     }
 

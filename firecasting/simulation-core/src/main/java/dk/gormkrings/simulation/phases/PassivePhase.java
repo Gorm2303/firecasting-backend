@@ -4,21 +4,16 @@ import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.taxes.TaxRule;
-import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.LocalDate;
 
-@Getter
-@Setter
 public class PassivePhase extends SimulationPhase {
-    private boolean firstTime = true;
 
     public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate, duration, taxRule,"Passive");
-        //System.out.println("Initializing Passive Phase");
+        super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), "Passive");
+        System.out.println("Initializing Passive Phase");
     }
 
     @Override
@@ -27,20 +22,13 @@ public class PassivePhase extends SimulationPhase {
         if (monthEvent.getType() != Type.END) return;
 
         LiveData data = getLiveData();
-        monthlyUpdate(data);
-        //printPretty(data);
+        addReturn(data);
+        System.out.println(prettyString(data));
     }
 
-    public void monthlyUpdate(LiveData data) {
-        if (firstTime) {
-            firstTime = false;
-        }
-    }
 
-    public void printPretty(LiveData data) {
-        System.out.println(getPrettyCurrentDate() +
-                " - Passive Earnings " + formatNumber(data.getPassiveMoney()) +
-                " - Capital " + formatNumber(data.getCapital()));
+    public String prettyString(LiveData data) {
+        return super.prettyString(data);
     }
 
     @Override

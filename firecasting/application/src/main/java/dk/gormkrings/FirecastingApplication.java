@@ -3,6 +3,8 @@ package dk.gormkrings;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
+import dk.gormkrings.investment.Return;
+import dk.gormkrings.investment.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.phases.PassivePhase;
 import dk.gormkrings.simulation.phases.DepositPhase;
@@ -23,7 +25,7 @@ import java.util.List;
 @SpringBootApplication(scanBasePackages = "dk.gormkrings")
 public class FirecastingApplication implements CommandLineRunner {
 
-    private MonteCarloSimulation simulation;
+    private final MonteCarloSimulation simulation;
 
     public FirecastingApplication(MonteCarloSimulation simulation) {
         this.simulation = simulation;
@@ -43,10 +45,11 @@ public class FirecastingApplication implements CommandLineRunner {
         Deposit deposit = new Deposit(10000, 5000);
         TaxRule notionalTax = new NotionalGainsTax();
         Withdraw withdraw = new Withdraw(0.04F);
+        Return basicReturn = new SimpleMonthlyReturn(7);
 
-        int depositDurationInMonths = 10 *12;
+        int depositDurationInMonths = 20 *12;
         long days = getDurationInDays(startDate,depositDurationInMonths);
-        Phase currentPhase = new DepositPhase(startDate, days, deposit, liveData, notionalTax);
+        Phase currentPhase = new DepositPhase(startDate, days, deposit, liveData, basicReturn, notionalTax);
         phases.add(currentPhase);
 
         int passiveDurationInMonths = 5 *12;
@@ -63,7 +66,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         long startTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.runMonteCarlo(10000, phases);
+        List<Result> results = simulation.runMonteCarlo(1, phases);
         System.out.println("These are the results");
         for (Result result : results) {
             System.out.println("Result: ");

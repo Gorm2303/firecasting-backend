@@ -27,10 +27,6 @@ public final class Snapshot implements ImmutableData {
         return state.getInflation();
     }
 
-    public float getRateOfReturn() {
-        return state.getRateOfReturn();
-    }
-
     @Override
     public String toString() {
         return state.toString();

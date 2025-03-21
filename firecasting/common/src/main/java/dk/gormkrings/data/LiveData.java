@@ -12,14 +12,13 @@ public class LiveData implements Live {
     private double passiveMoney;
     private double capital;
     private float inflation;
-    private float rateOfReturn;
+    private double returned;
 
     public LiveData() {
         this.sessionDuration = 0;
         this.deposit = 0;
         this.capital = 0;
         this.inflation = 0;
-        this.rateOfReturn = 0;
         this.totalDurationAlive = 0;
         this.passiveMoney = 0;
     }
@@ -27,7 +26,6 @@ public class LiveData implements Live {
     private LiveData(LiveData liveData) {
         this.sessionDuration = liveData.sessionDuration;
         this.inflation = liveData.inflation;
-        this.rateOfReturn = liveData.rateOfReturn;
         this.capital = liveData.capital;
         this.deposit = liveData.deposit;
         this.totalDurationAlive = liveData.totalDurationAlive;
@@ -58,7 +56,7 @@ public class LiveData implements Live {
                 " - Capital " + capital +
                 " - Passive " + passiveMoney +
                 " - Inflation " + inflation +
-                " - RateOfReturn " + rateOfReturn;
+                " - Return " + returned;
     }
 
     public void addToCapital(double capital) {
@@ -75,6 +73,14 @@ public class LiveData implements Live {
 
     public void subtractFromDeposit(double deposit) {
         this.deposit -= deposit;
+    }
+
+    public void addToReturned(double returned) {
+        this.returned += returned;
+    }
+
+    public void subtractFromReturned(double returned) {
+        this.returned -= returned;
     }
 
     public LiveData copy() {

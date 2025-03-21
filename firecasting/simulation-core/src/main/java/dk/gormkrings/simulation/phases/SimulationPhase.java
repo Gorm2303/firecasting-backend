@@ -3,6 +3,7 @@ package dk.gormkrings.simulation.phases;
 import dk.gormkrings.action.Action;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
+import dk.gormkrings.investment.Return;
 import dk.gormkrings.taxes.TaxRule;
 import lombok.Getter;
 import lombok.NonNull;
@@ -22,13 +23,22 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
     private long duration;
     private TaxRule taxRule;
     private Action action;
+    private Return returner;
 
-    SimulationPhase(LiveData liveData, LocalDate startDate, long duration, TaxRule taxRule, String name) {
+    SimulationPhase(LiveData liveData, LocalDate startDate, long duration, TaxRule taxRule, Return returner,  String name) {
         this.liveData = liveData;
         this.startDate = startDate;
         this.duration = duration;
         this.taxRule = taxRule;
         this.name = name;
+        this.returner = returner;
+    }
+
+    @Override
+    public void addReturn(LiveData data) {
+        double r = getReturner().calculateReturn(data.getCapital());
+        data.addToReturned(r);
+        data.addToCapital(r);
     }
 
     @Override
@@ -53,6 +63,14 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
         return formattedDate;
     }
 
+    public String prettyString(LiveData data) {
+        return getPrettyCurrentDate() +
+                " - Capital " + formatNumber(data.getCapital()) +
+                " - Deposited " + formatNumber(data.getDeposit()) +
+                " - Returned " + formatNumber(data.getReturned()
+        );
+    }
+
     @Override
     public boolean supportsEventType(@NonNull Class<? extends ApplicationEvent> eventType) {
         return MonthEvent.class.isAssignableFrom(eventType);
@@ -75,6 +93,4 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
         DecimalFormat df = new DecimalFormat(pattern);
         return df.format(number);
     }
-
-
 }

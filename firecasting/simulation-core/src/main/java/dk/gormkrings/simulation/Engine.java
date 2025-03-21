@@ -25,13 +25,13 @@ public class Engine {
     }
 
     private Result simulatePhase(Phase phase) {
-        //System.out.println("Simulation running for " + phase.getDuration() + " days");
+        System.out.println("Simulation running for " + phase.getDuration() + " days");
         Result result = new Result();
         LiveData data = phase.getLiveData();
         LocalDate startDate = phase.getStartDate();
         EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);
-        if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule()) ;
+        if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule());
 
         result.addSnapshot(new Snapshot(data));
 
