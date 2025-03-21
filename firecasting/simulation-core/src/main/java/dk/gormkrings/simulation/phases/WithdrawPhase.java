@@ -17,7 +17,6 @@ import java.time.LocalDate;
 public class WithdrawPhase extends SimulationPhase {
     private Withdraw withdraw;
     private boolean firstTime = true;
-    private double withdrawn;
 
     public WithdrawPhase(Phase previousPhase, LocalDate startDate, long duration, Withdraw withdraw, TaxRule taxRule) {
         super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), "Withdraw");
@@ -40,14 +39,17 @@ public class WithdrawPhase extends SimulationPhase {
         if (firstTime) {
             firstTime = false;
         }
-        withdrawn = this.withdraw.getMonthlyAmount(data.getCapital());
-        data.subtractFromCapital(withdrawn);
+        double withdraw = this.withdraw.getMonthlyAmount(data.getCapital());
+        data.setWithdraw(withdraw);
+        data.addToWithdrawn(withdraw);
+        data.subtractFromCapital(withdraw);
     }
 
     @Override
     public String prettyString(LiveData data) {
         return super.prettyString(data) +
-                " - Withdrawn " + formatNumber(withdrawn);
+                " - Withdraw " + formatNumber(data.getWithdraw()) +
+                " - Withdrawn " + formatNumber(data.getWithdrawn());
     }
 
     @Override

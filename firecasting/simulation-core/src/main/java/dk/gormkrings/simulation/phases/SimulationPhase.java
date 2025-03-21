@@ -37,6 +37,7 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
     @Override
     public void addReturn(LiveData data) {
         double r = getReturner().calculateReturn(data.getCapital());
+        data.setCurrentReturn(r);
         data.addToReturned(r);
         data.addToCapital(r);
     }
@@ -66,8 +67,9 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
     public String prettyString(LiveData data) {
         return getPrettyCurrentDate() +
                 " - Capital " + formatNumber(data.getCapital()) +
-                " - Deposited " + formatNumber(data.getDeposit()) +
-                " - Returned " + formatNumber(data.getReturned()
+                " - Deposited " + formatNumber(data.getDeposited()) +
+                " - Returned " + formatNumber(data.getReturned()) +
+                " - Return " + formatNumber(data.getCurrentReturn()
         );
     }
 

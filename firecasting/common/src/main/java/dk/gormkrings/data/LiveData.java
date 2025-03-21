@@ -9,27 +9,41 @@ public class LiveData implements Live {
     private long totalDurationAlive;
     private long sessionDuration;
     private double deposit;
+    private double deposited;
     private double passiveMoney;
     private double capital;
     private float inflation;
+    private double currentReturn;
     private double returned;
+    private double withdraw;
+    private double withdrawn;
 
     public LiveData() {
+        this.totalDurationAlive = 0;
         this.sessionDuration = 0;
         this.deposit = 0;
+        this.deposited = 0;
+        this.passiveMoney = 0;
         this.capital = 0;
         this.inflation = 0;
-        this.totalDurationAlive = 0;
-        this.passiveMoney = 0;
+        this.currentReturn = 0;
+        this.returned = 0;
+        this.withdraw = 0;
+        this.withdrawn = 0;
     }
 
     private LiveData(LiveData liveData) {
-        this.sessionDuration = liveData.sessionDuration;
-        this.inflation = liveData.inflation;
-        this.capital = liveData.capital;
-        this.deposit = liveData.deposit;
         this.totalDurationAlive = liveData.totalDurationAlive;
+        this.sessionDuration = liveData.sessionDuration;
+        this.deposit = liveData.deposit;
+        this.deposited = liveData.deposited;
         this.passiveMoney = liveData.passiveMoney;
+        this.capital = liveData.capital;
+        this.inflation = liveData.inflation;
+        this.currentReturn = liveData.currentReturn;
+        this.returned = liveData.returned;
+        this.withdraw = liveData.withdraw;
+        this.withdrawn = liveData.withdrawn;
     }
 
     @Override
@@ -52,11 +66,11 @@ public class LiveData implements Live {
         return "LiveData: " +
                 "Alive " + totalDurationAlive +
                 " - Session " + sessionDuration +
-                " - Deposit " + deposit +
+                " - Deposited " + deposited +
                 " - Capital " + capital +
                 " - Passive " + passiveMoney +
                 " - Inflation " + inflation +
-                " - Return " + returned;
+                " - Returned " + returned;
     }
 
     public void addToCapital(double capital) {
@@ -68,11 +82,11 @@ public class LiveData implements Live {
     }
 
     public void addToDeposit(double deposit) {
-        this.deposit += deposit;
+        this.deposited += deposit;
     }
 
     public void subtractFromDeposit(double deposit) {
-        this.deposit -= deposit;
+        this.deposited -= deposit;
     }
 
     public void addToReturned(double returned) {
@@ -81,6 +95,10 @@ public class LiveData implements Live {
 
     public void subtractFromReturned(double returned) {
         this.returned -= returned;
+    }
+
+    public void addToWithdrawn(double withdraw) {
+        this.withdrawn += withdraw;
     }
 
     public LiveData copy() {
