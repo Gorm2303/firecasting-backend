@@ -4,17 +4,22 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-@Setter
 public class LiveData implements Live {
     private long totalDurationAlive;
+    @Setter
     private long sessionDuration;
+    @Setter
     private double deposit;
     private double deposited;
-    private double passiveMoney;
+    @Setter
+    private double passiveReturn;
+    private double passiveReturned;
     private double capital;
     private float inflation;
+    @Setter
     private double currentReturn;
     private double returned;
+    @Setter
     private double withdraw;
     private double withdrawn;
 
@@ -23,7 +28,7 @@ public class LiveData implements Live {
         this.sessionDuration = 0;
         this.deposit = 0;
         this.deposited = 0;
-        this.passiveMoney = 0;
+        this.passiveReturned = 0;
         this.capital = 0;
         this.inflation = 0;
         this.currentReturn = 0;
@@ -37,7 +42,7 @@ public class LiveData implements Live {
         this.sessionDuration = liveData.sessionDuration;
         this.deposit = liveData.deposit;
         this.deposited = liveData.deposited;
-        this.passiveMoney = liveData.passiveMoney;
+        this.passiveReturned = liveData.passiveReturned;
         this.capital = liveData.capital;
         this.inflation = liveData.inflation;
         this.currentReturn = liveData.currentReturn;
@@ -68,7 +73,7 @@ public class LiveData implements Live {
                 " - Session " + sessionDuration +
                 " - Deposited " + deposited +
                 " - Capital " + capital +
-                " - Passive " + passiveMoney +
+                " - Passive " + passiveReturned +
                 " - Inflation " + inflation +
                 " - Returned " + returned;
     }
@@ -81,24 +86,20 @@ public class LiveData implements Live {
         this.capital -= capital;
     }
 
-    public void addToDeposit(double deposit) {
+    public void addToDeposited(double deposit) {
         this.deposited += deposit;
-    }
-
-    public void subtractFromDeposit(double deposit) {
-        this.deposited -= deposit;
     }
 
     public void addToReturned(double returned) {
         this.returned += returned;
     }
 
-    public void subtractFromReturned(double returned) {
-        this.returned -= returned;
-    }
-
     public void addToWithdrawn(double withdraw) {
         this.withdrawn += withdraw;
+    }
+
+    public void addToPassiveReturned(double passiveReturn) {
+        this.passiveReturned += passiveReturn;
     }
 
     public LiveData copy() {

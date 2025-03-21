@@ -1,5 +1,6 @@
 package dk.gormkrings.simulation.phases;
 
+import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.Type;
@@ -10,10 +11,13 @@ import org.springframework.context.ApplicationEvent;
 import java.time.LocalDate;
 
 public class PassivePhase extends SimulationPhase {
+    private Passive passive;
+    private boolean firstTime = true;
 
-    public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, TaxRule taxRule) {
+    public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, Passive passive, TaxRule taxRule) {
         super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), "Passive");
         System.out.println("Initializing Passive Phase");
+        this.passive = passive;
     }
 
     @Override
@@ -23,12 +27,23 @@ public class PassivePhase extends SimulationPhase {
 
         LiveData data = getLiveData();
         addReturn(data);
+        calculatePassive(data);
         System.out.println(prettyString(data));
     }
 
+    private void calculatePassive(LiveData data) {
+        double passiveReturn = data.getCurrentReturn();
+        if (firstTime) {
+            passive.setInitial(data.getReturned() - passiveReturn);
+            firstTime = false;
+        }
+        data.setPassiveReturn(passiveReturn);
+        data.addToPassiveReturned(passiveReturn);
+    }
 
     public String prettyString(LiveData data) {
-        return super.prettyString(data);
+        return super.prettyString(data) +
+                " - Passive " + formatNumber(data.getPassiveReturned());
     }
 
     @Override
@@ -37,6 +52,7 @@ public class PassivePhase extends SimulationPhase {
                 previousPhase,
                 getStartDate(),
                 getDuration(),
+                this.passive.copy(),
                 getTaxRule().copy()
         );
     }

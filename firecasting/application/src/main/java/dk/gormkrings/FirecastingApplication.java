@@ -1,6 +1,7 @@
 package dk.gormkrings;
 
 import dk.gormkrings.action.Deposit;
+import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.investment.Return;
@@ -42,10 +43,11 @@ public class FirecastingApplication implements CommandLineRunner {
 
         LiveData liveData = new LiveData();
         LocalDate startDate = LocalDate.of(2025,1,1);
-        Deposit deposit = new Deposit(10000, 5000);
         TaxRule notionalTax = new NotionalGainsTax();
-        Withdraw withdraw = new Withdraw(0.04F);
         Return basicReturn = new SimpleMonthlyReturn(7);
+        Deposit deposit = new Deposit(10000, 5000);
+        Passive passive = new Passive();
+        Withdraw withdraw = new Withdraw(0.04F);
 
         int depositDurationInMonths = 20 *12;
         long days = getDurationInDays(startDate,depositDurationInMonths);
@@ -55,7 +57,7 @@ public class FirecastingApplication implements CommandLineRunner {
         int passiveDurationInMonths = 5 *12;
         startDate = getNewStartDate(startDate, getDurationInDays(startDate, depositDurationInMonths));
         days = getDurationInDays(startDate, passiveDurationInMonths);
-        currentPhase = new PassivePhase(currentPhase, startDate, days, notionalTax);
+        currentPhase = new PassivePhase(currentPhase, startDate, days, passive, notionalTax);
         phases.add(currentPhase);
 
         int withdrawDurationInMonths = 30 *12;

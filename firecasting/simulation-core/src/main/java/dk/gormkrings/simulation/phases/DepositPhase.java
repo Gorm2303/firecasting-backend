@@ -44,19 +44,21 @@ public class DepositPhase extends SimulationPhase {
 
     public void depositMoney(LiveData data) {
         if (firstTime) {
-            data.addToDeposit(deposit.getInitial());
+            data.addToDeposited(deposit.getInitial());
             data.addToCapital(deposit.getInitial());
             firstTime = false;
         }
-        data.addToDeposit(deposit.getMonthly());
-        data.addToCapital(deposit.getMonthly());
+        double depositAmount = deposit.getMonthly();
+        data.setDeposit(depositAmount);
+        data.addToDeposited(depositAmount);
+        data.addToCapital(depositAmount);
         deposit.increaseMonthly(deposit.getMonthlyIncrease());
     }
 
     @Override
     public String prettyString(LiveData data) {
         return super.prettyString(data) +
-                " - Deposit " + formatNumber(deposit.getMonthly()
+                " - Deposit " + formatNumber(data.getDeposit()
         );
     }
 
