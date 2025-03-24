@@ -9,7 +9,7 @@ import org.springframework.context.event.SmartApplicationListener;
 
 @Setter
 @Getter
-public class CapitalGainsTax implements TaxRule, SmartApplicationListener {
+public class CapitalGainsTax implements TaxRule {
     private float taxRate;
     private StockExemptionTax stockExemptionTax;
     private TaxExemptionCard taxExemptionCard;

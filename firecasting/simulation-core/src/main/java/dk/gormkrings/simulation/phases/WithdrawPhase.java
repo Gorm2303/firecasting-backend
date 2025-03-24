@@ -4,24 +4,26 @@ import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.taxes.TaxRule;
+import dk.gormkrings.simulation.specification.Spec;
+import dk.gormkrings.simulation.specification.Specification;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.LocalDate;
 
+@Slf4j
 @Getter
 @Setter
 public class WithdrawPhase extends SimulationPhase {
     private Withdraw withdraw;
     private boolean firstTime = true;
 
-    public WithdrawPhase(Phase previousPhase, LocalDate startDate, long duration, Withdraw withdraw, Inflation inflation, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), inflation, "Withdraw");
-        System.out.println("Initializing Withdraw Phase");
+    public WithdrawPhase(Specification specification, LocalDate startDate, long duration, Withdraw withdraw) {
+        super(specification, startDate, duration, "Withdraw");
+        log.debug("Initializing Withdraw Phase");
         this.withdraw = withdraw;
     }
 
@@ -31,9 +33,9 @@ public class WithdrawPhase extends SimulationPhase {
         if (monthEvent.getType() != Type.END) return;
 
         LiveData data = getLiveData();
-        addReturn(data);
+        addReturn();
         withdrawMoney(data);
-        System.out.println(prettyString(data));
+        log.debug(prettyString());
     }
 
     public void withdrawMoney(LiveData data) {
@@ -47,21 +49,19 @@ public class WithdrawPhase extends SimulationPhase {
     }
 
     @Override
-    public String prettyString(LiveData data) {
-        return super.prettyString(data) +
-                " - Withdraw " + formatNumber(data.getWithdraw()) +
-                " - Withdrawn " + formatNumber(data.getWithdrawn());
+    public String prettyString() {
+        return super.prettyString() +
+                " - Withdraw " + formatNumber(getLiveData().getWithdraw()) +
+                " - Withdrawn " + formatNumber(getLiveData().getWithdrawn());
     }
 
     @Override
-    public Phase copy(Phase previousPhase) {
+    public WithdrawPhase copy(Spec specificationCopy) {
         return new WithdrawPhase(
-                previousPhase,
+                (Specification) specificationCopy,
                 getStartDate(),
                 getDuration(),
-                this.withdraw,
-                getInflation().copy(),
-                getTaxRule().copy()
+                this.withdraw
         );
     }
 }

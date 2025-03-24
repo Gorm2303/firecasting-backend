@@ -1,9 +1,8 @@
 package dk.gormkrings.taxes;
 
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.SmartApplicationListener;
 
-public interface TaxRule extends ApplicationListener<ApplicationEvent> {
+public interface TaxRule extends SmartApplicationListener {
     double calculateTax();
     TaxRule copy();
 }

@@ -1,34 +1,27 @@
 package dk.gormkrings.simulation.phases;
 
 import dk.gormkrings.action.Deposit;
-import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.returns.Return;
-import dk.gormkrings.taxes.TaxRule;
+import dk.gormkrings.simulation.specification.Spec;
+import dk.gormkrings.simulation.specification.Specification;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
-
 import java.time.LocalDate;
 
+@Slf4j
 @Getter
 @Setter
 public class DepositPhase extends SimulationPhase {
     private Deposit deposit;
     private boolean firstTime = true;
 
-    public DepositPhase(Phase previousPhase, LocalDate startDate, long duration, Deposit deposit, Inflation inflation, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate,duration,taxRule, previousPhase.getReturner(), inflation, "Deposit");
-        System.out.println("Initializing Additional Deposit Phase");
-        this.deposit = deposit;
-    }
-
-    public DepositPhase(LocalDate startDate, long duration, Deposit deposit, LiveData liveData, Return returner, Inflation inflation, TaxRule taxRule) {
-        super(liveData, startDate, duration, taxRule, returner, inflation, "Deposit");
-        System.out.println("Initializing Deposit Phase");
+    public DepositPhase(Specification specification, LocalDate startDate, long duration, Deposit deposit) {
+        super(specification, startDate, duration,"Deposit");
+        log.debug("Initializing Deposit Phase");
         this.deposit = deposit;
     }
 
@@ -37,51 +30,38 @@ public class DepositPhase extends SimulationPhase {
         MonthEvent monthEvent = (MonthEvent) event;
         if (monthEvent.getType() != Type.END) return;
 
-        LiveData data = monthEvent.getData();
-        addReturn(data);
-        depositMoney(data);
-        System.out.println(prettyString(data));
+        addReturn();
+        depositMoney();
+        log.debug(prettyString());
     }
 
-    public void depositMoney(LiveData data) {
+    public void depositMoney() {
         if (firstTime) {
-            data.addToDeposited(deposit.getInitial());
-            data.addToCapital(deposit.getInitial());
+            getLiveData().addToDeposited(deposit.getInitial());
+            getLiveData().addToCapital(deposit.getInitial());
             firstTime = false;
         }
         double depositAmount = deposit.getMonthly();
-        data.setDeposit(depositAmount);
-        data.addToDeposited(depositAmount);
-        data.addToCapital(depositAmount);
+        getLiveData().setDeposit(depositAmount);
+        getLiveData().addToDeposited(depositAmount);
+        getLiveData().addToCapital(depositAmount);
         deposit.increaseMonthly(deposit.getMonthlyIncrease());
     }
 
     @Override
-    public String prettyString(LiveData data) {
-        return super.prettyString(data) +
-                " - Deposit " + formatNumber(data.getDeposit()
+    public String prettyString() {
+        return super.prettyString() +
+                " - Deposit " + formatNumber(getLiveData().getDeposit()
         );
     }
 
     @Override
-    public Phase copy(Phase previousPhase) {
-        if (previousPhase == null) {
-            return new DepositPhase(
-                    this.getStartDate(),
-                    getDuration(),
-                    this.deposit.copy(),
-                    getLiveData().copy(),
-                    getReturner().copy(),
-                    getInflation().copy(),
-                    getTaxRule().copy());
-        } else {
-            return new DepositPhase(
-                    previousPhase,
-                    this.getStartDate(),
-                    getDuration(),
-                    this.deposit.copy(),
-                    getInflation().copy(),
-                    getTaxRule().copy());
-        }
+    public DepositPhase copy(Spec specificationCopy) {
+        return new DepositPhase(
+                (Specification) specificationCopy,
+                this.getStartDate(),
+                getDuration(),
+                this.deposit.copy()
+        );
     }
 }

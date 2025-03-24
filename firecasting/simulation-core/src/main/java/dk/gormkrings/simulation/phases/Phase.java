@@ -1,24 +1,19 @@
 package dk.gormkrings.simulation.phases;
 
-import dk.gormkrings.data.LiveData;
-import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.returns.Return;
-import dk.gormkrings.taxes.TaxRule;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationListener;
+import dk.gormkrings.data.Live;
+import dk.gormkrings.simulation.specification.Spec;
+import org.springframework.context.event.SmartApplicationListener;
 
 import java.time.LocalDate;
 
-public interface Phase extends ApplicationListener<ApplicationEvent> {
-    LiveData getLiveData();
+public interface Phase extends SmartApplicationListener {
     LocalDate getStartDate();
     long getDuration();
     String getName();
-    void incrementTime();
     LocalDate getCurrentLocalDate();
-    TaxRule getTaxRule();
-    Phase copy(Phase previousPhase);
-    Return getReturner();
-    void addReturn(LiveData data);
-    Inflation getInflation();
+    Phase copy(Spec specificationCopy);
+    void addReturn();
+    Spec getSpecification();
+    Live getLiveData();
+
 }

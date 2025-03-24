@@ -1,7 +1,7 @@
 package dk.gormkrings.event;
 
-import dk.gormkrings.data.LiveData;
+import dk.gormkrings.data.Live;
 
 public interface SimulationUpdateEvent {
-    LiveData getData();
+    Live getData();
 }

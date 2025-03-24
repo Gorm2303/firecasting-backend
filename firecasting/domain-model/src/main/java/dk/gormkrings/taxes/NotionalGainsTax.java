@@ -3,10 +3,11 @@ package dk.gormkrings.taxes;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.YearEvent;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.context.event.SmartApplicationListener;
 
-public class NotionalGainsTax implements TaxRule, SmartApplicationListener {
+@Slf4j
+public class NotionalGainsTax implements TaxRule {
     @Override
     public double calculateTax() {
         return 0;
@@ -22,8 +23,7 @@ public class NotionalGainsTax implements TaxRule, SmartApplicationListener {
         YearEvent yearEvent = (YearEvent) event;
         if (yearEvent.getType() != Type.END) return;
 
-        long day = yearEvent.getData().getSessionDuration();
-        System.out.println("Year " + (day / 365) + ": NotionalGainsTax calculating tax.");
+        log.debug("Year " + (yearEvent.getData().getSessionDuration() / 365) + ": NotionalGainsTax calculating tax.");
         // Implement your tax calculation logic here
     }
 

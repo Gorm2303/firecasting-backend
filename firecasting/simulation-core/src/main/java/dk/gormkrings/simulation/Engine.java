@@ -1,18 +1,21 @@
 package dk.gormkrings.simulation;
 
-import dk.gormkrings.data.LiveData;
+import dk.gormkrings.data.Live;
 import dk.gormkrings.event.RunEvent;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.*;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.data.Snapshot;
 import dk.gormkrings.simulation.phases.Phase;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.SimpleApplicationEventMulticaster;
+import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @Component
 public class Engine {
 
@@ -25,15 +28,17 @@ public class Engine {
     }
 
     private Result simulatePhase(Phase phase) {
-        System.out.println("Simulation running for " + phase.getDuration() + " days");
+        log.debug("Simulation running for {} days", phase.getDuration());
         Result result = new Result();
-        LiveData data = phase.getLiveData();
+        Live data = phase.getLiveData();
         LocalDate startDate = phase.getStartDate();
         EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);
-        if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule());
-        if (phase.getTaxRule() != null) dispatcher.register(phase.getInflation());
-
+        if (phase.getSpecification().getListeners() != null) {
+            for (SmartApplicationListener listener : phase.getSpecification().getListeners()) {
+                dispatcher.register(listener);
+            }
+        }
 
         result.addSnapshot(new Snapshot(data));
 

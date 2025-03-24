@@ -1,17 +1,17 @@
 package dk.gormkrings.simulation.data;
 
 import dk.gormkrings.data.ImmutableData;
-import dk.gormkrings.data.LiveData;
+import dk.gormkrings.data.Live;
 import lombok.Getter;
 import lombok.Setter;
 
 public final class Snapshot implements ImmutableData {
-    private final LiveData state;
+    private final Live state;
     @Setter
     @Getter
     private String extraInfo;
 
-    public Snapshot(LiveData state) {
+    public Snapshot(Live state) {
         this.state = state.copy();
     }
 

@@ -4,20 +4,22 @@ import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.Type;
-import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.taxes.TaxRule;
+import dk.gormkrings.simulation.specification.Spec;
+import dk.gormkrings.simulation.specification.Specification;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.LocalDate;
 
+@Slf4j
 public class PassivePhase extends SimulationPhase {
     private Passive passive;
     private boolean firstTime = true;
 
-    public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, Passive passive, Inflation inflation, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), inflation, "Passive");
-        System.out.println("Initializing Passive Phase");
+    public PassivePhase(Specification specification, LocalDate startDate, long duration, Passive passive) {
+        super(specification, startDate, duration, "Passive");
+        log.debug("Initializing Passive Phase");
         this.passive = passive;
     }
 
@@ -27,10 +29,10 @@ public class PassivePhase extends SimulationPhase {
         if (monthEvent.getType() != Type.END) return;
 
         LiveData data = getLiveData();
-        addReturn(data);
+        addReturn();
         calculatePassive(data);
-        System.out.println(prettyString(data));
-    }
+        log.debug(prettyString());
+        }
 
     private void calculatePassive(LiveData data) {
         double passiveReturn = data.getCurrentReturn();
@@ -42,20 +44,19 @@ public class PassivePhase extends SimulationPhase {
         data.addToPassiveReturned(passiveReturn);
     }
 
-    public String prettyString(LiveData data) {
-        return super.prettyString(data) +
-                " - Passive " + formatNumber(data.getPassiveReturned());
+    @Override
+    public String prettyString() {
+        return super.prettyString() +
+                " - Passive " + formatNumber(getLiveData().getPassiveReturned());
     }
 
     @Override
-    public Phase copy(Phase previousPhase) {
+    public PassivePhase copy(Spec specificationCopy) {
         return new PassivePhase(
-                previousPhase,
+                (Specification) specificationCopy,
                 getStartDate(),
                 getDuration(),
-                this.passive.copy(),
-                getInflation().copy(),
-                getTaxRule().copy()
+                this.passive.copy()
         );
     }
 }

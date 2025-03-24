@@ -1,11 +1,13 @@
 package dk.gormkrings.simulation.data;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
 import java.util.List;
 
+@Slf4j
 @Getter
 @Component
 public class Result {
@@ -24,7 +26,7 @@ public class Result {
     }
 
     public void print() {
-        snapshots.forEach(System.out::println);
+        snapshots.forEach((e) -> log.debug(String.valueOf(e)));
     }
 
 }

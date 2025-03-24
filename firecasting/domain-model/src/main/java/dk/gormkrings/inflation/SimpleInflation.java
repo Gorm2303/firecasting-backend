@@ -1,21 +1,23 @@
 package dk.gormkrings.inflation;
 
+import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.YearEvent;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.context.event.SmartApplicationListener;
 
 import java.io.*;
 
+@Slf4j
 @Getter
-public class SimpleInflation implements Inflation, SmartApplicationListener {
+public class SimpleInflation implements Inflation {
     private double averagePercentage;
 
     public SimpleInflation() {
         setAverageInflation("/dk/gormkrings/inflation/inflation.csv");
-        System.out.println("Initializing SimpleInflation = " + this.averagePercentage);
+        log.debug("Initializing SimpleInflation = {}", this.averagePercentage);
     }
 
     private SimpleInflation(double averagePercentage) {
@@ -23,13 +25,13 @@ public class SimpleInflation implements Inflation, SmartApplicationListener {
     }
 
     public SimpleInflation(String filename) {
-        System.out.println("Initializing SimpleInflation");
         setAverageInflation(filename);
+        log.debug("Initializing SimpleInflation = {}", this.averagePercentage);
     }
 
     @Override
-    public double calculateInflation(double amount) {
-        return averagePercentage*amount/100;
+    public double calculatePercentage() {
+        return averagePercentage;
     }
 
     @Override
@@ -37,9 +39,10 @@ public class SimpleInflation implements Inflation, SmartApplicationListener {
         YearEvent yearEvent = (YearEvent) event;
         if (yearEvent.getType() != Type.END) return;
 
-        long day = yearEvent.getData().getSessionDuration();
-        System.out.println("Year " + (day / 365) + ": SimpleInflation calculating inflation.");
-        yearEvent.getData().addToInflation(averagePercentage);
+        log.debug("Year " + (yearEvent.getData().getSessionDuration() / 365) + ": SimpleInflation calculating inflation.");
+
+        LiveData data = (LiveData) yearEvent.getData();
+        data.addToInflation(calculatePercentage());
     }
 
     @Override
@@ -66,11 +69,13 @@ public class SimpleInflation implements Inflation, SmartApplicationListener {
 
         InputStream is = getClass().getResourceAsStream(csvFilePath);
         if (is == null) {
-            System.err.println("Resource not found: " + csvFilePath);
+            log.error("Resource not found: " + csvFilePath);
             return;
         }
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            br.readLine();// header skipped
+            br.readLine();// header skipped
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(delimiter);
                 if (parts.length >= 2) {
@@ -80,11 +85,12 @@ public class SimpleInflation implements Inflation, SmartApplicationListener {
                         sum += inflation;
                         count++;
                     } catch (NumberFormatException e) {
+                        log.warn("Skipping invalid inflation value: {}", inflationStr);
                     }
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Error reading CSV file", e);
         }
 
         averagePercentage = count > 0 ? sum / count : 0;

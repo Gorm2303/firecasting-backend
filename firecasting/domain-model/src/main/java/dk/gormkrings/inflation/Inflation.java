@@ -1,9 +1,8 @@
 package dk.gormkrings.inflation;
 
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.SmartApplicationListener;
 
-public interface Inflation extends ApplicationListener<ApplicationEvent> {
-    double calculateInflation(double amount);
+public interface Inflation extends SmartApplicationListener {
+    double calculatePercentage();
     Inflation copy();
 }

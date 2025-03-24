@@ -22,6 +22,8 @@ public class LiveData implements Live {
     @Setter
     private double withdraw;
     private double withdrawn;
+    @Setter
+    private boolean debug = false;
 
     public LiveData() {
         this.totalDurationAlive = 0;
@@ -42,6 +44,7 @@ public class LiveData implements Live {
         this.sessionDuration = liveData.sessionDuration;
         this.deposit = liveData.deposit;
         this.deposited = liveData.deposited;
+        this.passiveReturn = liveData.passiveReturn;
         this.passiveReturned = liveData.passiveReturned;
         this.capital = liveData.capital;
         this.inflation = liveData.inflation;
@@ -49,6 +52,7 @@ public class LiveData implements Live {
         this.returned = liveData.returned;
         this.withdraw = liveData.withdraw;
         this.withdrawn = liveData.withdrawn;
+        this.debug = liveData.debug;
     }
 
     @Override
@@ -76,7 +80,7 @@ public class LiveData implements Live {
                 " - Passive " + passiveReturned +
                 " - Capital " + capital +
                 " - Inflation " + inflation +
-                " - Current " + currentReturn +
+                " - Return " + currentReturn +
                 " - Returned " + returned +
                 " - withdraw " + withdraw +
                 " - withdrawn " + withdrawn;
