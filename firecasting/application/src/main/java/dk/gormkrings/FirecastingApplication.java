@@ -64,7 +64,7 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         int withdrawDurationInMonths = 30 *12;
-        startDate = getNewStartDate(startDate, getDurationInDays(startDate, withdrawDurationInMonths));
+        startDate = getNewStartDate(startDate, getDurationInDays(startDate, passiveDurationInMonths));
         days = getDurationInDays(startDate, withdrawDurationInMonths);
         currentPhase = new WithdrawPhase(currentPhase, startDate, days, withdraw, inflation, notionalTax);
         phases.add(currentPhase);

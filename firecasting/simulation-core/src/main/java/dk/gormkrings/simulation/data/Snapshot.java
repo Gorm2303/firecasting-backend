@@ -15,18 +15,6 @@ public final class Snapshot implements ImmutableData {
         this.state = state.copy();
     }
 
-    public long getCurrentTimeSpan() {
-        return state.getSessionDuration();
-    }
-
-    public double getCapital() {
-        return state.getCapital();
-    }
-
-    public float getInflation() {
-        return state.getInflation();
-    }
-
     @Override
     public String toString() {
         return state.toString();

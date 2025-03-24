@@ -39,7 +39,7 @@ public class SimpleInflation implements Inflation, SmartApplicationListener {
 
         long day = yearEvent.getData().getSessionDuration();
         System.out.println("Year " + (day / 365) + ": SimpleInflation calculating inflation.");
-        // Implement your tax calculation logic here
+        yearEvent.getData().addToInflation(averagePercentage);
     }
 
     @Override
