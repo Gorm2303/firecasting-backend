@@ -1,4 +1,4 @@
-package dk.gormkrings.investment;
+package dk.gormkrings.returns;
 
 public class DistributionReturn {
 }

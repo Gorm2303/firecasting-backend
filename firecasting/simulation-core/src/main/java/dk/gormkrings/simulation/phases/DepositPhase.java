@@ -4,7 +4,8 @@ import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.investment.Return;
+import dk.gormkrings.inflation.Inflation;
+import dk.gormkrings.returns.Return;
 import dk.gormkrings.taxes.TaxRule;
 import lombok.Getter;
 import lombok.NonNull;
@@ -19,14 +20,14 @@ public class DepositPhase extends SimulationPhase {
     private Deposit deposit;
     private boolean firstTime = true;
 
-    public DepositPhase(Phase previousPhase, LocalDate startDate, long duration, Deposit deposit, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate,duration,taxRule, previousPhase.getReturner(), "Deposit");
+    public DepositPhase(Phase previousPhase, LocalDate startDate, long duration, Deposit deposit, Inflation inflation, TaxRule taxRule) {
+        super(previousPhase.getLiveData(), startDate,duration,taxRule, previousPhase.getReturner(), inflation, "Deposit");
         System.out.println("Initializing Additional Deposit Phase");
         this.deposit = deposit;
     }
 
-    public DepositPhase(LocalDate startDate, long duration, Deposit deposit, LiveData liveData, Return returner, TaxRule taxRule) {
-        super(liveData, startDate, duration, taxRule, returner, "Deposit");
+    public DepositPhase(LocalDate startDate, long duration, Deposit deposit, LiveData liveData, Return returner, Inflation inflation, TaxRule taxRule) {
+        super(liveData, startDate, duration, taxRule, returner, inflation, "Deposit");
         System.out.println("Initializing Deposit Phase");
         this.deposit = deposit;
     }
@@ -71,6 +72,7 @@ public class DepositPhase extends SimulationPhase {
                     this.deposit.copy(),
                     getLiveData().copy(),
                     getReturner().copy(),
+                    getInflation().copy(),
                     getTaxRule().copy());
         } else {
             return new DepositPhase(
@@ -78,6 +80,7 @@ public class DepositPhase extends SimulationPhase {
                     this.getStartDate(),
                     getDuration(),
                     this.deposit.copy(),
+                    getInflation().copy(),
                     getTaxRule().copy());
         }
     }

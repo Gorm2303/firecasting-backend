@@ -3,7 +3,8 @@ package dk.gormkrings.simulation.phases;
 import dk.gormkrings.action.Action;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.investment.Return;
+import dk.gormkrings.inflation.Inflation;
+import dk.gormkrings.returns.Return;
 import dk.gormkrings.taxes.TaxRule;
 import lombok.Getter;
 import lombok.NonNull;
@@ -24,14 +25,16 @@ public abstract class SimulationPhase implements Phase, SmartApplicationListener
     private TaxRule taxRule;
     private Action action;
     private Return returner;
+    private Inflation inflation;
 
-    SimulationPhase(LiveData liveData, LocalDate startDate, long duration, TaxRule taxRule, Return returner,  String name) {
+    SimulationPhase(LiveData liveData, LocalDate startDate, long duration, TaxRule taxRule, Return returner, Inflation inflation, String name) {
         this.liveData = liveData;
         this.startDate = startDate;
         this.duration = duration;
         this.taxRule = taxRule;
-        this.name = name;
         this.returner = returner;
+        this.inflation = inflation;
+        this.name = name;
     }
 
     @Override

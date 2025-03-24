@@ -32,6 +32,8 @@ public class Engine {
         EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);
         if (phase.getTaxRule() != null) dispatcher.register(phase.getTaxRule());
+        if (phase.getTaxRule() != null) dispatcher.register(phase.getInflation());
+
 
         result.addSnapshot(new Snapshot(data));
 

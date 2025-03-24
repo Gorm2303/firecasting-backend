@@ -4,6 +4,7 @@ import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.Type;
+import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.taxes.TaxRule;
 import lombok.NonNull;
 import org.springframework.context.ApplicationEvent;
@@ -14,8 +15,8 @@ public class PassivePhase extends SimulationPhase {
     private Passive passive;
     private boolean firstTime = true;
 
-    public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, Passive passive, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), "Passive");
+    public PassivePhase(Phase previousPhase, LocalDate startDate, long duration, Passive passive, Inflation inflation, TaxRule taxRule) {
+        super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), inflation, "Passive");
         System.out.println("Initializing Passive Phase");
         this.passive = passive;
     }
@@ -53,6 +54,7 @@ public class PassivePhase extends SimulationPhase {
                 getStartDate(),
                 getDuration(),
                 this.passive.copy(),
+                getInflation().copy(),
                 getTaxRule().copy()
         );
     }

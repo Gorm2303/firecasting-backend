@@ -4,8 +4,10 @@ import dk.gormkrings.action.Deposit;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
-import dk.gormkrings.investment.Return;
-import dk.gormkrings.investment.SimpleMonthlyReturn;
+import dk.gormkrings.inflation.Inflation;
+import dk.gormkrings.inflation.SimpleInflation;
+import dk.gormkrings.returns.Return;
+import dk.gormkrings.returns.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.phases.PassivePhase;
 import dk.gormkrings.simulation.phases.DepositPhase;
@@ -48,22 +50,23 @@ public class FirecastingApplication implements CommandLineRunner {
         Deposit deposit = new Deposit(10000, 5000);
         Passive passive = new Passive();
         Withdraw withdraw = new Withdraw(0.04F);
+        Inflation inflation = new SimpleInflation();
 
         int depositDurationInMonths = 20 *12;
         long days = getDurationInDays(startDate,depositDurationInMonths);
-        Phase currentPhase = new DepositPhase(startDate, days, deposit, liveData, basicReturn, notionalTax);
+        Phase currentPhase = new DepositPhase(startDate, days, deposit, liveData, basicReturn, inflation, notionalTax);
         phases.add(currentPhase);
 
         int passiveDurationInMonths = 5 *12;
         startDate = getNewStartDate(startDate, getDurationInDays(startDate, depositDurationInMonths));
         days = getDurationInDays(startDate, passiveDurationInMonths);
-        currentPhase = new PassivePhase(currentPhase, startDate, days, passive, notionalTax);
+        currentPhase = new PassivePhase(currentPhase, startDate, days, passive, inflation, notionalTax);
         phases.add(currentPhase);
 
         int withdrawDurationInMonths = 30 *12;
         startDate = getNewStartDate(startDate, getDurationInDays(startDate, withdrawDurationInMonths));
         days = getDurationInDays(startDate, withdrawDurationInMonths);
-        currentPhase = new WithdrawPhase(currentPhase, startDate, days, withdraw, notionalTax);
+        currentPhase = new WithdrawPhase(currentPhase, startDate, days, withdraw, inflation, notionalTax);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();

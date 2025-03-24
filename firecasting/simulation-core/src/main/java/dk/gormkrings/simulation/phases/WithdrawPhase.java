@@ -4,6 +4,7 @@ import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
+import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.taxes.TaxRule;
 import lombok.Getter;
 import lombok.NonNull;
@@ -18,8 +19,8 @@ public class WithdrawPhase extends SimulationPhase {
     private Withdraw withdraw;
     private boolean firstTime = true;
 
-    public WithdrawPhase(Phase previousPhase, LocalDate startDate, long duration, Withdraw withdraw, TaxRule taxRule) {
-        super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), "Withdraw");
+    public WithdrawPhase(Phase previousPhase, LocalDate startDate, long duration, Withdraw withdraw, Inflation inflation, TaxRule taxRule) {
+        super(previousPhase.getLiveData(), startDate, duration, taxRule, previousPhase.getReturner(), inflation, "Withdraw");
         System.out.println("Initializing Withdraw Phase");
         this.withdraw = withdraw;
     }
@@ -59,6 +60,7 @@ public class WithdrawPhase extends SimulationPhase {
                 getStartDate(),
                 getDuration(),
                 this.withdraw,
+                getInflation().copy(),
                 getTaxRule().copy()
         );
     }
