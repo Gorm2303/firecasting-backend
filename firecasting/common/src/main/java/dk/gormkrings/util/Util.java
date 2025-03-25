@@ -1,7 +1,9 @@
 package dk.gormkrings.util;
 
 import dk.gormkrings.data.LiveData;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class Util {
     public static boolean debug = false;
 
@@ -39,5 +41,10 @@ public class Util {
 
     public static String formatField(String label, long value) {
         return Util.formatToString(label, value);
+    }
+
+    public static void debugLog(String string) {
+        if (!debug) return;
+        log.debug(string);
     }
 }

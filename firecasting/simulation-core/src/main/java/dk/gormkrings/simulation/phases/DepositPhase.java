@@ -32,7 +32,7 @@ public class DepositPhase extends SimulationPhase {
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
             depositMoney();
-            log.debug(prettyString());
+            if (Util.debug) Util.debugLog(prettyString());
 
         }
     }

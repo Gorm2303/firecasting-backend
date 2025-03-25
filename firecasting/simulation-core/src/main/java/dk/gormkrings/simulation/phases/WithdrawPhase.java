@@ -35,7 +35,7 @@ public class WithdrawPhase extends SimulationPhase {
                 monthEvent.getType() == Type.END) {
             withdrawMoney();
             addNetEarnings();
-            log.debug(prettyString());
+            if (Util.debug) Util.debugLog(prettyString());
 
         }
     }
