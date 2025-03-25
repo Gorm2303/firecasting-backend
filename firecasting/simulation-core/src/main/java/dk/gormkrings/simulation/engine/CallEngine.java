@@ -12,7 +12,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class Engine {
+public class CallEngine {
 
     public Result simulatePhases(List<Phase> phases) {
         Result result = new Result();
@@ -36,10 +36,10 @@ public class Engine {
         // Compute final epoch day from phase duration.
         int finalEpochDay = (int) (startEpochDay + phase.getDuration());
 
-        int nextMonthStartEpochDay = computeNextMonthStart(startDate);
-        int currentMonthEndEpochDay = computeMonthEnd(startDate);
-        int nextYearStartEpochDay = computeNextYearStart(startDate);
-        int currentYearEndEpochDay = computeYearEnd(startDate);
+        int nextMonthStartEpochDay = startDate.computeNextMonthStart();
+        int currentMonthEndEpochDay = startDate.computeMonthEnd();
+        int nextYearStartEpochDay = startDate.computeNextYearStart();
+        int currentYearEndEpochDay = startDate.computeYearEnd();
 
         // Sim init methods here
 
@@ -56,7 +56,7 @@ public class Engine {
                 phase.onMonthStart();
                 // Update boundary for next month start.
                 Date newCurrentDate = new Date(currentEpochDay);
-                nextMonthStartEpochDay = computeNextMonthStart(newCurrentDate);
+                nextMonthStartEpochDay = newCurrentDate.computeNextMonthStart();
             }
 
             // Publish Month End Event.
@@ -64,53 +64,26 @@ public class Engine {
                 phase.onMonthEnd();
                 // Update boundary for month end.
                 Date nextDay = new Date(currentEpochDay + 1);
-                currentMonthEndEpochDay = computeMonthEnd(nextDay);
+                currentMonthEndEpochDay = nextDay.computeMonthEnd();
             }
 
             // Publish Year Start Event.
             if (currentEpochDay == nextYearStartEpochDay && currentEpochDay != startEpochDay) {
                 phase.onYearStart();
                 Date newCurrentDate = new Date(currentEpochDay);
-                nextYearStartEpochDay = computeNextYearStart(newCurrentDate);
+                nextYearStartEpochDay = newCurrentDate.computeNextYearStart();
             }
 
             // Publish Year End Event.
             if (currentEpochDay == currentYearEndEpochDay) {
                 phase.onYearEnd();
                 Date nextDay = new Date(currentEpochDay + 1);
-                currentYearEndEpochDay = computeYearEnd(nextDay);
+                currentYearEndEpochDay = nextDay.computeYearEnd();
             }
         }
 
         result.addSnapshot(new Snapshot(data));
         data.resetSession();
         return result;
-    }
-
-    private int computeNextMonthStart(Date currentDate) {
-        int year = currentDate.getYear();
-        int month = currentDate.getMonth();
-        if (month == 12) {
-            return Date.of(year + 1, 1, 1).getEpochDay();
-        } else {
-            return Date.of(year, month + 1, 1).getEpochDay();
-        }
-    }
-
-    private int computeMonthEnd(Date currentDate) {
-        int year = currentDate.getYear();
-        int month = currentDate.getMonth();
-        int day = currentDate.lengthOfMonth();
-        return Date.of(year, month, day).getEpochDay();
-    }
-
-    private int computeNextYearStart(Date currentDate) {
-        int year = currentDate.getYear();
-        return Date.of(year + 1, 1, 1).getEpochDay();
-    }
-
-    private int computeYearEnd(Date currentDate) {
-        int year = currentDate.getYear();
-        return Date.of(year, 12, 31).getEpochDay();
     }
 }

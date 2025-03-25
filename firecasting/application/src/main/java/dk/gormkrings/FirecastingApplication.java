@@ -8,13 +8,14 @@ import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.inflation.DataAverageInflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
+import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
+import dk.gormkrings.simulation.simulations.Simulation;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.phases.normal.PassivePhase;
 import dk.gormkrings.simulation.phases.normal.DepositPhase;
 import dk.gormkrings.simulation.phases.normal.Phase;
 import dk.gormkrings.simulation.phases.normal.WithdrawPhase;
-import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
 import dk.gormkrings.taxes.*;
 import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
@@ -30,7 +31,7 @@ import java.util.List;
 @SpringBootApplication(scanBasePackages = "dk.gormkrings")
 public class FirecastingApplication implements CommandLineRunner {
 
-    private final MonteCarloSimulation simulation;
+    private final Simulation simulation;
 
     public FirecastingApplication(MonteCarloSimulation simulation) {
         this.simulation = simulation;
@@ -42,7 +43,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Util.debug = false;
+        Util.debug = true;
         List<Phase> phases = new LinkedList<>();
         log.info("Application Started");
 
@@ -78,7 +79,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         long startTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.runMonteCarlo(1000000, phases);
+        List<Result> results = simulation.run(1, phases);
         log.debug("These are the results");
         if (Util.debug) {
             for (Result result : results) {

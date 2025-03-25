@@ -60,6 +60,21 @@ public abstract class SimulationPhase implements Phase {
     }
 
     @Override
+    public void onDay() {
+
+    }
+
+    @Override
+    public void onWeekStart() {
+
+    }
+
+    @Override
+    public void onWeekEnd() {
+
+    }
+
+    @Override
     public void onMonthStart() {}
 
     @Override

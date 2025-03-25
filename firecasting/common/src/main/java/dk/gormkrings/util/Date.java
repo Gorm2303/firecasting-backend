@@ -139,4 +139,32 @@ public final class Date {
         return other.epochDay - this.epochDay;
     }
 
+
+    public int computeNextMonthStart() {
+        int year = this.getYear();
+        int month = this.getMonth();
+        if (month == 12) {
+            return Date.of(year + 1, 1, 1).getEpochDay();
+        } else {
+            return Date.of(year, month + 1, 1).getEpochDay();
+        }
+    }
+
+    public int computeMonthEnd() {
+        int year = this.getYear();
+        int month = this.getMonth();
+        int day = this.lengthOfMonth();
+        return Date.of(year, month, day).getEpochDay();
+    }
+
+    public int computeNextYearStart() {
+        int year = this.getYear();
+        return Date.of(year + 1, 1, 1).getEpochDay();
+    }
+
+    public int computeYearEnd() {
+        int year = this.getYear();
+        return Date.of(year, 12, 31).getEpochDay();
+    }
+
 }

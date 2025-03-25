@@ -10,6 +10,9 @@ public interface Phase {
     Phase copy(Spec specificationCopy);
     Spec getSpecification();
     Live getLiveData();
+    void onDay();
+    void onWeekStart();
+    void onWeekEnd();
     void onMonthStart();
     void onMonthEnd();
     void onYearStart();

@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation.engine;
+package dk.gormkrings.simulation.engine.event;
 
 import dk.gormkrings.data.Live;
 import dk.gormkrings.event.RunEvent;
@@ -6,7 +6,6 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.DayEvent;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.date.YearEvent;
-import dk.gormkrings.simulation.EventDispatcher;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.data.Snapshot;
 import dk.gormkrings.simulation.phases.eventbased.EPhase;
@@ -48,10 +47,10 @@ public class EventBasedEngine {
         // Compute final epoch day from phase duration.
         int finalEpochDay = (int) (startEpochDay + phase.getDuration());
 
-        int nextMonthStartEpochDay = computeNextMonthStart(startDate);
-        int currentMonthEndEpochDay = computeMonthEnd(startDate);
-        int nextYearStartEpochDay = computeNextYearStart(startDate);
-        int currentYearEndEpochDay = computeYearEnd(startDate);
+        int nextMonthStartEpochDay = startDate.computeNextMonthStart();
+        int currentMonthEndEpochDay = startDate.computeMonthEnd();
+        int nextYearStartEpochDay = startDate.computeNextYearStart();
+        int currentYearEndEpochDay = startDate.computeYearEnd();
 
         // Create reusable event objects.
         DayEvent dayEvent = new DayEvent(this, data);
@@ -73,7 +72,7 @@ public class EventBasedEngine {
                 dispatcher.notifyListeners(monthEventStart);
                 // Update boundary for next month start.
                 Date newCurrentDate = new Date(currentEpochDay);
-                nextMonthStartEpochDay = computeNextMonthStart(newCurrentDate);
+                nextMonthStartEpochDay = newCurrentDate.computeNextMonthStart();
             }
 
             // Publish Month End Event.
@@ -81,21 +80,21 @@ public class EventBasedEngine {
                 dispatcher.notifyListeners(monthEventEnd);
                 // Update boundary for month end.
                 Date nextDay = new Date(currentEpochDay + 1);
-                currentMonthEndEpochDay = computeMonthEnd(nextDay);
+                currentMonthEndEpochDay = nextDay.computeMonthEnd();
             }
 
             // Publish Year Start Event.
             if (currentEpochDay == nextYearStartEpochDay && currentEpochDay != startEpochDay) {
                 dispatcher.notifyListeners(yearEventStart);
                 Date newCurrentDate = new Date(currentEpochDay);
-                nextYearStartEpochDay = computeNextYearStart(newCurrentDate);
+                nextYearStartEpochDay = newCurrentDate.computeNextYearStart();
             }
 
             // Publish Year End Event.
             if (currentEpochDay == currentYearEndEpochDay) {
                 dispatcher.notifyListeners(yearEventEnd);
                 Date nextDay = new Date(currentEpochDay + 1);
-                currentYearEndEpochDay = computeYearEnd(nextDay);
+                currentYearEndEpochDay = nextDay.computeYearEnd();
             }
         }
 
@@ -106,33 +105,6 @@ public class EventBasedEngine {
         data.resetSession();
         dispatcher.clearRegistrations();
         return result;
-    }
-
-    private int computeNextMonthStart(Date currentDate) {
-        int year = currentDate.getYear();
-        int month = currentDate.getMonth();
-        if (month == 12) {
-            return Date.of(year + 1, 1, 1).getEpochDay();
-        } else {
-            return Date.of(year, month + 1, 1).getEpochDay();
-        }
-    }
-
-    private int computeMonthEnd(Date currentDate) {
-        int year = currentDate.getYear();
-        int month = currentDate.getMonth();
-        int day = currentDate.lengthOfMonth();
-        return Date.of(year, month, day).getEpochDay();
-    }
-
-    private int computeNextYearStart(Date currentDate) {
-        int year = currentDate.getYear();
-        return Date.of(year + 1, 1, 1).getEpochDay();
-    }
-
-    private int computeYearEnd(Date currentDate) {
-        int year = currentDate.getYear();
-        return Date.of(year, 12, 31).getEpochDay();
     }
 }
 
