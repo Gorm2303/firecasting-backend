@@ -23,10 +23,9 @@ public class LiveData implements Live {
     private double withdraw;
     private double withdrawn;
     @Setter
-    private double yearlyTax;
+    private double currentTax;
     private double tax;
-    @Setter
-    private boolean debug = false;
+    private double netEarnings;
 
     public LiveData() {
         this.totalDurationAlive = 0;
@@ -40,8 +39,9 @@ public class LiveData implements Live {
         this.returned = 0;
         this.withdraw = 0;
         this.withdrawn = 0;
-        this.yearlyTax = 0;
+        this.currentTax = 0;
         this.tax = 0;
+        this.netEarnings = 0;
     }
 
     private LiveData(LiveData liveData) {
@@ -57,9 +57,9 @@ public class LiveData implements Live {
         this.returned = liveData.returned;
         this.withdraw = liveData.withdraw;
         this.withdrawn = liveData.withdrawn;
-        this.yearlyTax = liveData.yearlyTax;
+        this.currentTax = liveData.currentTax;
         this.tax = liveData.tax;
-        this.debug = liveData.debug;
+        this.netEarnings = liveData.netEarnings;
     }
 
     @Override
@@ -91,8 +91,9 @@ public class LiveData implements Live {
                 " - Returned " + returned +
                 " - Withdraw " + withdraw +
                 " - Withdrawn " + withdrawn +
-                " - Year-Tax " + yearlyTax +
-                " - Taxed " + tax;
+                " - Year-Tax " + currentTax +
+                " - Taxed " + tax +
+                " - Earnings " + netEarnings;
     }
 
     public void addToCapital(double capital) {
@@ -137,6 +138,10 @@ public class LiveData implements Live {
 
     public void addToInflation(double inflation) {
         this.inflation += inflation;
+    }
+
+    public void addToNetEarnings(double netEarnings) {
+        this.netEarnings += netEarnings;
     }
 
     public LiveData copy() {

@@ -4,6 +4,7 @@ import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.Type;
+import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.util.Util;
@@ -26,28 +27,32 @@ public class PassivePhase extends SimulationPhase {
 
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        MonthEvent monthEvent = (MonthEvent) event;
-        if (monthEvent.getType() != Type.END) return;
+        if (event instanceof MonthEvent monthEvent &&
+                monthEvent.getType() == Type.END) {
+            addReturn();
+            calculatePassive();
+            log.debug(prettyString());
 
-        LiveData data = getLiveData();
-        addReturn();
-        calculatePassive(data);
-        log.debug(prettyString());
+        } else if (event instanceof YearEvent yearEvent &&
+                yearEvent.getType() == Type.END) {
+            addTax();
+
         }
+    }
 
-    private void calculatePassive(LiveData data) {
+    private void calculatePassive() {
         double passiveReturn = 0;
         if (firstTime) {
             firstTime = false;
-            passive.setPreviouslyReturned(data.getReturned());
-            passiveReturn = data.getCurrentReturn();
+            passive.setPreviouslyReturned(getLiveData().getReturned());
+            passiveReturn = getLiveData().getCurrentReturn();
         } else {
-            passiveReturn = data.getReturned() - passive.getPreviouslyReturned();
-            passive.setPreviouslyReturned(data.getReturned());
+            passiveReturn = getLiveData().getReturned() - passive.getPreviouslyReturned();
+            passive.setPreviouslyReturned(getLiveData().getReturned());
         }
 
-        data.setPassiveReturn(passiveReturn);
-        data.addToPassiveReturned(passiveReturn);
+        getLiveData().setPassiveReturn(passiveReturn);
+        getLiveData().addToPassiveReturned(passiveReturn);
     }
 
     @Override

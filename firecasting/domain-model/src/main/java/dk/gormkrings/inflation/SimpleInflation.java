@@ -40,7 +40,7 @@ public class SimpleInflation implements Inflation {
         YearEvent yearEvent = (YearEvent) event;
         if (yearEvent.getType() != Type.END) return;
 
-        log.debug("Year {}: SimpleInflation calculating inflation.", yearEvent.getData().getSessionDuration() / 365);
+        log.debug("Year {}: SimpleInflation calculating inflation: {}", yearEvent.getData().getSessionDuration() / 365, Util.formatNumber(averagePercentage));
 
         LiveData data = (LiveData) yearEvent.getData();
         data.addToInflation(calculatePercentage());

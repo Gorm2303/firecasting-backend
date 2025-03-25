@@ -3,8 +3,10 @@ package dk.gormkrings.simulation.phases;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
+import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.taxes.NotionalGainsTax;
 import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
@@ -28,12 +30,17 @@ public class DepositPhase extends SimulationPhase {
 
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        MonthEvent monthEvent = (MonthEvent) event;
-        if (monthEvent.getType() != Type.END) return;
+        if (event instanceof MonthEvent monthEvent &&
+                monthEvent.getType() == Type.END) {
+            addReturn();
+            depositMoney();
+            log.debug(prettyString());
 
-        addReturn();
-        depositMoney();
-        log.debug(prettyString());
+        } else if (event instanceof YearEvent yearEvent &&
+                yearEvent.getType() == Type.END) {
+            addTax();
+
+        }
     }
 
     public void depositMoney() {

@@ -13,6 +13,7 @@ public interface Phase extends SmartApplicationListener {
     LocalDate getCurrentLocalDate();
     Phase copy(Spec specificationCopy);
     void addReturn();
+    void addTax();
     Spec getSpecification();
     Live getLiveData();
 

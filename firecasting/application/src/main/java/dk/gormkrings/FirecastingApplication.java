@@ -15,8 +15,7 @@ import dk.gormkrings.simulation.phases.DepositPhase;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.phases.WithdrawPhase;
 import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
-import dk.gormkrings.taxes.NotionalGainsTax;
-import dk.gormkrings.taxes.TaxRule;
+import dk.gormkrings.taxes.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -24,7 +23,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -61,10 +59,7 @@ public class FirecastingApplication implements CommandLineRunner {
         long passiveDays = getDurationInDays(passiveStartDate, passiveDurationInMonths);
         long withdrawDays = getDurationInDays(withdrawStartDate, withdrawDurationInMonths);
 
-        TaxRule notionalTax = new NotionalGainsTax(42);
-        Return basicReturn = new SimpleMonthlyReturn(7);
-        Inflation inflation = new SimpleInflation();
-        Specification specification = new Specification(liveData, notionalTax, basicReturn, inflation);
+        Specification specification = createSpecification(liveData);
 
         Deposit deposit = new Deposit(10000, 5000);
         Passive passive = new Passive();
@@ -92,6 +87,18 @@ public class FirecastingApplication implements CommandLineRunner {
         long elapsedTime = endTime - startTime;
         log.info("Elapsed time: {} seconds", ((double) elapsedTime) / 1000);
         log.info("Application Ended");
+    }
+
+    private static Specification createSpecification(LiveData liveData) {
+        CapitalGainsTax taxation = new CapitalGainsTax(42);
+        StockExemptionTax stockExemptionTax = null;
+        if (stockExemptionTax != null) taxation.setStockExemptionTax(stockExemptionTax);
+        TaxExemptionCard taxExemptionCard = null;
+        if (taxExemptionCard != null) taxation.setTaxExemptionCard(taxExemptionCard);
+
+        Return basicReturn = new SimpleMonthlyReturn(7);
+        Inflation inflation = new SimpleInflation();
+        return new Specification(liveData, taxation, basicReturn, inflation);
     }
 
     private LocalDate getNewStartDate(LocalDate oldStartDate, long durationInDays) {

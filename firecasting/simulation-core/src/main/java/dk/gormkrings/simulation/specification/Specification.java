@@ -23,7 +23,6 @@ public class Specification implements Spec {
         this.taxRule = taxRule;
         this.returner = returner;
         this.inflation = inflation;
-        addListener(taxRule);
         addListener(inflation);
     }
 
