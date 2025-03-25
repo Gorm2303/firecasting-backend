@@ -1,6 +1,5 @@
 package dk.gormkrings.inflation;
 
-import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,8 +11,7 @@ public class DataAverageInflation implements Inflation {
     private double averagePercentage;
 
     public DataAverageInflation() {
-        setAverageInflation("/dk/gormkrings/inflation/inflation.csv");
-        log.debug("Initializing SimpleInflation = {}", Util.formatNumber(averagePercentage));
+        this("/dk/gormkrings/inflation/inflation.csv");
     }
 
     private DataAverageInflation(double averagePercentage) {
@@ -22,7 +20,7 @@ public class DataAverageInflation implements Inflation {
 
     public DataAverageInflation(String filename) {
         setAverageInflation(filename);
-        log.debug("Initializing SimpleInflation = {}", Util.formatNumber(averagePercentage));
+        log.debug("Initializing DataAverageInflation: {}", averagePercentage);
     }
 
     @Override

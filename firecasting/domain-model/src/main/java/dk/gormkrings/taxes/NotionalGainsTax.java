@@ -14,14 +14,14 @@ public class NotionalGainsTax implements TaxRule {
     private TaxExemptionCard taxExemptionCard;
 
     public NotionalGainsTax(double taxRate) {
-        this.taxRate = taxRate;
-        log.info("Notional Gains Tax Rule Created: {}", taxRate);
+        this(taxRate, null, null);
     }
 
-    private NotionalGainsTax(double taxRate, StockExemptionTax stockExemptionTax, TaxExemptionCard taxExemptionCard) {
+    public NotionalGainsTax(double taxRate, StockExemptionTax stockExemptionTax, TaxExemptionCard taxExemptionCard) {
         this.taxRate = taxRate;
         this.stockExemptionTax = stockExemptionTax;
         this.taxExemptionCard = taxExemptionCard;
+        log.debug("Notional Gains Tax Rule Created: {}", taxRate);
     }
 
     @Override

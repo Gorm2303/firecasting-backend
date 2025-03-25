@@ -3,17 +3,15 @@ package dk.gormkrings.simulation.phases;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
-import dk.gormkrings.taxes.NotionalGainsTax;
+import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
-import java.time.LocalDate;
 
 @Slf4j
 @Getter
@@ -22,7 +20,7 @@ public class DepositPhase extends SimulationPhase {
     private Deposit deposit;
     private boolean firstTime = true;
 
-    public DepositPhase(Specification specification, LocalDate startDate, long duration, Deposit deposit) {
+    public DepositPhase(Specification specification, Date startDate, long duration, Deposit deposit) {
         super(specification, startDate, duration,"Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = deposit;
@@ -55,8 +53,7 @@ public class DepositPhase extends SimulationPhase {
     @Override
     public String prettyString() {
         return super.prettyString() +
-                " - Deposit " + Util.formatNumber(getLiveData().getDeposit()
-        );
+                getLiveData().getDepositInfo();
     }
 
     @Override

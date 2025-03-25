@@ -7,9 +7,6 @@ import lombok.Setter;
 
 public final class Snapshot implements ImmutableData {
     private final Live state;
-    @Setter
-    @Getter
-    private String extraInfo;
 
     public Snapshot(Live state) {
         this.state = state.copy();

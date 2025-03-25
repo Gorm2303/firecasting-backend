@@ -13,14 +13,14 @@ public class CapitalGainsTax implements TaxRule {
     private TaxExemptionCard taxExemptionCard;
 
     public CapitalGainsTax(double taxRate) {
-        this.taxRate = taxRate;
-        log.info("Capital Gains Tax Rule Created: {}", taxRate);
+        this(taxRate, null, null);
     }
 
-    private CapitalGainsTax(double taxRate, StockExemptionTax stockExemptionTax, TaxExemptionCard taxExemptionCard) {
+    public CapitalGainsTax(double taxRate, StockExemptionTax stockExemptionTax, TaxExemptionCard taxExemptionCard) {
         this.taxRate = taxRate;
         this.stockExemptionTax = stockExemptionTax;
         this.taxExemptionCard = taxExemptionCard;
+        log.debug("Capital Gains Tax Rule Created: {}", taxRate);
     }
 
     @Override

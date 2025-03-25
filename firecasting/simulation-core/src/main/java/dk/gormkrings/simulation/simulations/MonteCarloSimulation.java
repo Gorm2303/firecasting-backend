@@ -1,12 +1,12 @@
 package dk.gormkrings.simulation.simulations;
 
-import dk.gormkrings.simulation.Engine;
+import dk.gormkrings.simulation.engine.Engine;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.specification.Spec;
 import org.springframework.stereotype.Service;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -14,9 +14,9 @@ import java.util.concurrent.*;
 public class MonteCarloSimulation {
 
     private final Engine engine;
-    private final List<Result> results = new CopyOnWriteArrayList<>();
+    private final List<Result> results = new ArrayList<>();
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(128);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(32);
 
     public MonteCarloSimulation(Engine engine) {
         this.engine = engine;
@@ -25,10 +25,10 @@ public class MonteCarloSimulation {
     public List<Result> runMonteCarlo(int runs, List<Phase> phases) {
         results.clear();
 
-        List<Future<Result>> futures = new LinkedList<>();
+        List<Future<Result>> futures = new ArrayList<>();
 
         for (int i = 0; i < runs; i++) {
-            List<Phase> phaseCopies = new LinkedList<>();
+            List<Phase> phaseCopies = new ArrayList<>();
             Spec specification = phases.getFirst().getSpecification().copy();
             for (Phase phase : phases) {
                 phaseCopies.add(phase.copy(specification));

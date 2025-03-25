@@ -2,12 +2,11 @@ package dk.gormkrings.simulation.phases;
 
 import dk.gormkrings.data.Live;
 import dk.gormkrings.simulation.specification.Spec;
+import dk.gormkrings.util.Date;
 import org.springframework.context.event.SmartApplicationListener;
 
-import java.time.LocalDate;
-
 public interface Phase extends SmartApplicationListener {
-    LocalDate getStartDate();
+    Date getStartDate();
     long getDuration();
     Phase copy(Spec specificationCopy);
     Spec getSpecification();

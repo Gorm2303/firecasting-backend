@@ -1,25 +1,23 @@
 package dk.gormkrings.simulation.phases;
 
 import dk.gormkrings.action.Passive;
-import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.Type;
-import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 
-import java.time.LocalDate;
 
 @Slf4j
 public class PassivePhase extends SimulationPhase {
     private Passive passive;
     private boolean firstTime = true;
 
-    public PassivePhase(Specification specification, LocalDate startDate, long duration, Passive passive) {
+    public PassivePhase(Specification specification, Date startDate, long duration, Passive passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = passive;
@@ -54,7 +52,7 @@ public class PassivePhase extends SimulationPhase {
     @Override
     public String prettyString() {
         return super.prettyString() +
-                " - Passive " + Util.formatNumber(getLiveData().getPassiveReturned());
+                getLiveData().getPassiveInfo();
     }
 
     @Override

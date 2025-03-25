@@ -1,7 +1,6 @@
 package dk.gormkrings.returns;
 
 
-import dk.gormkrings.util.Util;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -10,7 +9,7 @@ public class SimpleMonthlyReturn implements Return {
 
     public SimpleMonthlyReturn(float averagePercentage) {
         this.averagePercentage = averagePercentage;
-        log.debug("Initializing SimpleMonthlyReturn: {}", Util.formatNumber(averagePercentage));
+        log.debug("Initializing SimpleMonthlyReturn: ", averagePercentage);
     }
 
     @Override

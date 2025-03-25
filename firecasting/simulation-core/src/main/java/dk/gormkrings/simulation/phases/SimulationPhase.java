@@ -7,6 +7,7 @@ import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.taxes.NotionalGainsTax;
+import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
@@ -14,20 +15,16 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 
-import java.time.LocalDate;
-
-import static dk.gormkrings.util.Util.formatNumber;
-
 @Slf4j
 @Getter
 @Setter
 public abstract class SimulationPhase implements Phase {
-    private LocalDate startDate;
+    private Date startDate;
     private long duration;
     private Specification specification;
     private String name;
 
-    SimulationPhase(Specification specification, LocalDate startDate, long duration, String name) {
+    SimulationPhase(Specification specification, Date startDate, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
@@ -61,7 +58,7 @@ public abstract class SimulationPhase implements Phase {
         double inflationAmount = inflation.calculatePercentage();
         getLiveData().addToInflation(inflationAmount);
 
-        log.debug("Year {}: SimpleInflation calculating inflation: {}",
+        log.debug("Year {}: DataAverageInflation calculating inflation: {}",
                 getLiveData().getSessionDuration() / 365,
                 Util.formatNumber(inflationAmount));
 
@@ -85,29 +82,18 @@ public abstract class SimulationPhase implements Phase {
         return specification.getLiveData();
     }
 
-    public LocalDate getCurrentLocalDate() {
-        return startDate.plusDays(getLiveData().getSessionDuration() - 1);
-    }
-
     public String getPrettyCurrentDate() {
-        LocalDate currentDate = getCurrentLocalDate();
-        long days = getLiveData().getSessionDuration();
-        int years = (currentDate.getYear()-startDate.getYear());
-        int months = currentDate.getMonth().getValue() + years * 12;
-        String formattedDate = "";
-        formattedDate = (name + " - Day " + days + " - Month " + months + " - Year " + (years+1) + " - " + currentDate);
-        return formattedDate;
+        return Util.getPrettyDate(startDate, getLiveData());
     }
 
     public String prettyString() {
-        return getPrettyCurrentDate() +
-                " - Capital " + formatNumber(getLiveData().getCapital()) +
-                " - Deposited " + formatNumber(getLiveData().getDeposited()) +
-                " - Returned " + formatNumber(getLiveData().getReturned()) +
-                " - Return " + formatNumber(getLiveData().getCurrentReturn()) +
-                " - Taxed " + Util.formatNumber(getLiveData().getTax()) +
-                " - Earnings " + Util.formatNumber(getLiveData().getNetEarnings()
-        );
+        return name + getPrettyCurrentDate() +
+                getLiveData().getCapitalInfo() +
+                getLiveData().getDepositedInfo() +
+                getLiveData().getReturnedInfo() +
+                getLiveData().getReturnInfo() +
+                getLiveData().getTaxedInfo() +
+                getLiveData().getEarningsInfo();
     }
 
     @Override

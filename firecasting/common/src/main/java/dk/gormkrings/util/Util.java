@@ -1,18 +1,43 @@
 package dk.gormkrings.util;
 
-import java.text.DecimalFormat;
+import dk.gormkrings.data.LiveData;
 
 public class Util {
+    public static boolean debug = false;
+
     public static String formatNumber(double number) {
-        String pattern;
+        if (!debug) return "";
+        String string;
         if (number > 100) {
-            pattern = "0";
+            string = String.format("%.0f", number);
         } else if (number <= 100 && number >= 0.1) {
-            pattern = "0.00";
+            string = String.format("%.2f", number);
         } else {
-            pattern = "0.0000";
+            string = String.format("%.4f", number);
         }
-        DecimalFormat df = new DecimalFormat(pattern);
-        return df.format(number);
+        return string;
+    }
+
+    public static String getPrettyDate(Date startDate, LiveData data) {
+        if (!debug) return "";
+        long days = data.getSessionDuration();
+        Date currentDate = startDate.plusDays(data.getSessionDuration() - 1);
+        int years = (currentDate.getYear()-startDate.getYear());
+        int months = currentDate.getMonth() + years * 12;
+        String formattedDate = "";
+        formattedDate = (" - Day " + days + " - Month " + months + " - Year " + (years+1) + " - " + currentDate);
+        return formattedDate;
+    }
+
+    public static String formatToString(String label, Object value) {
+        return " - " + label + " " + value;
+    }
+
+    public static String formatField(String label, double value) {
+        return Util.formatToString(label, formatNumber(value));
+    }
+
+    public static String formatField(String label, long value) {
+        return Util.formatToString(label, value);
     }
 }

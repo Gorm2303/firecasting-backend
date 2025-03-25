@@ -3,6 +3,8 @@ package dk.gormkrings.data;
 import lombok.Getter;
 import lombok.Setter;
 
+import static dk.gormkrings.util.Util.formatField;
+
 @Getter
 public class LiveData implements Live {
     private long totalDurationAlive;
@@ -28,20 +30,6 @@ public class LiveData implements Live {
     private double netEarnings;
 
     public LiveData() {
-        this.totalDurationAlive = 0;
-        this.sessionDuration = 0;
-        this.deposit = 0;
-        this.deposited = 0;
-        this.passiveReturned = 0;
-        this.capital = 0;
-        this.inflation = 0;
-        this.currentReturn = 0;
-        this.returned = 0;
-        this.withdraw = 0;
-        this.withdrawn = 0;
-        this.currentTax = 0;
-        this.tax = 0;
-        this.netEarnings = 0;
     }
 
     private LiveData(LiveData liveData) {
@@ -79,21 +67,21 @@ public class LiveData implements Live {
 
     @Override
     public String toString() {
-        return "LiveData: " +
-                "Alive " + totalDurationAlive +
-                " - Session " + sessionDuration +
-                " - Deposit " + deposit +
-                " - Deposited " + deposited +
-                " - Passive " + passiveReturned +
-                " - Capital " + capital +
-                " - Inflation " + inflation +
-                " - Return " + currentReturn +
-                " - Returned " + returned +
-                " - Withdraw " + withdraw +
-                " - Withdrawn " + withdrawn +
-                " - Tax " + currentTax +
-                " - Taxed " + tax +
-                " - Earnings " + netEarnings;
+        return "LiveData:" +
+                getAliveInfo() +
+                getSessionInfo() +
+                getDepositInfo() +
+                getDepositedInfo() +
+                getPassiveInfo() +
+                getCapitalInfo() +
+                getInflationInfo() +
+                getReturnInfo() +
+                getReturnedInfo() +
+                getWithdrawInfo() +
+                getWithdrawnInfo() +
+                getTaxInfo() +
+                getTaxedInfo() +
+                getEarningsInfo();
     }
 
     public void addToCapital(double capital) {
@@ -147,5 +135,62 @@ public class LiveData implements Live {
     public LiveData copy() {
         return new LiveData(this);
     }
+
+    public String getAliveInfo() {
+        return formatField("Alive", totalDurationAlive);
+    }
+
+    public String getSessionInfo() {
+        return formatField("Session", sessionDuration);
+    }
+
+    public String getDepositInfo() {
+        return formatField("Deposit ", deposit);
+    }
+
+    public String getDepositedInfo() {
+        return formatField("Deposited ", deposited);
+    }
+
+    public String getPassiveInfo() {
+        return formatField("Passive ", passiveReturned);
+    }
+
+    public String getCapitalInfo() {
+        return formatField("Capital ", capital);
+    }
+
+    public String getInflationInfo() {
+        return formatField("Inflation ", inflation);
+    }
+
+    public String getReturnInfo() {
+        return formatField("Return ", currentReturn);
+    }
+
+    public String getReturnedInfo() {
+        return formatField("Returned ", returned);
+    }
+
+    public String getWithdrawInfo() {
+        return formatField("Withdraw ", withdraw);
+    }
+
+    public String getWithdrawnInfo() {
+        return formatField("Withdrawn ", withdrawn);
+    }
+
+    public String getTaxInfo() {
+        return formatField("Tax ", currentTax);
+    }
+
+    public String getTaxedInfo() {
+        return formatField("Taxed ", tax);
+    }
+
+    public String getEarningsInfo() {
+        return formatField("Earnings ", netEarnings);
+    }
+
 
 }
