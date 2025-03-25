@@ -145,51 +145,51 @@ public class LiveData implements Live {
     }
 
     public String getDepositInfo() {
-        return formatField("Deposit ", deposit);
+        return formatField("Deposit", deposit);
     }
 
     public String getDepositedInfo() {
-        return formatField("Deposited ", deposited);
+        return formatField("Deposited", deposited);
     }
 
     public String getPassiveInfo() {
-        return formatField("Passive ", passiveReturned);
+        return formatField("Passive", passiveReturned);
     }
 
     public String getCapitalInfo() {
-        return formatField("Capital ", capital);
+        return formatField("Capital", capital);
     }
 
     public String getInflationInfo() {
-        return formatField("Inflation ", inflation);
+        return formatField("Inflation", inflation);
     }
 
     public String getReturnInfo() {
-        return formatField("Return ", currentReturn);
+        return formatField("Return", currentReturn);
     }
 
     public String getReturnedInfo() {
-        return formatField("Returned ", returned);
+        return formatField("Returned", returned);
     }
 
     public String getWithdrawInfo() {
-        return formatField("Withdraw ", withdraw);
+        return formatField("Withdraw", withdraw);
     }
 
     public String getWithdrawnInfo() {
-        return formatField("Withdrawn ", withdrawn);
+        return formatField("Withdrawn", withdrawn);
     }
 
     public String getTaxInfo() {
-        return formatField("Tax ", currentTax);
+        return formatField("Tax", currentTax);
     }
 
     public String getTaxedInfo() {
-        return formatField("Taxed ", tax);
+        return formatField("Taxed", tax);
     }
 
     public String getEarningsInfo() {
-        return formatField("Earnings ", netEarnings);
+        return formatField("Earnings", netEarnings);
     }
 
 

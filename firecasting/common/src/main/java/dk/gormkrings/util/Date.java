@@ -2,10 +2,6 @@ package dk.gormkrings.util;
 
 import lombok.Getter;
 
-/**
- * An optimized date class that represents a date as days since epoch (1900-01-01).
- * Provides basic arithmetic and calendar queries needed for simulation.
- */
 @Getter
 public final class Date {
     // Number of days since the epoch (1900-01-01)
@@ -15,11 +11,6 @@ public final class Date {
         this.epochDay = epochDay;
     }
 
-    /**
-     * Creates a Date instance for a given year, month, and day.
-     * Uses a conversion algorithm based on the Gregorian calendar.
-     * The epoch is 1900-01-01 (Julian Day Number 2415021).
-     */
     public static Date of(int year, int month, int day) {
         // Adjust for months January and February.
         if (month <= 2) {
@@ -41,14 +32,6 @@ public final class Date {
         return new Date(this.epochDay + (int) days);
     }
 
-    /**
-     * Returns a new Date by adding the specified number of months.
-     * This method mimics the behavior of LocalDate.plusMonths by adjusting the
-     * day-of-month to the last valid day if the original day-of-month is too high for the target month.
-     *
-     * @param months the number of months to add.
-     * @return a new Date representing the calculated target date.
-     */
     public Date plusMonths(int months) {
         int[] ymd = toYMD();
         int year = ymd[0];
@@ -61,6 +44,21 @@ public final class Date {
         int maxDay = getLengthOfMonth(targetYear, targetMonth);
         int targetDay = Math.min(day, maxDay);
         return Date.of(targetYear, targetMonth, targetDay);
+    }
+
+    private static int getLengthOfMonth(int year, int month) {
+        switch (month) {
+            case 2:
+                return isLeapYearStatic(year) ? 29 : 28;
+            case 4: case 6: case 9: case 11:
+                return 30;
+            default:
+                return 31;
+        }
+    }
+
+    private static boolean isLeapYearStatic(int year) {
+        return ((year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0)));
     }
 
     public int getDayOfMonth() {
@@ -84,7 +82,16 @@ public final class Date {
     }
 
     public int lengthOfMonth() {
-        return getLengthOfMonth(getYear(), getMonth());
+        int month = getMonth();
+        int year = getYear();
+        switch (month) {
+            case 2:
+                return isLeapYear(year) ? 29 : 28;
+            case 4: case 6: case 9: case 11:
+                return 30;
+            default:
+                return 31;
+        }
     }
 
     public int lengthOfYear() {
@@ -95,27 +102,7 @@ public final class Date {
         return ((year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0)));
     }
 
-    private static boolean isLeapYearStatic(int year) {
-        return ((year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0)));
-    }
-
-    private static int getLengthOfMonth(int year, int month) {
-        switch (month) {
-            case 2:
-                return isLeapYearStatic(year) ? 29 : 28;
-            case 4: case 6: case 9: case 11:
-                return 30;
-            default:
-                return 31;
-        }
-    }
-
-    /**
-     * Converts the internal epochDay value to an array of [year, month, day].
-     * Uses an algorithm based on the Julian Day conversion.
-     */
     private int[] toYMD() {
-        // Convert back to Julian Day Number using the epoch for 1900-01-01.
         int j = epochDay + 2415021;
         int a = j + 32044;
         int b = (4 * a + 3) / 146097;
@@ -151,4 +138,5 @@ public final class Date {
     public long daysUntil(Date other) {
         return other.epochDay - this.epochDay;
     }
+
 }
