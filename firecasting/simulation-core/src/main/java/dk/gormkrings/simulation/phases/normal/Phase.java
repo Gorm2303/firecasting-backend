@@ -1,15 +1,18 @@
-package dk.gormkrings.simulation.phases;
+package dk.gormkrings.simulation.phases.normal;
 
 import dk.gormkrings.data.Live;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.util.Date;
-import org.springframework.context.event.SmartApplicationListener;
 
-public interface Phase extends SmartApplicationListener {
+public interface Phase {
     Date getStartDate();
     long getDuration();
     Phase copy(Spec specificationCopy);
     Spec getSpecification();
     Live getLiveData();
+    void onMonthStart();
+    void onMonthEnd();
+    void onYearStart();
+    void onYearEnd();
 
 }

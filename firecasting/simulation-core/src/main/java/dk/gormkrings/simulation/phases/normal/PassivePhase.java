@@ -1,15 +1,11 @@
-package dk.gormkrings.simulation.phases;
+package dk.gormkrings.simulation.phases.normal;
 
 import dk.gormkrings.action.Passive;
-import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.event.Type;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEvent;
 
 
 @Slf4j
@@ -24,14 +20,10 @@ public class PassivePhase extends SimulationPhase {
     }
 
     @Override
-    public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        super.onApplicationEvent(event);
-        if (event instanceof MonthEvent monthEvent &&
-                monthEvent.getType() == Type.END) {
-            calculatePassive();
-            if (Util.debug) Util.debugLog(prettyString());
-
-        }
+    public void onMonthEnd() {
+        super.onMonthEnd();
+        calculatePassive();
+        if (Util.debug) Util.debugLog(prettyString());
     }
 
     private void calculatePassive() {

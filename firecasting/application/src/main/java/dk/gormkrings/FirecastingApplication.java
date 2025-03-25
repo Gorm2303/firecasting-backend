@@ -10,10 +10,10 @@ import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.simulation.data.Result;
-import dk.gormkrings.simulation.phases.PassivePhase;
-import dk.gormkrings.simulation.phases.DepositPhase;
-import dk.gormkrings.simulation.phases.Phase;
-import dk.gormkrings.simulation.phases.WithdrawPhase;
+import dk.gormkrings.simulation.phases.normal.PassivePhase;
+import dk.gormkrings.simulation.phases.normal.DepositPhase;
+import dk.gormkrings.simulation.phases.normal.Phase;
+import dk.gormkrings.simulation.phases.normal.WithdrawPhase;
 import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
 import dk.gormkrings.taxes.*;
 import dk.gormkrings.util.Date;
@@ -78,7 +78,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         long startTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.runMonteCarlo(100000, phases);
+        List<Result> results = simulation.runMonteCarlo(1000000, phases);
         log.debug("These are the results");
         if (Util.debug) {
             for (Result result : results) {

@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation.phases;
+package dk.gormkrings.simulation.phases.eventbased;
 
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
@@ -18,13 +18,13 @@ import org.springframework.context.ApplicationEvent;
 @Slf4j
 @Getter
 @Setter
-public abstract class SimulationPhase implements Phase {
+public abstract class ESimulationEPhase implements EPhase {
     private Date startDate;
     private long duration;
     private Specification specification;
     private String name;
 
-    SimulationPhase(Specification specification, Date startDate, long duration, String name) {
+    ESimulationEPhase(Specification specification, Date startDate, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
