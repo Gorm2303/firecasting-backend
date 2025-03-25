@@ -30,15 +30,11 @@ public class DepositPhase extends SimulationPhase {
 
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
+        super.onApplicationEvent(event);
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
-            addReturn();
             depositMoney();
             log.debug(prettyString());
-
-        } else if (event instanceof YearEvent yearEvent &&
-                yearEvent.getType() == Type.END) {
-            addTax();
 
         }
     }

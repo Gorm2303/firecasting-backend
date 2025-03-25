@@ -27,15 +27,11 @@ public class PassivePhase extends SimulationPhase {
 
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
+        super.onApplicationEvent(event);
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
-            addReturn();
             calculatePassive();
             log.debug(prettyString());
-
-        } else if (event instanceof YearEvent yearEvent &&
-                yearEvent.getType() == Type.END) {
-            addTax();
 
         }
     }

@@ -9,7 +9,6 @@ import dk.gormkrings.simulation.data.Snapshot;
 import dk.gormkrings.simulation.phases.Phase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.SimpleApplicationEventMulticaster;
-import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -34,11 +33,6 @@ public class Engine {
         LocalDate startDate = phase.getStartDate();
         EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);
-        if (phase.getSpecification().getListeners() != null) {
-            for (SmartApplicationListener listener : phase.getSpecification().getListeners()) {
-                dispatcher.register(listener);
-            }
-        }
 
         result.addSnapshot(new Snapshot(data));
 

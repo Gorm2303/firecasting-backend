@@ -6,5 +6,4 @@ import java.util.List;
 
 public interface Spec {
     Spec copy();
-    List<SmartApplicationListener> getListeners();
 }

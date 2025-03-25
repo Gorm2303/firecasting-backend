@@ -5,7 +5,7 @@ import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.inflation.SimpleInflation;
+import dk.gormkrings.inflation.DataAverageInflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.specification.Specification;
@@ -76,7 +76,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         long startTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.runMonteCarlo(1, phases);
+        List<Result> results = simulation.runMonteCarlo(10000, phases);
         log.debug("These are the results");
         for (Result result : results) {
             log.debug("Result: ");
@@ -97,7 +97,7 @@ public class FirecastingApplication implements CommandLineRunner {
         if (taxExemptionCard != null) taxation.setTaxExemptionCard(taxExemptionCard);
 
         Return basicReturn = new SimpleMonthlyReturn(7);
-        Inflation inflation = new SimpleInflation();
+        Inflation inflation = new DataAverageInflation();
         return new Specification(liveData, taxation, basicReturn, inflation);
     }
 

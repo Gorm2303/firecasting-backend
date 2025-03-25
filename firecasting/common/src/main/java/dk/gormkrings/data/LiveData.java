@@ -91,7 +91,7 @@ public class LiveData implements Live {
                 " - Returned " + returned +
                 " - Withdraw " + withdraw +
                 " - Withdrawn " + withdrawn +
-                " - Year-Tax " + currentTax +
+                " - Tax " + currentTax +
                 " - Taxed " + tax +
                 " - Earnings " + netEarnings;
     }

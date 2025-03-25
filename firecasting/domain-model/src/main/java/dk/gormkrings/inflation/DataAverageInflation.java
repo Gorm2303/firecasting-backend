@@ -1,31 +1,26 @@
 package dk.gormkrings.inflation;
 
-import dk.gormkrings.data.LiveData;
-import dk.gormkrings.event.Type;
-import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.util.Util;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEvent;
 
 import java.io.*;
 
 @Slf4j
 @Getter
-public class SimpleInflation implements Inflation {
+public class DataAverageInflation implements Inflation {
     private double averagePercentage;
 
-    public SimpleInflation() {
+    public DataAverageInflation() {
         setAverageInflation("/dk/gormkrings/inflation/inflation.csv");
         log.debug("Initializing SimpleInflation = {}", Util.formatNumber(averagePercentage));
     }
 
-    private SimpleInflation(double averagePercentage) {
+    private DataAverageInflation(double averagePercentage) {
         this.averagePercentage = averagePercentage;
     }
 
-    public SimpleInflation(String filename) {
+    public DataAverageInflation(String filename) {
         setAverageInflation(filename);
         log.debug("Initializing SimpleInflation = {}", Util.formatNumber(averagePercentage));
     }
@@ -36,30 +31,8 @@ public class SimpleInflation implements Inflation {
     }
 
     @Override
-    public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        YearEvent yearEvent = (YearEvent) event;
-        if (yearEvent.getType() != Type.END) return;
-
-        log.debug("Year {}: SimpleInflation calculating inflation: {}", yearEvent.getData().getSessionDuration() / 365, Util.formatNumber(averagePercentage));
-
-        LiveData data = (LiveData) yearEvent.getData();
-        data.addToInflation(calculatePercentage());
-    }
-
-    @Override
-    public boolean supportsEventType(@NonNull Class<? extends ApplicationEvent> eventType) {
-        return YearEvent.class.isAssignableFrom(eventType);
-    }
-
-    @Override
-    public boolean supportsSourceType(Class<?> sourceType) {
-        return true;
-    }
-
-
-    @Override
     public Inflation copy() {
-        return new SimpleInflation(this.averagePercentage);
+        return new DataAverageInflation(this.averagePercentage);
     }
 
     private void setAverageInflation(String csvFilePath) {
@@ -70,7 +43,7 @@ public class SimpleInflation implements Inflation {
 
         InputStream is = getClass().getResourceAsStream(csvFilePath);
         if (is == null) {
-            log.error("Resource not found: " + csvFilePath);
+            log.error("Resource not found: {}", csvFilePath);
             return;
         }
 

@@ -1,8 +1,10 @@
 package dk.gormkrings.simulation.phases;
 
 import dk.gormkrings.data.LiveData;
+import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.date.YearEvent;
+import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.taxes.NotionalGainsTax;
 import dk.gormkrings.util.Util;
@@ -20,10 +22,10 @@ import static dk.gormkrings.util.Util.formatNumber;
 @Getter
 @Setter
 public abstract class SimulationPhase implements Phase {
-    private String name;
     private LocalDate startDate;
     private long duration;
     private Specification specification;
+    private String name;
 
     SimulationPhase(Specification specification, LocalDate startDate, long duration, String name) {
         this.startDate = startDate;
@@ -32,7 +34,6 @@ public abstract class SimulationPhase implements Phase {
         this.name = name;
     }
 
-    @Override
     public void addReturn() {
         double r = specification.getReturner().calculateReturn(getLiveData().getCapital());
         getLiveData().setCurrentReturn(r);
@@ -40,7 +41,6 @@ public abstract class SimulationPhase implements Phase {
         getLiveData().addToCapital(r);
     }
 
-    @Override
     public void addTax() {
         if (specification.getTaxRule() instanceof NotionalGainsTax notionalTax) {
             double tax = notionalTax.calculateTax(getLiveData().getReturned() - notionalTax.getPreviousReturned());
@@ -56,12 +56,35 @@ public abstract class SimulationPhase implements Phase {
         }
     }
 
+    public void addInflation() {
+        Inflation inflation = getSpecification().getInflation();
+        double inflationAmount = inflation.calculatePercentage();
+        getLiveData().addToInflation(inflationAmount);
+
+        log.debug("Year {}: SimpleInflation calculating inflation: {}",
+                getLiveData().getSessionDuration() / 365,
+                Util.formatNumber(inflationAmount));
+
+    }
+
+    @Override
+    public void onApplicationEvent(@NonNull ApplicationEvent event) {
+        if (event instanceof MonthEvent monthEvent &&
+                monthEvent.getType() == Type.END) {
+            addReturn();
+        } else if (event instanceof YearEvent yearEvent &&
+                yearEvent.getType() == Type.END) {
+            addTax();
+            addInflation();
+
+        }
+    }
+
     @Override
     public LiveData getLiveData() {
         return specification.getLiveData();
     }
 
-    @Override
     public LocalDate getCurrentLocalDate() {
         return startDate.plusDays(getLiveData().getSessionDuration() - 1);
     }
@@ -82,7 +105,7 @@ public abstract class SimulationPhase implements Phase {
                 " - Deposited " + formatNumber(getLiveData().getDeposited()) +
                 " - Returned " + formatNumber(getLiveData().getReturned()) +
                 " - Return " + formatNumber(getLiveData().getCurrentReturn()) +
-                " - Tax " + Util.formatNumber(getLiveData().getTax()) +
+                " - Taxed " + Util.formatNumber(getLiveData().getTax()) +
                 " - Earnings " + Util.formatNumber(getLiveData().getNetEarnings()
         );
     }

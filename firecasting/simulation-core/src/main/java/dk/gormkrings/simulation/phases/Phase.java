@@ -9,11 +9,7 @@ import java.time.LocalDate;
 public interface Phase extends SmartApplicationListener {
     LocalDate getStartDate();
     long getDuration();
-    String getName();
-    LocalDate getCurrentLocalDate();
     Phase copy(Spec specificationCopy);
-    void addReturn();
-    void addTax();
     Spec getSpecification();
     Live getLiveData();
 
