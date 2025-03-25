@@ -6,6 +6,7 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -23,7 +24,7 @@ public class WithdrawPhase extends SimulationPhase {
 
     public WithdrawPhase(Specification specification, LocalDate startDate, long duration, Withdraw withdraw) {
         super(specification, startDate, duration, "Withdraw");
-        log.debug("Initializing Withdraw Phase");
+        log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = withdraw;
     }
 
@@ -51,8 +52,8 @@ public class WithdrawPhase extends SimulationPhase {
     @Override
     public String prettyString() {
         return super.prettyString() +
-                " - Withdraw " + formatNumber(getLiveData().getWithdraw()) +
-                " - Withdrawn " + formatNumber(getLiveData().getWithdrawn());
+                " - Withdraw " + Util.formatNumber(getLiveData().getWithdraw()) +
+                " - Withdrawn " + Util.formatNumber(getLiveData().getWithdrawn());
     }
 
     @Override
@@ -61,7 +62,7 @@ public class WithdrawPhase extends SimulationPhase {
                 (Specification) specificationCopy,
                 getStartDate(),
                 getDuration(),
-                this.withdraw
+                this.withdraw.copy()
         );
     }
 }

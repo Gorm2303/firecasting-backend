@@ -3,6 +3,7 @@ package dk.gormkrings.inflation;
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.YearEvent;
+import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,7 @@ public class SimpleInflation implements Inflation {
 
     public SimpleInflation() {
         setAverageInflation("/dk/gormkrings/inflation/inflation.csv");
-        log.debug("Initializing SimpleInflation = {}", this.averagePercentage);
+        log.debug("Initializing SimpleInflation = {}", Util.formatNumber(averagePercentage));
     }
 
     private SimpleInflation(double averagePercentage) {
@@ -26,7 +27,7 @@ public class SimpleInflation implements Inflation {
 
     public SimpleInflation(String filename) {
         setAverageInflation(filename);
-        log.debug("Initializing SimpleInflation = {}", this.averagePercentage);
+        log.debug("Initializing SimpleInflation = {}", Util.formatNumber(averagePercentage));
     }
 
     @Override
@@ -39,7 +40,7 @@ public class SimpleInflation implements Inflation {
         YearEvent yearEvent = (YearEvent) event;
         if (yearEvent.getType() != Type.END) return;
 
-        log.debug("Year " + (yearEvent.getData().getSessionDuration() / 365) + ": SimpleInflation calculating inflation.");
+        log.debug("Year {}: SimpleInflation calculating inflation.", yearEvent.getData().getSessionDuration() / 365);
 
         LiveData data = (LiveData) yearEvent.getData();
         data.addToInflation(calculatePercentage());

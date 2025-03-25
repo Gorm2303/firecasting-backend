@@ -5,6 +5,7 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -21,7 +22,7 @@ public class DepositPhase extends SimulationPhase {
 
     public DepositPhase(Specification specification, LocalDate startDate, long duration, Deposit deposit) {
         super(specification, startDate, duration,"Deposit");
-        log.debug("Initializing Deposit Phase");
+        log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = deposit;
     }
 
@@ -51,7 +52,7 @@ public class DepositPhase extends SimulationPhase {
     @Override
     public String prettyString() {
         return super.prettyString() +
-                " - Deposit " + formatNumber(getLiveData().getDeposit()
+                " - Deposit " + Util.formatNumber(getLiveData().getDeposit()
         );
     }
 

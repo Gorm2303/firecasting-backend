@@ -2,7 +2,9 @@ package dk.gormkrings.action;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Setter
 public class Deposit implements Action {
     @Getter
@@ -12,18 +14,12 @@ public class Deposit implements Action {
     private double increaseMonthlyAmount;
     private double increaseMonthlyPercentage;
 
-    public Deposit() {
-        this.initial = 0;
-        this.monthly = 0;
-        this.increaseMonthlyAmount = 0;
-        this.increaseMonthlyPercentage = 0;
-    }
-
     public Deposit(double initial, double monthly) {
         this.initial = initial;
         this.monthly = monthly;
         this.increaseMonthlyAmount = 0;
         this.increaseMonthlyPercentage = 0;
+        log.debug("Initializing Deposit: {} initial and {} monthly", initial, monthly);
     }
 
     public double getMonthlyIncrease() {
@@ -39,9 +35,10 @@ public class Deposit implements Action {
     }
 
     public Deposit copy() {
-        Deposit deposit = new Deposit();
-        deposit.setMonthly(this.getMonthly());
-        deposit.setInitial(this.getInitial());
+        Deposit deposit = new Deposit(
+                this.getInitial(),
+                this.getMonthly()
+        );
         deposit.setIncreaseMonthlyAmount(this.increaseMonthlyAmount);
         deposit.setIncreaseMonthlyPercentage(this.increaseMonthlyPercentage);
         return deposit;

@@ -61,14 +61,14 @@ public class FirecastingApplication implements CommandLineRunner {
         long passiveDays = getDurationInDays(passiveStartDate, passiveDurationInMonths);
         long withdrawDays = getDurationInDays(withdrawStartDate, withdrawDurationInMonths);
 
-        TaxRule notionalTax = new NotionalGainsTax();
+        TaxRule notionalTax = new NotionalGainsTax(42);
         Return basicReturn = new SimpleMonthlyReturn(7);
         Inflation inflation = new SimpleInflation();
         Specification specification = new Specification(liveData, notionalTax, basicReturn, inflation);
 
         Deposit deposit = new Deposit(10000, 5000);
         Passive passive = new Passive();
-        Withdraw withdraw = new Withdraw(0.04F);
+        Withdraw withdraw = new Withdraw(0, 0.04);
 
         Phase currentPhase = new DepositPhase(specification, depositStartDate, depositDays, deposit);
         phases.add(currentPhase);
@@ -81,7 +81,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         long startTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.runMonteCarlo(2, phases);
+        List<Result> results = simulation.runMonteCarlo(1, phases);
         log.debug("These are the results");
         for (Result result : results) {
             log.debug("Result: ");
@@ -90,7 +90,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         long endTime = System.currentTimeMillis();
         long elapsedTime = endTime - startTime;
-        log.info("Elapsed time: " + ((double) elapsedTime)/1000 + " seconds");
+        log.info("Elapsed time: {} seconds", ((double) elapsedTime) / 1000);
         log.info("Application Ended");
     }
 

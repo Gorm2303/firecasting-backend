@@ -6,6 +6,7 @@ import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.util.Util;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
@@ -19,7 +20,7 @@ public class PassivePhase extends SimulationPhase {
 
     public PassivePhase(Specification specification, LocalDate startDate, long duration, Passive passive) {
         super(specification, startDate, duration, "Passive");
-        log.debug("Initializing Passive Phase");
+        log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = passive;
     }
 
@@ -35,11 +36,16 @@ public class PassivePhase extends SimulationPhase {
         }
 
     private void calculatePassive(LiveData data) {
-        double passiveReturn = data.getCurrentReturn();
+        double passiveReturn = 0;
         if (firstTime) {
-            passive.setInitial(data.getReturned() - passiveReturn);
             firstTime = false;
+            passive.setPreviouslyReturned(data.getReturned());
+            passiveReturn = data.getCurrentReturn();
+        } else {
+            passiveReturn = data.getReturned() - passive.getPreviouslyReturned();
+            passive.setPreviouslyReturned(data.getReturned());
         }
+
         data.setPassiveReturn(passiveReturn);
         data.addToPassiveReturned(passiveReturn);
     }
@@ -47,7 +53,7 @@ public class PassivePhase extends SimulationPhase {
     @Override
     public String prettyString() {
         return super.prettyString() +
-                " - Passive " + formatNumber(getLiveData().getPassiveReturned());
+                " - Passive " + Util.formatNumber(getLiveData().getPassiveReturned());
     }
 
     @Override

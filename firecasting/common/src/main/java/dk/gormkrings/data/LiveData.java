@@ -23,6 +23,9 @@ public class LiveData implements Live {
     private double withdraw;
     private double withdrawn;
     @Setter
+    private double yearlyTax;
+    private double tax;
+    @Setter
     private boolean debug = false;
 
     public LiveData() {
@@ -37,6 +40,8 @@ public class LiveData implements Live {
         this.returned = 0;
         this.withdraw = 0;
         this.withdrawn = 0;
+        this.yearlyTax = 0;
+        this.tax = 0;
     }
 
     private LiveData(LiveData liveData) {
@@ -52,6 +57,8 @@ public class LiveData implements Live {
         this.returned = liveData.returned;
         this.withdraw = liveData.withdraw;
         this.withdrawn = liveData.withdrawn;
+        this.yearlyTax = liveData.yearlyTax;
+        this.tax = liveData.tax;
         this.debug = liveData.debug;
     }
 
@@ -82,8 +89,10 @@ public class LiveData implements Live {
                 " - Inflation " + inflation +
                 " - Return " + currentReturn +
                 " - Returned " + returned +
-                " - withdraw " + withdraw +
-                " - withdrawn " + withdrawn;
+                " - Withdraw " + withdraw +
+                " - Withdrawn " + withdrawn +
+                " - Year-Tax " + yearlyTax +
+                " - Taxed " + tax;
     }
 
     public void addToCapital(double capital) {
@@ -102,12 +111,28 @@ public class LiveData implements Live {
         this.returned += returned;
     }
 
+    public void subtractFromReturned(double amount) {
+        this.returned -= amount;
+    }
+
     public void addToWithdrawn(double withdraw) {
         this.withdrawn += withdraw;
     }
 
+    public void subtractFromWithdrawn(double amount) {
+        this.withdrawn -= amount;
+    }
+
     public void addToPassiveReturned(double passiveReturn) {
         this.passiveReturned += passiveReturn;
+    }
+
+    public void subtractFromPassiveReturned(double amount) {
+        this.passiveReturned -= amount;
+    }
+
+    public void addToTax(double tax) {
+        this.tax += tax;
     }
 
     public void addToInflation(double inflation) {

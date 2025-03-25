@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.context.event.SmartApplicationListener;
 
 @Setter
 @Getter
@@ -15,7 +14,7 @@ public class CapitalGainsTax implements TaxRule {
     private TaxExemptionCard taxExemptionCard;
 
     @Override
-    public double calculateTax() {
+    public double calculateTax(double amount) {
         return 0;
     }
 

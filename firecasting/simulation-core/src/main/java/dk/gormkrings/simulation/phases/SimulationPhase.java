@@ -9,8 +9,9 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.springframework.context.ApplicationEvent;
 
-import java.text.DecimalFormat;
 import java.time.LocalDate;
+
+import static dk.gormkrings.util.Util.formatNumber;
 
 @Getter
 @Setter
@@ -73,18 +74,5 @@ public abstract class SimulationPhase implements Phase {
     @Override
     public boolean supportsSourceType(Class<?> sourceType) {
         return true;
-    }
-
-    public String formatNumber(double number) {
-        String pattern;
-        if (number > 100) {
-            pattern = "0";
-        } else if (number <= 100 && number >= 0.1) {
-            pattern = "0.00";
-        } else {
-            pattern = "0.0000";
-        }
-        DecimalFormat df = new DecimalFormat(pattern);
-        return df.format(number);
     }
 }
