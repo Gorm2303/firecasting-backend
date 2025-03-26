@@ -15,6 +15,8 @@ public class Passive implements Action {
     }
 
     public Passive copy() {
-        return new Passive();
+        Passive copy = new Passive();
+        copy.setPreviouslyReturned(this.previouslyReturned);
+        return copy;
     }
 }
