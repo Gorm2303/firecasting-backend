@@ -1,39 +1,34 @@
 package dk.gormkrings.action;
 
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Setter
 public class Withdraw implements Action {
-    private double amount;
-    private float percent;
+    private double monthlyAmount;
+    private double percent;
 
-    public Withdraw(double amount) {
-        this.amount = amount;
-        this.percent = 0;
-    }
-
-    public Withdraw(float percent) {
+    public Withdraw(double monthlyAmount, double percent) {
+        this.monthlyAmount = monthlyAmount;
         this.percent = percent;
-        if (percent >= 1) this.percent %= 100;
-        this.amount = 0;
+        log.debug("Initializing withdraw: {} monthly, {} percent", monthlyAmount, percent);
     }
 
-    private Withdraw(double amount, float percent) {
-        this.amount = amount;
-        this.percent = percent;
-    }
-
-    public double getAmount(double capital) {
-        if (amount > 0) return amount;
-        else if (percent > 0) return percent * capital;
+    public double getMonthlyAmount(double capital) {
+        if (monthlyAmount > 0) return monthlyAmount;
+        else if (percent > 0) return (percent * capital)/12;
         else return 0;
+    }
+
+    public double getYearlyAmount(double capital) {
+        return getMonthlyAmount(capital)*12;
     }
 
     public Withdraw copy() {
         return new Withdraw(
-                this.amount,
+                this.monthlyAmount,
                 this.percent
         );
     }
-
 }

@@ -1,40 +1,40 @@
 package dk.gormkrings.taxes;
 
-import dk.gormkrings.event.Type;
-import dk.gormkrings.event.date.YearEvent;
-import lombok.NonNull;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.event.SmartApplicationListener;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
-public class NotionalGainsTax implements TaxRule, SmartApplicationListener {
-    @Override
-    public double calculateTax() {
-        return 0;
+@Slf4j
+@Getter
+@Setter
+public class NotionalGainsTax implements TaxRule {
+    private final double taxRate;
+    private double previousReturned = 0;
+    private StockExemptionTax stockExemptionTax;
+    private TaxExemptionCard taxExemptionCard;
+
+    public NotionalGainsTax(double taxRate) {
+        this(taxRate, null, null);
+    }
+
+    public NotionalGainsTax(double taxRate, StockExemptionTax stockExemptionTax, TaxExemptionCard taxExemptionCard) {
+        this.taxRate = taxRate;
+        this.stockExemptionTax = stockExemptionTax;
+        this.taxExemptionCard = taxExemptionCard;
+        log.debug("Notional Gains Tax Rule Created: {}", taxRate);
     }
 
     @Override
-    public TaxRule copy() {
-        return new NotionalGainsTax();
+    public double calculateTax(double amount) {
+        return amount * taxRate / 100;
     }
 
     @Override
-    public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        YearEvent yearEvent = (YearEvent) event;
-        if (yearEvent.getType() != Type.END) return;
-
-        long day = yearEvent.getData().getSessionDuration();
-        //System.out.println("Year " + (day / 365) + ": NotionalGainsTax calculating tax.");
-        // Implement your tax calculation logic here
+    public NotionalGainsTax copy() {
+        return new NotionalGainsTax(
+                this.taxRate,
+                this.stockExemptionTax,
+                this.taxExemptionCard
+        );
     }
-
-    @Override
-    public boolean supportsEventType(@NonNull Class<? extends ApplicationEvent> eventType) {
-        return YearEvent.class.isAssignableFrom(eventType);
-    }
-
-    @Override
-    public boolean supportsSourceType(Class<?> sourceType) {
-        return true;
-    }
-
 }

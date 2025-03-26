@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation;
+package dk.gormkrings.simulation.engine.event;
 
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;

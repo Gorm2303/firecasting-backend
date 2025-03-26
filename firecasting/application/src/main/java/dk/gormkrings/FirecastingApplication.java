@@ -1,31 +1,40 @@
 package dk.gormkrings;
 
 import dk.gormkrings.action.Deposit;
+import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.LiveData;
-import dk.gormkrings.simulation.data.Result;
-import dk.gormkrings.simulation.phases.PassivePhase;
-import dk.gormkrings.simulation.phases.DepositPhase;
+import dk.gormkrings.inflation.Inflation;
+import dk.gormkrings.inflation.DataAverageInflation;
+import dk.gormkrings.returns.Return;
+import dk.gormkrings.returns.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.phases.Phase;
-import dk.gormkrings.simulation.phases.WithdrawPhase;
 import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
-import dk.gormkrings.taxes.NotionalGainsTax;
-import dk.gormkrings.taxes.TaxRule;
+import dk.gormkrings.simulation.simulations.ScheduleMCSimulation;
+import dk.gormkrings.simulation.simulations.Simulation;
+import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.simulation.data.Result;
+import dk.gormkrings.simulation.phases.callBased.PassiveCallPhase;
+import dk.gormkrings.simulation.phases.callBased.DepositCallPhase;
+import dk.gormkrings.simulation.phases.callBased.WithdrawCallPhase;
+import dk.gormkrings.taxes.*;
+import dk.gormkrings.util.Date;
+import dk.gormkrings.util.Util;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
+@Slf4j
 @SpringBootApplication(scanBasePackages = "dk.gormkrings")
 public class FirecastingApplication implements CommandLineRunner {
 
-    private MonteCarloSimulation simulation;
+    private final Simulation simulation;
 
-    public FirecastingApplication(MonteCarloSimulation simulation) {
+    public FirecastingApplication(ScheduleMCSimulation simulation) {
         this.simulation = simulation;
     }
 
@@ -35,52 +44,65 @@ public class FirecastingApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        List<Phase> phases = new ArrayList<>();
-        System.out.println("Application Started");
+        Util.debug = true;
+        List<Phase> phases = new LinkedList<>();
+        log.info("Application Started");
 
         LiveData liveData = new LiveData();
-        LocalDate startDate = LocalDate.of(2025,1,1);
+
+        int depositDurationInMonths = 20 * 12;
+        int passiveDurationInMonths = 5 * 12;
+        int withdrawDurationInMonths = 30 * 12;
+
+        Date depositStartDate = Date.of(2025,1,1);
+        Date passiveStartDate = depositStartDate.plusMonths(depositDurationInMonths);
+        Date withdrawStartDate = passiveStartDate.plusMonths(passiveDurationInMonths);
+        Date withdrawEndDate = withdrawStartDate.plusMonths(withdrawDurationInMonths);
+
+        long depositDays = depositStartDate.daysUntil(passiveStartDate);
+        long passiveDays = passiveStartDate.daysUntil(withdrawStartDate);
+        long withdrawDays = withdrawStartDate.daysUntil(withdrawEndDate);
+
+        Specification specification = createSpecification(liveData);
+
         Deposit deposit = new Deposit(10000, 5000);
-        TaxRule notionalTax = new NotionalGainsTax();
-        Withdraw withdraw = new Withdraw(0.04F);
+        Passive passive = new Passive();
+        Withdraw withdraw = new Withdraw(0, 0.04);
 
-        int depositDurationInMonths = 10 *12;
-        long days = getDurationInDays(startDate,depositDurationInMonths);
-        Phase currentPhase = new DepositPhase(startDate, days, deposit, liveData, notionalTax);
+        Phase currentPhase = new DepositCallPhase(specification, depositStartDate, depositDays, deposit);
         phases.add(currentPhase);
 
-        int passiveDurationInMonths = 5 *12;
-        startDate = getNewStartDate(startDate, getDurationInDays(startDate, depositDurationInMonths));
-        days = getDurationInDays(startDate, passiveDurationInMonths);
-        currentPhase = new PassivePhase(currentPhase, startDate, days, notionalTax);
+        currentPhase = new PassiveCallPhase(specification, passiveStartDate, passiveDays, passive);
         phases.add(currentPhase);
 
-        int withdrawDurationInMonths = 30 *12;
-        startDate = getNewStartDate(startDate, getDurationInDays(startDate, withdrawDurationInMonths));
-        days = getDurationInDays(startDate, withdrawDurationInMonths);
-        currentPhase = new WithdrawPhase(currentPhase, startDate, days, withdraw, notionalTax);
+        currentPhase = new WithdrawCallPhase(specification, withdrawStartDate, withdrawDays, withdraw);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.runMonteCarlo(10000, phases);
-        System.out.println("These are the results");
-        for (Result result : results) {
-            System.out.println("Result: ");
-            result.print();
+        List<Result> results = simulation.run(1, phases);
+        log.debug("These are the results");
+        if (Util.debug) {
+            for (Result result : results) {
+                log.debug("Result: ");
+                result.print();
+            }
         }
         long endTime = System.currentTimeMillis();
         long elapsedTime = endTime - startTime;
-        System.out.println("Elapsed time: " + ((double) elapsedTime)/1000 + " seconds");
-        System.out.println("Application Ended");
+        log.info("Elapsed time: {} seconds", ((double) elapsedTime) / 1000);
+        log.info("Application Ended");
     }
 
-    private LocalDate getNewStartDate(LocalDate oldStartDate, long durationInDays) {
-        return oldStartDate.plusDays(durationInDays);
-    }
+    private static Specification createSpecification(LiveData liveData) {
+        CapitalGainsTax taxation = new CapitalGainsTax(42);
+        StockExemptionTax stockExemptionTax = null;
+        if (stockExemptionTax != null) taxation.setStockExemptionTax(stockExemptionTax);
+        TaxExemptionCard taxExemptionCard = null;
+        if (taxExemptionCard != null) taxation.setTaxExemptionCard(taxExemptionCard);
 
-    private long getDurationInDays(LocalDate startDate, long months) {
-        LocalDate endDate = startDate.plusMonths(months);
-        return startDate.until(endDate, ChronoUnit.DAYS);
+        Return basicReturn = new SimpleMonthlyReturn(7);
+        Inflation inflation = new DataAverageInflation();
+        return new Specification(liveData, taxation, basicReturn, inflation);
     }
 }

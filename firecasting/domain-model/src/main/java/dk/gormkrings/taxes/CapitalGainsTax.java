@@ -1,41 +1,39 @@
 package dk.gormkrings.taxes;
 
-import dk.gormkrings.event.action.WithdrawEvent;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.event.SmartApplicationListener;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Setter
 @Getter
-public class CapitalGainsTax implements TaxRule, SmartApplicationListener {
-    private float taxRate;
+public class CapitalGainsTax implements TaxRule {
+    private final double taxRate;
     private StockExemptionTax stockExemptionTax;
     private TaxExemptionCard taxExemptionCard;
 
-    @Override
-    public double calculateTax() {
-        return 0;
+    public CapitalGainsTax(double taxRate) {
+        this(taxRate, null, null);
+    }
+
+    public CapitalGainsTax(double taxRate, StockExemptionTax stockExemptionTax, TaxExemptionCard taxExemptionCard) {
+        this.taxRate = taxRate;
+        this.stockExemptionTax = stockExemptionTax;
+        this.taxExemptionCard = taxExemptionCard;
+        log.debug("Capital Gains Tax Rule Created: {}", taxRate);
     }
 
     @Override
-    public TaxRule copy() {
-        return new CapitalGainsTax();
+    public double calculateTax(double amount) {
+        return amount * taxRate / 100;
     }
 
     @Override
-    public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        //System.out.println("CapitalGainsTax calculating tax " + event);
-    }
-
-    @Override
-    public boolean supportsEventType(@NonNull Class<? extends ApplicationEvent> eventType) {
-        return WithdrawEvent.class.isAssignableFrom(eventType);
-    }
-
-    @Override
-    public boolean supportsSourceType(Class<?> sourceType) {
-        return true;
+    public CapitalGainsTax copy() {
+        return new CapitalGainsTax(
+                this.taxRate,
+                this.stockExemptionTax,
+                this.taxExemptionCard
+                );
     }
 }

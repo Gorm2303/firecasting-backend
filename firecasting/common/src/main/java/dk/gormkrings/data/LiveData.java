@@ -3,41 +3,63 @@ package dk.gormkrings.data;
 import lombok.Getter;
 import lombok.Setter;
 
+import static dk.gormkrings.util.Util.formatField;
+
 @Getter
-@Setter
 public class LiveData implements Live {
     private long totalDurationAlive;
+    @Setter
     private long sessionDuration;
+    @Setter
     private double deposit;
-    private double passiveMoney;
+    private double deposited;
+    @Setter
+    private double passiveReturn;
+    private double passiveReturned;
     private double capital;
-    private float inflation;
-    private float rateOfReturn;
+    private double inflation;
+    @Setter
+    private double currentReturn;
+    private double returned;
+    @Setter
+    private double withdraw;
+    private double withdrawn;
+    @Setter
+    private double currentTax;
+    private double tax;
+    private double netEarnings;
 
     public LiveData() {
-        this.sessionDuration = 0;
-        this.deposit = 0;
-        this.capital = 0;
-        this.inflation = 0;
-        this.rateOfReturn = 0;
-        this.totalDurationAlive = 0;
-        this.passiveMoney = 0;
     }
 
     private LiveData(LiveData liveData) {
-        this.sessionDuration = liveData.sessionDuration;
-        this.inflation = liveData.inflation;
-        this.rateOfReturn = liveData.rateOfReturn;
-        this.capital = liveData.capital;
-        this.deposit = liveData.deposit;
         this.totalDurationAlive = liveData.totalDurationAlive;
-        this.passiveMoney = liveData.passiveMoney;
+        this.sessionDuration = liveData.sessionDuration;
+        this.deposit = liveData.deposit;
+        this.deposited = liveData.deposited;
+        this.passiveReturn = liveData.passiveReturn;
+        this.passiveReturned = liveData.passiveReturned;
+        this.capital = liveData.capital;
+        this.inflation = liveData.inflation;
+        this.currentReturn = liveData.currentReturn;
+        this.returned = liveData.returned;
+        this.withdraw = liveData.withdraw;
+        this.withdrawn = liveData.withdrawn;
+        this.currentTax = liveData.currentTax;
+        this.tax = liveData.tax;
+        this.netEarnings = liveData.netEarnings;
     }
 
     @Override
     public void incrementTime() {
         sessionDuration++;
         totalDurationAlive++;
+    }
+
+    @Override
+    public void incrementTime(long amount) {
+        sessionDuration += amount;
+        totalDurationAlive += amount;
     }
 
     @Override
@@ -51,14 +73,21 @@ public class LiveData implements Live {
 
     @Override
     public String toString() {
-        return "LiveData: " +
-                "Alive " + totalDurationAlive +
-                " - Session " + sessionDuration +
-                " - Deposit " + deposit +
-                " - Capital " + capital +
-                " - Passive " + passiveMoney +
-                " - Inflation " + inflation +
-                " - RateOfReturn " + rateOfReturn;
+        return "LiveData:" +
+                getAliveInfo() +
+                getSessionInfo() +
+                getDepositInfo() +
+                getDepositedInfo() +
+                getPassiveInfo() +
+                getCapitalInfo() +
+                getInflationInfo() +
+                getReturnInfo() +
+                getReturnedInfo() +
+                getWithdrawInfo() +
+                getWithdrawnInfo() +
+                getTaxInfo() +
+                getTaxedInfo() +
+                getEarningsInfo();
     }
 
     public void addToCapital(double capital) {
@@ -69,16 +98,105 @@ public class LiveData implements Live {
         this.capital -= capital;
     }
 
-    public void addToDeposit(double deposit) {
-        this.deposit += deposit;
+    public void addToDeposited(double deposit) {
+        this.deposited += deposit;
     }
 
-    public void subtractFromDeposit(double deposit) {
-        this.deposit -= deposit;
+    public void addToReturned(double returned) {
+        this.returned += returned;
+    }
+
+    public void subtractFromReturned(double amount) {
+        this.returned -= amount;
+    }
+
+    public void addToWithdrawn(double withdraw) {
+        this.withdrawn += withdraw;
+    }
+
+    public void subtractFromWithdrawn(double amount) {
+        this.withdrawn -= amount;
+    }
+
+    public void addToPassiveReturned(double passiveReturn) {
+        this.passiveReturned += passiveReturn;
+    }
+
+    public void subtractFromPassiveReturned(double amount) {
+        this.passiveReturned -= amount;
+    }
+
+    public void addToTax(double tax) {
+        this.tax += tax;
+    }
+
+    public void addToInflation(double inflation) {
+        this.inflation += inflation;
+    }
+
+    public void addToNetEarnings(double netEarnings) {
+        this.netEarnings += netEarnings;
     }
 
     public LiveData copy() {
         return new LiveData(this);
     }
+
+    public String getAliveInfo() {
+        return formatField("Alive", totalDurationAlive);
+    }
+
+    public String getSessionInfo() {
+        return formatField("Session", sessionDuration);
+    }
+
+    public String getDepositInfo() {
+        return formatField("Deposit", deposit);
+    }
+
+    public String getDepositedInfo() {
+        return formatField("Deposited", deposited);
+    }
+
+    public String getPassiveInfo() {
+        return formatField("Passive", passiveReturned);
+    }
+
+    public String getCapitalInfo() {
+        return formatField("Capital", capital);
+    }
+
+    public String getInflationInfo() {
+        return formatField("Inflation", inflation);
+    }
+
+    public String getReturnInfo() {
+        return formatField("Return", currentReturn);
+    }
+
+    public String getReturnedInfo() {
+        return formatField("Returned", returned);
+    }
+
+    public String getWithdrawInfo() {
+        return formatField("Withdraw", withdraw);
+    }
+
+    public String getWithdrawnInfo() {
+        return formatField("Withdrawn", withdrawn);
+    }
+
+    public String getTaxInfo() {
+        return formatField("Tax", currentTax);
+    }
+
+    public String getTaxedInfo() {
+        return formatField("Taxed", tax);
+    }
+
+    public String getEarningsInfo() {
+        return formatField("Earnings", netEarnings);
+    }
+
 
 }

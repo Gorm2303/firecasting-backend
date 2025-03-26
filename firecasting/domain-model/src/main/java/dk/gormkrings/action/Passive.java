@@ -2,20 +2,21 @@ package dk.gormkrings.action;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Getter
 @Setter
 public class Passive implements Action {
-    private double total;
-    private double initial;
+    private double previouslyReturned = 0;
 
     public Passive() {
-        this.initial = 0;
-        this.total = initial;
+        log.debug("Initializing Passive");
     }
 
-    public void setInitial(double initial) {
-        this.initial = initial;
-        total = initial;
+    public Passive copy() {
+        Passive copy = new Passive();
+        copy.setPreviouslyReturned(this.previouslyReturned);
+        return copy;
     }
 }
