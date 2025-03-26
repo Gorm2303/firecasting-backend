@@ -50,7 +50,7 @@ public class CallEngine implements Engine {
             currentEpochDay++; // advance one day
 
             // Call Day Methods.
-            phase.onDay();
+            phase.onDayStart();
 
             // Call Month Start Methods.
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {
@@ -64,8 +64,8 @@ public class CallEngine implements Engine {
             if (currentEpochDay == currentMonthEndEpochDay) {
                 phase.onMonthEnd();
                 // Update boundary for month end.
-                Date nextDay = new Date(currentEpochDay + 1);
-                currentMonthEndEpochDay = nextDay.computeMonthEnd();
+                Date nextDay = new Date(currentEpochDay);
+                currentMonthEndEpochDay = nextDay.computeNextMonthEnd();
             }
 
             // Call Year Start Methods.
@@ -78,8 +78,8 @@ public class CallEngine implements Engine {
             // Call Year End Methods.
             if (currentEpochDay == currentYearEndEpochDay) {
                 phase.onYearEnd();
-                Date nextDay = new Date(currentEpochDay + 1);
-                currentYearEndEpochDay = nextDay.computeYearEnd();
+                Date nextDay = new Date(currentEpochDay);
+                currentYearEndEpochDay = nextDay.computeNextYearEnd();
             }
         }
 

@@ -47,14 +47,11 @@ public final class Date {
     }
 
     private static int getLengthOfMonth(int year, int month) {
-        switch (month) {
-            case 2:
-                return isLeapYearStatic(year) ? 29 : 28;
-            case 4: case 6: case 9: case 11:
-                return 30;
-            default:
-                return 31;
-        }
+        return switch (month) {
+            case 2 -> isLeapYearStatic(year) ? 29 : 28;
+            case 4, 6, 9, 11 -> 30;
+            default -> 31;
+        };
     }
 
     private static boolean isLeapYearStatic(int year) {
@@ -84,14 +81,11 @@ public final class Date {
     public int lengthOfMonth() {
         int month = getMonth();
         int year = getYear();
-        switch (month) {
-            case 2:
-                return isLeapYear(year) ? 29 : 28;
-            case 4: case 6: case 9: case 11:
-                return 30;
-            default:
-                return 31;
-        }
+        return switch (month) {
+            case 2 -> isLeapYear(year) ? 29 : 28;
+            case 4, 6, 9, 11 -> 30;
+            default -> 31;
+        };
     }
 
     public int lengthOfYear() {
@@ -139,6 +133,22 @@ public final class Date {
         return other.epochDay - this.epochDay;
     }
 
+    public int getDayOfWeek() {
+        // 0 = Monday, 1 = Tuesday, …, 6 = Sunday.
+        return epochDay % 7;
+    }
+
+    public int computeNextWeekStart() {
+        int dayOfWeek = getDayOfWeek();
+        int daysToAdd = (dayOfWeek == 0 ? 7 : (7 - dayOfWeek));
+        return plusDays(daysToAdd).getEpochDay();
+    }
+
+    public int computeWeekEnd() {
+        int dayOfWeek = getDayOfWeek();
+        int daysToAdd = (dayOfWeek == 6 ? 7 : (6 - dayOfWeek));
+        return plusDays(daysToAdd).getEpochDay();
+    }
 
     public int computeNextMonthStart() {
         int year = this.getYear();
@@ -165,6 +175,29 @@ public final class Date {
     public int computeYearEnd() {
         int year = this.getYear();
         return Date.of(year, 12, 31).getEpochDay();
+    }
+
+    public int computeNextWeekEnd() {
+        int dayOfWeek = getDayOfWeek();
+        int daysToAdd = (dayOfWeek == 6 ? 7 : (6 - dayOfWeek));
+        return plusDays(daysToAdd).getEpochDay();
+    }
+
+    public int computeNextYearEnd() {
+        if (getMonth() == 12 && getDayOfMonth() == 31) {
+            return Date.of(getYear() + 1, 12, 31).getEpochDay();
+        } else {
+            return Date.of(getYear(), 12, 31).getEpochDay();
+        }
+    }
+
+    public int computeNextMonthEnd() {
+        if (getDayOfMonth() == lengthOfMonth()) {
+            Date nextMonth = plusDays(1);
+            return nextMonth.computeMonthEnd();
+        } else {
+            return computeMonthEnd();
+        }
     }
 
 }

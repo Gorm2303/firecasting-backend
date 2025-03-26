@@ -9,6 +9,7 @@ import dk.gormkrings.inflation.DataAverageInflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.phases.Phase;
+import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
 import dk.gormkrings.simulation.simulations.ScheduleMCSimulation;
 import dk.gormkrings.simulation.simulations.Simulation;
 import dk.gormkrings.simulation.specification.Specification;

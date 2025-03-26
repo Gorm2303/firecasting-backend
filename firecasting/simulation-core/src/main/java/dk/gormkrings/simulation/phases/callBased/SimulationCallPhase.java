@@ -2,6 +2,7 @@ package dk.gormkrings.simulation.phases.callBased;
 
 import dk.gormkrings.data.LiveData;
 import dk.gormkrings.inflation.Inflation;
+import dk.gormkrings.simulation.engine.schedule.EventType;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.taxes.NotionalGainsTax;
 import dk.gormkrings.util.Date;
@@ -60,7 +61,17 @@ public abstract class SimulationCallPhase implements CallPhase {
     }
 
     @Override
-    public void onDay() {
+    public boolean supportsEvent(EventType eventType) {
+        return eventType.equals(EventType.MONTH_END) || eventType.equals(EventType.YEAR_END);
+    }
+
+    @Override
+    public void onDayStart() {
+
+    }
+
+    @Override
+    public void onDayEnd() {
 
     }
 
@@ -75,7 +86,9 @@ public abstract class SimulationCallPhase implements CallPhase {
     }
 
     @Override
-    public void onMonthStart() {}
+    public void onMonthStart() {
+
+    }
 
     @Override
     public void onMonthEnd() {
@@ -83,7 +96,9 @@ public abstract class SimulationCallPhase implements CallPhase {
     }
 
     @Override
-    public void onYearStart() {}
+    public void onYearStart() {
+
+    }
 
     @Override
     public void onYearEnd() {

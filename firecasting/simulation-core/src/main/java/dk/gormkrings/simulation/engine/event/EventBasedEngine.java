@@ -81,8 +81,8 @@ public class EventBasedEngine implements Engine {
             if (currentEpochDay == currentMonthEndEpochDay) {
                 dispatcher.notifyListeners(monthEventEnd);
                 // Update boundary for month end.
-                Date nextDay = new Date(currentEpochDay + 1);
-                currentMonthEndEpochDay = nextDay.computeMonthEnd();
+                Date nextDay = new Date(currentEpochDay);
+                currentMonthEndEpochDay = nextDay.computeNextMonthEnd();
             }
 
             // Publish Year Start Event.
@@ -95,8 +95,8 @@ public class EventBasedEngine implements Engine {
             // Publish Year End Event.
             if (currentEpochDay == currentYearEndEpochDay) {
                 dispatcher.notifyListeners(yearEventEnd);
-                Date nextDay = new Date(currentEpochDay + 1);
-                currentYearEndEpochDay = nextDay.computeYearEnd();
+                Date nextDay = new Date(currentEpochDay);
+                currentYearEndEpochDay = nextDay.computeNextYearEnd();
             }
         }
 

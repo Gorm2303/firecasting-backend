@@ -25,7 +25,7 @@ public class ScheduleEngine implements Engine {
         for (Event event : schedule.getEvents()) {
             switch (event.getType()) {
                 case DAY_START:
-                    currentPhase.onDay();
+                    currentPhase.onDayStart();
                     break;
                 case MONTH_START:
                     currentPhase.onMonthStart();
@@ -43,7 +43,10 @@ public class ScheduleEngine implements Engine {
                     break;
                 case PHASE_SWITCH:
                     result.addSnapshot(new Snapshot(currentPhase.getLiveData()));
-                    if (!phaseCopies.isEmpty()) currentPhase = (CallPhase) phaseCopies.removeFirst();
+                    if (!phaseCopies.isEmpty()) {
+                        currentPhase = (CallPhase) phaseCopies.removeFirst();
+                        currentPhase.getLiveData().resetSession();
+                    }
                     break;
             }
         }
