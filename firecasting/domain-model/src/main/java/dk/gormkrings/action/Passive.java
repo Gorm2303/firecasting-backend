@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Setter
 public class Passive implements Action {
-    double previouslyReturned = 0;
+    private double previouslyReturned = 0;
 
     public Passive() {
         log.debug("Initializing Passive");
