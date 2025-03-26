@@ -1,37 +1,29 @@
-package dk.gormkrings.simulation.phases.eventbased;
+package dk.gormkrings.simulation.phases.normal;
 
 import dk.gormkrings.action.Passive;
-import dk.gormkrings.event.Type;
-import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEvent;
 
 
 @Slf4j
-public class EPassiveEPhaseE extends ESimulationEPhase {
+public class PassiveCallPhase extends SimulationCallPhase {
     private Passive passive;
     private boolean firstTime = true;
 
-    public EPassiveEPhaseE(Specification specification, Date startDate, long duration, Passive passive) {
+    public PassiveCallPhase(Specification specification, Date startDate, long duration, Passive passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = passive;
     }
 
     @Override
-    public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        super.onApplicationEvent(event);
-        if (event instanceof MonthEvent monthEvent &&
-                monthEvent.getType() == Type.END) {
-            calculatePassive();
-            if (Util.debug) Util.debugLog(prettyString());
-
-        }
+    public void onMonthEnd() {
+        super.onMonthEnd();
+        calculatePassive();
+        if (Util.debug) Util.debugLog(prettyString());
     }
 
     private void calculatePassive() {
@@ -56,8 +48,8 @@ public class EPassiveEPhaseE extends ESimulationEPhase {
     }
 
     @Override
-    public EPassiveEPhaseE copy(Spec specificationCopy) {
-        return new EPassiveEPhaseE(
+    public PassiveCallPhase copy(Spec specificationCopy) {
+        return new PassiveCallPhase(
                 (Specification) specificationCopy,
                 getStartDate(),
                 getDuration(),

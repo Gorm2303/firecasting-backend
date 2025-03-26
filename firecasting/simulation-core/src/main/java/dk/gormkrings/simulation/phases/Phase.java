@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation.phases.normal;
+package dk.gormkrings.simulation.phases;
 
 import dk.gormkrings.data.Live;
 import dk.gormkrings.simulation.specification.Spec;
@@ -10,12 +10,4 @@ public interface Phase {
     Phase copy(Spec specificationCopy);
     Spec getSpecification();
     Live getLiveData();
-    void onDay();
-    void onWeekStart();
-    void onWeekEnd();
-    void onMonthStart();
-    void onMonthEnd();
-    void onYearStart();
-    void onYearEnd();
-
 }

@@ -5,12 +5,10 @@ import lombok.Getter;
 @Getter
 public class Event {
     private final int epochDay;
-    private final Runnable action;
+    private final EventType type;
 
-    public Event(int epochDay, Runnable action) {
+    public Event(int epochDay, EventType type) {
         this.epochDay = epochDay;
-        this.action = action;
+        this.type = type;
     }
-
 }
-

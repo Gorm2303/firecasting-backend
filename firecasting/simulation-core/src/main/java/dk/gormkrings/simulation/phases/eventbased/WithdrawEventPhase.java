@@ -19,10 +19,10 @@ import org.springframework.context.ApplicationEvent;
 @Slf4j
 @Getter
 @Setter
-public class EWithdrawEPhaseE extends ESimulationEPhase {
+public class WithdrawEventPhase extends SimulationEventPhase {
     private Withdraw withdraw;
 
-    public EWithdrawEPhaseE(Specification specification, Date startDate, long duration, Withdraw withdraw) {
+    public WithdrawEventPhase(Specification specification, Date startDate, long duration, Withdraw withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = withdraw;
@@ -73,8 +73,8 @@ public class EWithdrawEPhaseE extends ESimulationEPhase {
     }
 
     @Override
-    public EWithdrawEPhaseE copy(Spec specificationCopy) {
-        return new EWithdrawEPhaseE(
+    public WithdrawEventPhase copy(Spec specificationCopy) {
+        return new WithdrawEventPhase(
                 (Specification) specificationCopy,
                 getStartDate(),
                 getDuration(),

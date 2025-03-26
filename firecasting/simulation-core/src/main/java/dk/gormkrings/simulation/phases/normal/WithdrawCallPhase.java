@@ -15,10 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Getter
 @Setter
-public class WithdrawPhase extends SimulationPhase {
+public class WithdrawCallPhase extends SimulationCallPhase {
     private Withdraw withdraw;
 
-    public WithdrawPhase(Specification specification, Date startDate, long duration, Withdraw withdraw) {
+    public WithdrawCallPhase(Specification specification, Date startDate, long duration, Withdraw withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = withdraw;
@@ -65,8 +65,8 @@ public class WithdrawPhase extends SimulationPhase {
     }
 
     @Override
-    public WithdrawPhase copy(Spec specificationCopy) {
-        return new WithdrawPhase(
+    public WithdrawCallPhase copy(Spec specificationCopy) {
+        return new WithdrawCallPhase(
                 (Specification) specificationCopy,
                 getStartDate(),
                 getDuration(),

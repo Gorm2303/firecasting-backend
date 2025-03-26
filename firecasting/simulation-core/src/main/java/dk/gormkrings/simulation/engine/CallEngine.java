@@ -3,7 +3,8 @@ package dk.gormkrings.simulation.engine;
 import dk.gormkrings.data.Live;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.data.Snapshot;
-import dk.gormkrings.simulation.phases.normal.Phase;
+import dk.gormkrings.simulation.phases.Phase;
+import dk.gormkrings.simulation.phases.normal.CallPhase;
 import dk.gormkrings.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -12,17 +13,17 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class CallEngine {
+public class CallEngine implements Engine {
 
-    public Result simulatePhases(List<Phase> phases) {
+    public Result simulatePhases(List<Phase> phaseCopies) {
         Result result = new Result();
-        for (Phase phase : phases) {
-            result.addResult(simulatePhase(phase));
+        for (Phase phase : phaseCopies) {
+            result.addResult(simulatePhase((CallPhase) phase));
         }
         return result;
     }
 
-    private Result simulatePhase(Phase phase) {
+    private Result simulatePhase(CallPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
         Result result = new Result();
         Live data = phase.getLiveData();
@@ -48,10 +49,10 @@ public class CallEngine {
             data.incrementTime();
             currentEpochDay++; // advance one day
 
-            // Publish Day Event.
-            //dispatcher.notifyListeners(dayEvent);
+            // Call Day Methods.
+            phase.onDay();
 
-            // Publish Month Start Event when the current day equals the precomputed boundary.
+            // Call Month Start Methods.
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {
                 phase.onMonthStart();
                 // Update boundary for next month start.
@@ -59,7 +60,7 @@ public class CallEngine {
                 nextMonthStartEpochDay = newCurrentDate.computeNextMonthStart();
             }
 
-            // Publish Month End Event.
+            // Call Month End Methods.
             if (currentEpochDay == currentMonthEndEpochDay) {
                 phase.onMonthEnd();
                 // Update boundary for month end.
@@ -67,14 +68,14 @@ public class CallEngine {
                 currentMonthEndEpochDay = nextDay.computeMonthEnd();
             }
 
-            // Publish Year Start Event.
+            // Call Year Start Methods.
             if (currentEpochDay == nextYearStartEpochDay && currentEpochDay != startEpochDay) {
                 phase.onYearStart();
                 Date newCurrentDate = new Date(currentEpochDay);
                 nextYearStartEpochDay = newCurrentDate.computeNextYearStart();
             }
 
-            // Publish Year End Event.
+            // Call Year End Methods.
             if (currentEpochDay == currentYearEndEpochDay) {
                 phase.onYearEnd();
                 Date nextDay = new Date(currentEpochDay + 1);

@@ -8,7 +8,9 @@ import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.data.Snapshot;
-import dk.gormkrings.simulation.phases.eventbased.EPhase;
+import dk.gormkrings.simulation.engine.Engine;
+import dk.gormkrings.simulation.phases.Phase;
+import dk.gormkrings.simulation.phases.eventbased.EventPhase;
 import dk.gormkrings.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.SimpleApplicationEventMulticaster;
@@ -18,17 +20,17 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class EventBasedEngine {
+public class EventBasedEngine implements Engine {
 
-    public Result simulatePhases(List<EPhase> phases) {
+    public Result simulatePhases(List<Phase> phaseCopies) {
         Result result = new Result();
-        for (EPhase phase : phases) {
-            result.addResult(simulatePhase(phase));
+        for (Phase phase : phaseCopies) {
+            result.addResult(simulatePhase((EventPhase) phase));
         }
         return result;
     }
 
-    private Result simulatePhase(EPhase phase) {
+    private Result simulatePhase(EventPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
         Result result = new Result();
         Live data = phase.getLiveData();

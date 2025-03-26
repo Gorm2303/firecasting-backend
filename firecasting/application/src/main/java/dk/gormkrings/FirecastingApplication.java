@@ -8,14 +8,15 @@ import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.inflation.DataAverageInflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
+import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
+import dk.gormkrings.simulation.simulations.ScheduleMCSimulation;
 import dk.gormkrings.simulation.simulations.Simulation;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.simulation.data.Result;
-import dk.gormkrings.simulation.phases.normal.PassivePhase;
-import dk.gormkrings.simulation.phases.normal.DepositPhase;
-import dk.gormkrings.simulation.phases.normal.Phase;
-import dk.gormkrings.simulation.phases.normal.WithdrawPhase;
+import dk.gormkrings.simulation.phases.normal.PassiveCallPhase;
+import dk.gormkrings.simulation.phases.normal.DepositCallPhase;
+import dk.gormkrings.simulation.phases.normal.WithdrawCallPhase;
 import dk.gormkrings.taxes.*;
 import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
@@ -33,7 +34,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
     private final Simulation simulation;
 
-    public FirecastingApplication(MonteCarloSimulation simulation) {
+    public FirecastingApplication(ScheduleMCSimulation simulation) {
         this.simulation = simulation;
     }
 
@@ -68,13 +69,13 @@ public class FirecastingApplication implements CommandLineRunner {
         Passive passive = new Passive();
         Withdraw withdraw = new Withdraw(0, 0.04);
 
-        Phase currentPhase = new DepositPhase(specification, depositStartDate, depositDays, deposit);
+        Phase currentPhase = new DepositCallPhase(specification, depositStartDate, depositDays, deposit);
         phases.add(currentPhase);
 
-        currentPhase = new PassivePhase(specification, passiveStartDate, passiveDays, passive);
+        currentPhase = new PassiveCallPhase(specification, passiveStartDate, passiveDays, passive);
         phases.add(currentPhase);
 
-        currentPhase = new WithdrawPhase(specification, withdrawStartDate, withdrawDays, withdraw);
+        currentPhase = new WithdrawCallPhase(specification, withdrawStartDate, withdrawDays, withdraw);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();

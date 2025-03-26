@@ -1,69 +1,53 @@
 package dk.gormkrings.simulation.engine.schedule;
 
 import dk.gormkrings.simulation.data.Result;
-import dk.gormkrings.simulation.phases.normal.Phase;
-import dk.gormkrings.util.Date;
+import dk.gormkrings.simulation.data.Snapshot;
+import dk.gormkrings.simulation.engine.Engine;
+import dk.gormkrings.simulation.phases.Phase;
+import dk.gormkrings.simulation.phases.normal.CallPhase;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
+@Setter
+@Getter
 @Component
-public class ScheduleEngine {
+public class ScheduleEngine implements Engine {
+    private Schedule schedule;
 
-    public Result simulatePhases(Schedule schedule) {
-        schedule.execute();
-        return new Result();
-    }
+    public Result simulatePhases(List<Phase> phaseCopies) {
+        Result result = new Result();
+        CallPhase currentPhase = (CallPhase) phaseCopies.removeFirst();
+        result.addSnapshot(new Snapshot(currentPhase.getLiveData()));
 
-    public Schedule buildSchedule(List<Phase> phases) {
-        List<Event> events = new ArrayList<>();
-        for (Phase phase : phases) {
-            events.addAll(buildSchedule(phase));
-        }
-        return new Schedule(events);
-    }
-
-    private List<Event> buildSchedule(Phase phase) {
-        List<Event> events = new ArrayList<>();
-        Date startDate = phase.getStartDate();
-        int currentEpochDay = startDate.getEpochDay() - 1;
-        final int startEpochDay = currentEpochDay;
-        int finalEpochDay = startEpochDay + (int) phase.getDuration();
-
-        int nextMonthStartEpochDay = startDate.computeNextMonthStart();
-        int currentMonthEndEpochDay = startDate.computeMonthEnd();
-        int nextYearStartEpochDay = startDate.computeNextYearStart();
-        int currentYearEndEpochDay = startDate.computeYearEnd();
-
-        // Loop through each day in the simulation schedule.
-        while (currentEpochDay < finalEpochDay) {
-            currentEpochDay++; // move to next day
-
-            // Always add a day event.
-            events.add(new Event(currentEpochDay, phase::onDay));
-
-            if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {
-                events.add(new Event(currentEpochDay, phase::onMonthStart));
-                Date newDate = new Date(currentEpochDay);
-                nextMonthStartEpochDay = newDate.computeNextMonthStart();
-            }
-            if (currentEpochDay == currentMonthEndEpochDay) {
-                events.add(new Event(currentEpochDay, phase::onMonthEnd));
-                Date nextDay = new Date(currentEpochDay + 1);
-                currentMonthEndEpochDay = nextDay.computeMonthEnd();
-            }
-            if (currentEpochDay == nextYearStartEpochDay && currentEpochDay != startEpochDay) {
-                events.add(new Event(currentEpochDay, phase::onYearStart));
-                Date newDate = new Date(currentEpochDay);
-                nextYearStartEpochDay = newDate.computeNextYearStart();
-            }
-            if (currentEpochDay == currentYearEndEpochDay) {
-                events.add(new Event(currentEpochDay, phase::onYearEnd));
-                Date nextDay = new Date(currentEpochDay + 1);
-                currentYearEndEpochDay = nextDay.computeYearEnd();
+        for (Event event : schedule.getEvents()) {
+            switch (event.getType()) {
+                case DAY_START:
+                    currentPhase.onDay();
+                    break;
+                case MONTH_START:
+                    currentPhase.onMonthStart();
+                    break;
+                case MONTH_END:
+                    long time = event.getEpochDay() - (currentPhase.getStartDate().getEpochDay() + currentPhase.getLiveData().getSessionDuration() - 1);
+                    currentPhase.getLiveData().incrementTime(time);
+                    currentPhase.onMonthEnd();
+                    break;
+                case YEAR_START:
+                    currentPhase.onYearStart();
+                    break;
+                case YEAR_END:
+                    currentPhase.onYearEnd();
+                    break;
+                case PHASE_SWITCH:
+                    result.addSnapshot(new Snapshot(currentPhase.getLiveData()));
+                    if (!phaseCopies.isEmpty()) currentPhase = (CallPhase) phaseCopies.removeFirst();
+                    break;
             }
         }
-        return events;
+        return result;
     }
 }
+

@@ -18,13 +18,13 @@ import org.springframework.context.ApplicationEvent;
 @Slf4j
 @Getter
 @Setter
-public abstract class ESimulationEPhase implements EPhase {
+public abstract class SimulationEventPhase implements EventPhase {
     private Date startDate;
     private long duration;
     private Specification specification;
     private String name;
 
-    ESimulationEPhase(Specification specification, Date startDate, long duration, String name) {
+    SimulationEventPhase(Specification specification, Date startDate, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;

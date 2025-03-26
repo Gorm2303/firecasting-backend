@@ -2,9 +2,11 @@ package dk.gormkrings.simulation.simulations;
 
 import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.engine.schedule.Schedule;
+import dk.gormkrings.simulation.engine.schedule.ScheduleBuilder;
 import dk.gormkrings.simulation.engine.schedule.ScheduleEngine;
-import dk.gormkrings.simulation.phases.normal.Phase;
+import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.specification.Spec;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+@Slf4j
 @Service
 public class ScheduleMCSimulation implements Simulation {
 
@@ -24,13 +27,15 @@ public class ScheduleMCSimulation implements Simulation {
 
     public ScheduleMCSimulation(ScheduleEngine scheduleEngine) {
         this.scheduleEngine = scheduleEngine;
+        log.debug("Initializing Schedule Monte Carlo Simulation");
     }
 
     public List<Result> run(long runs, List<Phase> phases) {
         results.clear();
 
-        Schedule schedule = scheduleEngine.buildSchedule(phases);
-
+        ScheduleBuilder scheduleBuilder = new ScheduleBuilder();
+        Schedule schedule = scheduleBuilder.buildSchedule(phases);
+        scheduleEngine.setSchedule(schedule);
 
         List<Future<Result>> futures = new ArrayList<>();
 
@@ -40,7 +45,7 @@ public class ScheduleMCSimulation implements Simulation {
             for (Phase phase : phases) {
                 phaseCopies.add(phase.copy(specification));
             }
-            Future<Result> future = executorService.submit(() -> scheduleEngine.simulatePhases(schedule));
+            Future<Result> future = executorService.submit(() -> scheduleEngine.simulatePhases(phaseCopies));
             futures.add(future);
         }
 

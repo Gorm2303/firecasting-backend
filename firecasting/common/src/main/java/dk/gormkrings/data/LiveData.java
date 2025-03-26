@@ -57,6 +57,12 @@ public class LiveData implements Live {
     }
 
     @Override
+    public void incrementTime(long amount) {
+        sessionDuration += amount;
+        totalDurationAlive += amount;
+    }
+
+    @Override
     public boolean isLive(long duration) {
         return sessionDuration < duration;
     }
