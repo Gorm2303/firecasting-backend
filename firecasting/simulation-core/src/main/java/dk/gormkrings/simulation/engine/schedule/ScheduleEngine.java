@@ -4,7 +4,7 @@ import dk.gormkrings.simulation.data.Result;
 import dk.gormkrings.simulation.data.Snapshot;
 import dk.gormkrings.simulation.engine.Engine;
 import dk.gormkrings.simulation.phases.Phase;
-import dk.gormkrings.simulation.phases.normal.CallPhase;
+import dk.gormkrings.simulation.phases.callBased.CallPhase;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;

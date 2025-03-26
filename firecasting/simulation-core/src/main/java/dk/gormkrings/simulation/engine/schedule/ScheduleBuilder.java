@@ -1,7 +1,7 @@
 package dk.gormkrings.simulation.engine.schedule;
 
 import dk.gormkrings.simulation.phases.Phase;
-import dk.gormkrings.simulation.phases.normal.CallPhase;
+import dk.gormkrings.simulation.phases.callBased.CallPhase;
 import dk.gormkrings.util.Date;
 
 import java.util.ArrayList;

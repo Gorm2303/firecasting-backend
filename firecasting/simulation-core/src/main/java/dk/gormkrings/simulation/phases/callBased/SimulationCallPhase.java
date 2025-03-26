@@ -1,30 +1,25 @@
-package dk.gormkrings.simulation.phases.eventbased;
+package dk.gormkrings.simulation.phases.callBased;
 
 import dk.gormkrings.data.LiveData;
-import dk.gormkrings.event.Type;
-import dk.gormkrings.event.date.MonthEvent;
-import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.taxes.NotionalGainsTax;
 import dk.gormkrings.util.Date;
 import dk.gormkrings.util.Util;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEvent;
 
 @Slf4j
 @Getter
 @Setter
-public abstract class SimulationEventPhase implements EventPhase {
+public abstract class SimulationCallPhase implements CallPhase {
     private Date startDate;
     private long duration;
     private Specification specification;
     private String name;
 
-    SimulationEventPhase(Specification specification, Date startDate, long duration, String name) {
+    SimulationCallPhase(Specification specification, Date startDate, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
@@ -65,16 +60,35 @@ public abstract class SimulationEventPhase implements EventPhase {
     }
 
     @Override
-    public void onApplicationEvent(@NonNull ApplicationEvent event) {
-        if (event instanceof MonthEvent monthEvent &&
-                monthEvent.getType() == Type.END) {
-            addReturn();
-        } else if (event instanceof YearEvent yearEvent &&
-                yearEvent.getType() == Type.END) {
-            addTax();
-            addInflation();
+    public void onDay() {
 
-        }
+    }
+
+    @Override
+    public void onWeekStart() {
+
+    }
+
+    @Override
+    public void onWeekEnd() {
+
+    }
+
+    @Override
+    public void onMonthStart() {}
+
+    @Override
+    public void onMonthEnd() {
+        addReturn();
+    }
+
+    @Override
+    public void onYearStart() {}
+
+    @Override
+    public void onYearEnd() {
+        addTax();
+        addInflation();
     }
 
     @Override
@@ -96,13 +110,4 @@ public abstract class SimulationEventPhase implements EventPhase {
                 getLiveData().getEarningsInfo();
     }
 
-    @Override
-    public boolean supportsEventType(@NonNull Class<? extends ApplicationEvent> eventType) {
-        return MonthEvent.class.isAssignableFrom(eventType) || YearEvent.class.isAssignableFrom(eventType);
-    }
-
-    @Override
-    public boolean supportsSourceType(Class<?> sourceType) {
-        return true;
-    }
 }

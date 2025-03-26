@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation.phases.eventbased;
+package dk.gormkrings.simulation.phases.eventBased;
 
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.specification.Spec;

@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation.phases.normal;
+package dk.gormkrings.simulation.phases.callBased;
 
 import dk.gormkrings.simulation.phases.Phase;
 

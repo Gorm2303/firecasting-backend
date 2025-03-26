@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation.phases.normal;
+package dk.gormkrings.simulation.phases.callBased;
 
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.simulation.specification.Spec;
