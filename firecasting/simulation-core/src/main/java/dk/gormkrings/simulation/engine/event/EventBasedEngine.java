@@ -1,17 +1,18 @@
 package dk.gormkrings.simulation.engine.event;
 
-import dk.gormkrings.data.Live;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.data.ILive;
 import dk.gormkrings.event.RunEvent;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.DayEvent;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.date.YearEvent;
-import dk.gormkrings.simulation.data.Result;
-import dk.gormkrings.simulation.data.Snapshot;
+import dk.gormkrings.simulation.data.Date;
+import dk.gormkrings.simulation.results.Result;
+import dk.gormkrings.simulation.results.Snapshot;
 import dk.gormkrings.simulation.engine.Engine;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.phases.eventBased.EventPhase;
-import dk.gormkrings.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.SimpleApplicationEventMulticaster;
 import org.springframework.stereotype.Component;
@@ -33,14 +34,14 @@ public class EventBasedEngine implements Engine {
     private Result simulatePhase(EventPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
         Result result = new Result();
-        Live data = phase.getLiveData();
-        Date startDate = phase.getStartDate();
+        ILive data = phase.getLiveData();
+        IDate startDate = phase.getStartDate();
         EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);
 
         result.addSnapshot(new Snapshot(data));
 
-        RunEvent simStart = new RunEvent(this, data, Type.START);
+        RunEvent simStart = new RunEvent(this, Type.START);
         dispatcher.notifyListeners(simStart);
 
         // Precompute boundaries using epoch day values.
@@ -55,11 +56,11 @@ public class EventBasedEngine implements Engine {
         int currentYearEndEpochDay = startDate.computeYearEnd();
 
         // Create reusable event objects.
-        DayEvent dayEvent = new DayEvent(this, data);
-        MonthEvent monthEventStart = new MonthEvent(this, data, Type.START);
-        MonthEvent monthEventEnd = new MonthEvent(this, data, Type.END);
-        YearEvent yearEventStart = new YearEvent(this, data, Type.START);
-        YearEvent yearEventEnd = new YearEvent(this, data, Type.END);
+        DayEvent dayEvent = new DayEvent(this);
+        MonthEvent monthEventStart = new MonthEvent(this, Type.START);
+        MonthEvent monthEventEnd = new MonthEvent(this, Type.END);
+        YearEvent yearEventStart = new YearEvent(this, Type.START);
+        YearEvent yearEventEnd = new YearEvent(this, Type.END);
 
         // Main simulation loop – controlled by epoch day.
         while (currentEpochDay < finalEpochDay) {
@@ -73,7 +74,7 @@ public class EventBasedEngine implements Engine {
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {
                 dispatcher.notifyListeners(monthEventStart);
                 // Update boundary for next month start.
-                Date newCurrentDate = new Date(currentEpochDay);
+                IDate newCurrentDate = new Date(currentEpochDay);
                 nextMonthStartEpochDay = newCurrentDate.computeNextMonthStart();
             }
 
@@ -81,26 +82,26 @@ public class EventBasedEngine implements Engine {
             if (currentEpochDay == currentMonthEndEpochDay) {
                 dispatcher.notifyListeners(monthEventEnd);
                 // Update boundary for month end.
-                Date nextDay = new Date(currentEpochDay);
+                IDate nextDay = new Date(currentEpochDay);
                 currentMonthEndEpochDay = nextDay.computeNextMonthEnd();
             }
 
             // Publish Year Start Event.
             if (currentEpochDay == nextYearStartEpochDay && currentEpochDay != startEpochDay) {
                 dispatcher.notifyListeners(yearEventStart);
-                Date newCurrentDate = new Date(currentEpochDay);
+                IDate newCurrentDate = new Date(currentEpochDay);
                 nextYearStartEpochDay = newCurrentDate.computeNextYearStart();
             }
 
             // Publish Year End Event.
             if (currentEpochDay == currentYearEndEpochDay) {
                 dispatcher.notifyListeners(yearEventEnd);
-                Date nextDay = new Date(currentEpochDay);
+                IDate nextDay = new Date(currentEpochDay);
                 currentYearEndEpochDay = nextDay.computeNextYearEnd();
             }
         }
 
-        RunEvent simEnd = new RunEvent(this, data, Type.END);
+        RunEvent simEnd = new RunEvent(this, Type.END);
         dispatcher.notifyListeners(simEnd);
 
         result.addSnapshot(new Snapshot(data));

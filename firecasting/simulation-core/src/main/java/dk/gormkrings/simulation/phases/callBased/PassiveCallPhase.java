@@ -1,10 +1,11 @@
 package dk.gormkrings.simulation.phases.callBased;
 
 import dk.gormkrings.action.Passive;
+import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
+
+import dk.gormkrings.simulation.util.Formatter;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -13,7 +14,7 @@ public class PassiveCallPhase extends SimulationCallPhase {
     private Passive passive;
     private boolean firstTime = true;
 
-    public PassiveCallPhase(Specification specification, Date startDate, long duration, Passive passive) {
+    public PassiveCallPhase(Specification specification, IDate startDate, long duration, Passive passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = passive;
@@ -23,7 +24,7 @@ public class PassiveCallPhase extends SimulationCallPhase {
     public void onMonthEnd() {
         super.onMonthEnd();
         calculatePassive();
-        if (Util.debug) Util.debugLog(prettyString());
+        if (Formatter.debug) Formatter.debugLog(prettyString());
     }
 
     private void calculatePassive() {
@@ -39,12 +40,6 @@ public class PassiveCallPhase extends SimulationCallPhase {
 
         getLiveData().setPassiveReturn(passiveReturn);
         getLiveData().addToPassiveReturned(passiveReturn);
-    }
-
-    @Override
-    public String prettyString() {
-        return super.prettyString() +
-                getLiveData().getPassiveInfo();
     }
 
     @Override

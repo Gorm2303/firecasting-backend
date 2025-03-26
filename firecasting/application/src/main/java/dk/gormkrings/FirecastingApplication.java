@@ -3,23 +3,24 @@ package dk.gormkrings;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
-import dk.gormkrings.data.LiveData;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.inflation.DataAverageInflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
+import dk.gormkrings.simulation.data.Date;
+import dk.gormkrings.simulation.data.LiveData;
 import dk.gormkrings.simulation.phases.Phase;
-import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
 import dk.gormkrings.simulation.simulations.ScheduleMCSimulation;
 import dk.gormkrings.simulation.simulations.Simulation;
 import dk.gormkrings.simulation.specification.Specification;
-import dk.gormkrings.simulation.data.Result;
+import dk.gormkrings.simulation.results.Result;
 import dk.gormkrings.simulation.phases.callBased.PassiveCallPhase;
 import dk.gormkrings.simulation.phases.callBased.DepositCallPhase;
 import dk.gormkrings.simulation.phases.callBased.WithdrawCallPhase;
+import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.taxes.*;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -44,45 +45,43 @@ public class FirecastingApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Util.debug = true;
+        Formatter.debug = true;
         List<Phase> phases = new LinkedList<>();
         log.info("Application Started");
-
-        LiveData liveData = new LiveData();
 
         int depositDurationInMonths = 20 * 12;
         int passiveDurationInMonths = 5 * 12;
         int withdrawDurationInMonths = 30 * 12;
 
-        Date depositStartDate = Date.of(2025,1,1);
-        Date passiveStartDate = depositStartDate.plusMonths(depositDurationInMonths);
-        Date withdrawStartDate = passiveStartDate.plusMonths(passiveDurationInMonths);
-        Date withdrawEndDate = withdrawStartDate.plusMonths(withdrawDurationInMonths);
+        IDate depositStartIDate = new Date(2025,1,1);
+        IDate passiveStartIDate = depositStartIDate.plusMonths(depositDurationInMonths);
+        IDate withdrawStartIDate = passiveStartIDate.plusMonths(passiveDurationInMonths);
+        IDate withdrawEndIDate = withdrawStartIDate.plusMonths(withdrawDurationInMonths);
 
-        long depositDays = depositStartDate.daysUntil(passiveStartDate);
-        long passiveDays = passiveStartDate.daysUntil(withdrawStartDate);
-        long withdrawDays = withdrawStartDate.daysUntil(withdrawEndDate);
+        long depositDays = depositStartIDate.daysUntil(passiveStartIDate);
+        long passiveDays = passiveStartIDate.daysUntil(withdrawStartIDate);
+        long withdrawDays = withdrawStartIDate.daysUntil(withdrawEndIDate);
 
-        Specification specification = createSpecification(liveData);
+        Specification specification = createSpecification(depositStartIDate.getEpochDay());
 
         Deposit deposit = new Deposit(10000, 5000);
         Passive passive = new Passive();
         Withdraw withdraw = new Withdraw(0, 0.04);
 
-        Phase currentPhase = new DepositCallPhase(specification, depositStartDate, depositDays, deposit);
+        Phase currentPhase = new DepositCallPhase(specification, depositStartIDate, depositDays, deposit);
         phases.add(currentPhase);
 
-        currentPhase = new PassiveCallPhase(specification, passiveStartDate, passiveDays, passive);
+        currentPhase = new PassiveCallPhase(specification, passiveStartIDate, passiveDays, passive);
         phases.add(currentPhase);
 
-        currentPhase = new WithdrawCallPhase(specification, withdrawStartDate, withdrawDays, withdraw);
+        currentPhase = new WithdrawCallPhase(specification, withdrawStartIDate, withdrawDays, withdraw);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
 
         List<Result> results = simulation.run(1, phases);
-        log.debug("These are the results");
-        if (Util.debug) {
+        log.info("Handling results in {} ms", System.currentTimeMillis() - startTime);
+        if (Formatter.debug) {
             for (Result result : results) {
                 log.debug("Result: ");
                 result.print();
@@ -94,7 +93,7 @@ public class FirecastingApplication implements CommandLineRunner {
         log.info("Application Ended");
     }
 
-    private static Specification createSpecification(LiveData liveData) {
+    private static Specification createSpecification(long startTime) {
         CapitalGainsTax taxation = new CapitalGainsTax(42);
         StockExemptionTax stockExemptionTax = null;
         if (stockExemptionTax != null) taxation.setStockExemptionTax(stockExemptionTax);
@@ -103,6 +102,6 @@ public class FirecastingApplication implements CommandLineRunner {
 
         Return basicReturn = new SimpleMonthlyReturn(7);
         Inflation inflation = new DataAverageInflation();
-        return new Specification(liveData, taxation, basicReturn, inflation);
+        return new Specification(startTime, taxation, basicReturn, inflation);
     }
 }

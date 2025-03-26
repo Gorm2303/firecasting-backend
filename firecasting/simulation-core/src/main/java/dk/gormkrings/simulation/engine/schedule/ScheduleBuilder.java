@@ -1,8 +1,9 @@
 package dk.gormkrings.simulation.engine.schedule;
 
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.phases.callBased.CallPhase;
-import dk.gormkrings.util.Date;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,7 @@ public class ScheduleBuilder {
     }
 
     private void initPhase(Phase phase) {
-        Date startDate = phase.getStartDate();
+        IDate startDate = phase.getStartDate();
         int startEpoch = startDate.getEpochDay();
         finalEpoch = startEpoch + (int) phase.getDuration();
         currentEpoch = startEpoch - 1;
@@ -76,7 +77,7 @@ public class ScheduleBuilder {
         if (currentEpoch != yearEndEpoch || !supportYearEnd) return;
 
         addEvent(EventType.YEAR_END);
-        Date nextDay = new Date(currentEpoch);
+        IDate nextDay = new Date(currentEpoch);
         yearEndEpoch = nextDay.computeNextYearEnd();
     }
 
@@ -85,7 +86,7 @@ public class ScheduleBuilder {
         if (currentEpoch != nextYearStartEpoch || !supportYearStart) return;
 
         addEvent(EventType.YEAR_START);
-        Date newDate = new Date(currentEpoch);
+        IDate newDate = new Date(currentEpoch);
         nextYearStartEpoch = newDate.computeNextYearStart();
     }
 
@@ -94,7 +95,7 @@ public class ScheduleBuilder {
         if (currentEpoch != monthEndEpoch || !supportMonthEnd) return;
 
         addEvent(EventType.MONTH_END);
-        Date nextDay = new Date(currentEpoch);
+        IDate nextDay = new Date(currentEpoch);
         monthEndEpoch = nextDay.computeNextMonthEnd();
     }
 
@@ -103,7 +104,7 @@ public class ScheduleBuilder {
         if (currentEpoch != nextMonthStartEpoch || !supportMonthStart) return;
 
         addEvent(EventType.MONTH_START);
-        Date newDate = new Date(currentEpoch);
+        IDate newDate = new Date(currentEpoch);
         nextMonthStartEpoch = newDate.computeNextMonthStart();
     }
 
@@ -112,7 +113,7 @@ public class ScheduleBuilder {
         if (currentEpoch != weekEndEpoch || !supportWeekEnd) return;
 
         addEvent(EventType.WEEK_END);
-        Date nextDay = new Date(currentEpoch);
+        IDate nextDay = new Date(currentEpoch);
         weekEndEpoch = nextDay.computeNextWeekEnd();
     }
 
@@ -121,7 +122,7 @@ public class ScheduleBuilder {
         if (currentEpoch != nextWeekStartEpoch || !supportWeekStart) return;
 
         addEvent(EventType.WEEK_START);
-        Date newDate = new Date(currentEpoch);
+        IDate newDate = new Date(currentEpoch);
         this.nextWeekStartEpoch = newDate.computeNextWeekStart();
     }
 

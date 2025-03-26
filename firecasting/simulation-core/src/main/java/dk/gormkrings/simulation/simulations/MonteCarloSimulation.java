@@ -1,7 +1,7 @@
 package dk.gormkrings.simulation.simulations;
 
 import dk.gormkrings.simulation.engine.CallEngine;
-import dk.gormkrings.simulation.data.Result;
+import dk.gormkrings.simulation.results.Result;
 import dk.gormkrings.simulation.engine.Engine;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.specification.Spec;

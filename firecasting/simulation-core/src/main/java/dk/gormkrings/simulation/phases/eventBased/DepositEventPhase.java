@@ -1,12 +1,12 @@
 package dk.gormkrings.simulation.phases.eventBased;
 
 import dk.gormkrings.action.Deposit;
+import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
+import dk.gormkrings.simulation.util.Formatter;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -20,7 +20,7 @@ public class DepositEventPhase extends SimulationEventPhase {
     private Deposit deposit;
     private boolean firstTime = true;
 
-    public DepositEventPhase(Specification specification, Date startDate, long duration, Deposit deposit) {
+    public DepositEventPhase(Specification specification, IDate startDate, long duration, Deposit deposit) {
         super(specification, startDate, duration,"Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = deposit;
@@ -32,7 +32,7 @@ public class DepositEventPhase extends SimulationEventPhase {
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
             depositMoney();
-            if (Util.debug) Util.debugLog(prettyString());
+            if (Formatter.debug) Formatter.debugLog(prettyString());
 
         }
     }
@@ -48,12 +48,6 @@ public class DepositEventPhase extends SimulationEventPhase {
         getLiveData().addToDeposited(depositAmount);
         getLiveData().addToCapital(depositAmount);
         deposit.increaseMonthly(deposit.getMonthlyIncrease());
-    }
-
-    @Override
-    public String prettyString() {
-        return super.prettyString() +
-                getLiveData().getDepositInfo();
     }
 
     @Override

@@ -1,13 +1,14 @@
 package dk.gormkrings.simulation.phases;
 
-import dk.gormkrings.data.Live;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.data.ILive;
 import dk.gormkrings.simulation.specification.Spec;
-import dk.gormkrings.util.Date;
+
 
 public interface Phase {
-    Date getStartDate();
+    IDate getStartDate();
     long getDuration();
     Phase copy(Spec specificationCopy);
     Spec getSpecification();
-    Live getLiveData();
+    ILive getLiveData();
 }

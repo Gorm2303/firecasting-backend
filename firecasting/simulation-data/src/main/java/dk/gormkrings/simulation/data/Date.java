@@ -1,9 +1,10 @@
-package dk.gormkrings.util;
+package dk.gormkrings.simulation.data;
 
+import dk.gormkrings.data.IDate;
 import lombok.Getter;
 
 @Getter
-public final class Date {
+public final class Date implements IDate {
     // Number of days since the epoch (1900-01-01)
     private final int epochDay;
 
@@ -11,7 +12,7 @@ public final class Date {
         this.epochDay = epochDay;
     }
 
-    public static Date of(int year, int month, int day) {
+    public Date(int year, int month, int day) {
         // Adjust for months January and February.
         if (month <= 2) {
             year--;
@@ -24,8 +25,8 @@ public final class Date {
                 + (int)(30.6001 * (month + 1))
                 + day + b - 1524;
         // Epoch for 1900-01-01 in JDN is 2415021.
-        int epochDay = jdn - 2415021;
-        return new Date(epochDay);
+        epochDay = jdn - 2415021;
+        new Date(epochDay);
     }
 
     public Date plusDays(long days) {
@@ -43,7 +44,7 @@ public final class Date {
         int targetMonth = (totalMonths % 12) + 1;
         int maxDay = getLengthOfMonth(targetYear, targetMonth);
         int targetDay = Math.min(day, maxDay);
-        return Date.of(targetYear, targetMonth, targetDay);
+        return new Date(targetYear, targetMonth, targetDay);
     }
 
     private static int getLengthOfMonth(int year, int month) {
@@ -74,7 +75,7 @@ public final class Date {
     }
 
     public int getDayOfYear() {
-        Date firstDay = Date.of(getYear(), 1, 1);
+        Date firstDay = new Date(getYear(), 1, 1);
         return this.epochDay - firstDay.epochDay + 1;
     }
 
@@ -129,8 +130,9 @@ public final class Date {
         return String.format("%04d-%02d-%02d", getYear(), getMonth(), getDayOfMonth());
     }
 
-    public long daysUntil(Date other) {
-        return other.epochDay - this.epochDay;
+    @Override
+    public long daysUntil(IDate other) {
+        return other.getEpochDay() - this.epochDay;
     }
 
     public int getDayOfWeek() {
@@ -154,9 +156,9 @@ public final class Date {
         int year = this.getYear();
         int month = this.getMonth();
         if (month == 12) {
-            return Date.of(year + 1, 1, 1).getEpochDay();
+            return new Date(year + 1, 1, 1).getEpochDay();
         } else {
-            return Date.of(year, month + 1, 1).getEpochDay();
+            return new Date(year, month + 1, 1).getEpochDay();
         }
     }
 
@@ -164,17 +166,17 @@ public final class Date {
         int year = this.getYear();
         int month = this.getMonth();
         int day = this.lengthOfMonth();
-        return Date.of(year, month, day).getEpochDay();
+        return new Date(year, month, day).getEpochDay();
     }
 
     public int computeNextYearStart() {
         int year = this.getYear();
-        return Date.of(year + 1, 1, 1).getEpochDay();
+        return new Date(year + 1, 1, 1).getEpochDay();
     }
 
     public int computeYearEnd() {
         int year = this.getYear();
-        return Date.of(year, 12, 31).getEpochDay();
+        return new Date(year, 12, 31).getEpochDay();
     }
 
     public int computeNextWeekEnd() {
@@ -185,9 +187,9 @@ public final class Date {
 
     public int computeNextYearEnd() {
         if (getMonth() == 12 && getDayOfMonth() == 31) {
-            return Date.of(getYear() + 1, 12, 31).getEpochDay();
+            return new Date(getYear() + 1, 12, 31).getEpochDay();
         } else {
-            return Date.of(getYear(), 12, 31).getEpochDay();
+            return new Date(getYear(), 12, 31).getEpochDay();
         }
     }
 

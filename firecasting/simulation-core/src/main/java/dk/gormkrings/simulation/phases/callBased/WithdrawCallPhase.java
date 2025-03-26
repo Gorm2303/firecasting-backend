@@ -1,12 +1,12 @@
 package dk.gormkrings.simulation.phases.callBased;
 
 import dk.gormkrings.action.Withdraw;
+import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.taxes.CapitalGainsTax;
 import dk.gormkrings.taxes.NotionalGainsTax;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 public class WithdrawCallPhase extends SimulationCallPhase {
     private Withdraw withdraw;
 
-    public WithdrawCallPhase(Specification specification, Date startDate, long duration, Withdraw withdraw) {
+    public WithdrawCallPhase(Specification specification, IDate startDate, long duration, Withdraw withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = withdraw;
@@ -29,7 +29,7 @@ public class WithdrawCallPhase extends SimulationCallPhase {
         super.onMonthEnd();
         withdrawMoney();
         addNetEarnings();
-        if (Util.debug) Util.debugLog(prettyString());
+        if (Formatter.debug) Formatter.debugLog(prettyString());
     }
 
     public void withdrawMoney() {
@@ -51,17 +51,14 @@ public class WithdrawCallPhase extends SimulationCallPhase {
 
     public void addNetEarnings() {
         if (getSpecification().getTaxRule() instanceof CapitalGainsTax) {
-            getLiveData().addToNetEarnings(getLiveData().getWithdraw() - getLiveData().getCurrentTax());
+            double net = getLiveData().getWithdraw() - getLiveData().getCurrentTax();
+            getLiveData().addToNetEarnings(net);
+            getLiveData().setCurrentNet(net);
         } else if (getSpecification().getTaxRule() instanceof NotionalGainsTax) {
-            getLiveData().addToNetEarnings(getLiveData().getWithdraw());
+            double net = getLiveData().getWithdraw();
+            getLiveData().addToNetEarnings(net);
+            getLiveData().setCurrentNet(net);
         }
-    }
-
-    @Override
-    public String prettyString() {
-        return super.prettyString() +
-                getLiveData().getWithdrawInfo() +
-                getLiveData().getWithdrawnInfo();
     }
 
     @Override

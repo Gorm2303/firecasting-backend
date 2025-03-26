@@ -15,12 +15,15 @@
 	<name>Firecasting</name>
 	<description>Simulation project for Spring Boot</description>
 	<modules>
-		<module>simulation-core</module>
 		<module>api</module>
 		<module>persistence</module>
 		<module>domain-model</module>
 		<module>application</module>
 		<module>common</module>
+		<module>simulation-core</module>
+		<module>simulation-engine</module>
+		<module>simulation-data</module>
+		<module>common-event</module>
 	</modules>
 
 	<properties>

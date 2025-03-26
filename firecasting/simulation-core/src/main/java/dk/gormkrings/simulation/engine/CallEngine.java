@@ -1,11 +1,12 @@
 package dk.gormkrings.simulation.engine;
 
-import dk.gormkrings.data.Live;
-import dk.gormkrings.simulation.data.Result;
-import dk.gormkrings.simulation.data.Snapshot;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.data.ILive;
+import dk.gormkrings.simulation.data.Date;
+import dk.gormkrings.simulation.results.Result;
+import dk.gormkrings.simulation.results.Snapshot;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.phases.callBased.CallPhase;
-import dk.gormkrings.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -26,8 +27,8 @@ public class CallEngine implements Engine {
     private Result simulatePhase(CallPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
         Result result = new Result();
-        Live data = phase.getLiveData();
-        Date startDate = phase.getStartDate();
+        ILive data = phase.getLiveData();
+        IDate startDate = phase.getStartDate();
 
         result.addSnapshot(new Snapshot(data));
 

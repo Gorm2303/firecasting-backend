@@ -1,10 +1,10 @@
 package dk.gormkrings.data;
 
-public interface Live {
+public interface ILive {
     long getSessionDuration();
     void incrementTime();
     void incrementTime(long amount);
     boolean isLive(long duration);
-    Live copy();
+    ILive copy();
     void resetSession();
 }

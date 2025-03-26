@@ -1,10 +1,10 @@
 package dk.gormkrings.simulation.phases.callBased;
 
 import dk.gormkrings.action.Deposit;
+import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
+import dk.gormkrings.simulation.util.Formatter;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ public class DepositCallPhase extends SimulationCallPhase {
     private Deposit deposit;
     private boolean firstTime = true;
 
-    public DepositCallPhase(Specification specification, Date startDate, long duration, Deposit deposit) {
+    public DepositCallPhase(Specification specification, IDate startDate, long duration, Deposit deposit) {
         super(specification, startDate, duration,"Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = deposit;
@@ -26,7 +26,7 @@ public class DepositCallPhase extends SimulationCallPhase {
     public void onMonthEnd() {
         super.onMonthEnd();
         depositMoney();
-        if (Util.debug) Util.debugLog(prettyString());
+        if (Formatter.debug) Formatter.debugLog(prettyString());
     }
 
     public void depositMoney() {
@@ -40,12 +40,6 @@ public class DepositCallPhase extends SimulationCallPhase {
         getLiveData().addToDeposited(depositAmount);
         getLiveData().addToCapital(depositAmount);
         deposit.increaseMonthly(deposit.getMonthlyIncrease());
-    }
-
-    @Override
-    public String prettyString() {
-        return super.prettyString() +
-                getLiveData().getDepositInfo();
     }
 
     @Override

@@ -1,4 +1,4 @@
-package dk.gormkrings.simulation.data;
+package dk.gormkrings.simulation.results;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 @Slf4j

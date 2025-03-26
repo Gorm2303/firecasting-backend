@@ -1,14 +1,15 @@
 package dk.gormkrings.simulation.phases.eventBased;
 
-import dk.gormkrings.data.LiveData;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.data.ILive;
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.event.date.YearEvent;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.taxes.NotionalGainsTax;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -19,12 +20,12 @@ import org.springframework.context.ApplicationEvent;
 @Getter
 @Setter
 public abstract class SimulationEventPhase implements EventPhase {
-    private Date startDate;
+    private IDate startDate;
     private long duration;
     private Specification specification;
     private String name;
 
-    SimulationEventPhase(Specification specification, Date startDate, long duration, String name) {
+    SimulationEventPhase(Specification specification, IDate startDate, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
@@ -49,7 +50,7 @@ public abstract class SimulationEventPhase implements EventPhase {
 
             log.debug("Year {}: NotionalGainsTax calculating tax: {}",
                     getLiveData().getSessionDuration() / 365,
-                    Util.formatNumber(getLiveData().getCurrentTax()));
+                    Formatter.formatNumber(getLiveData().getCurrentTax()));
         }
     }
 
@@ -60,7 +61,7 @@ public abstract class SimulationEventPhase implements EventPhase {
 
         log.debug("Year {}: DataAverageInflation calculating inflation: {}",
                 getLiveData().getSessionDuration() / 365,
-                Util.formatNumber(inflationAmount));
+                Formatter.formatNumber(inflationAmount));
 
     }
 
@@ -78,22 +79,12 @@ public abstract class SimulationEventPhase implements EventPhase {
     }
 
     @Override
-    public LiveData getLiveData() {
+    public ILiveData getLiveData() {
         return specification.getLiveData();
     }
 
-    public String getPrettyCurrentDate() {
-        return Util.getPrettyDate(startDate, getLiveData());
-    }
-
     public String prettyString() {
-        return name + getPrettyCurrentDate() +
-                getLiveData().getCapitalInfo() +
-                getLiveData().getDepositedInfo() +
-                getLiveData().getReturnedInfo() +
-                getLiveData().getReturnInfo() +
-                getLiveData().getTaxedInfo() +
-                getLiveData().getEarningsInfo();
+        return name + getLiveData().toString();
     }
 
     @Override

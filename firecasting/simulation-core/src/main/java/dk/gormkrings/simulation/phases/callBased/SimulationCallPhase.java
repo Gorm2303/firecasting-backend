@@ -1,12 +1,12 @@
 package dk.gormkrings.simulation.phases.callBased;
 
-import dk.gormkrings.data.LiveData;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.simulation.engine.schedule.EventType;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.taxes.NotionalGainsTax;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -15,12 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Setter
 public abstract class SimulationCallPhase implements CallPhase {
-    private Date startDate;
+    private IDate startDate;
     private long duration;
     private Specification specification;
     private String name;
 
-    SimulationCallPhase(Specification specification, Date startDate, long duration, String name) {
+    SimulationCallPhase(Specification specification, IDate startDate, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
@@ -45,7 +45,7 @@ public abstract class SimulationCallPhase implements CallPhase {
 
             log.debug("Year {}: NotionalGainsTax calculating tax: {}",
                     getLiveData().getSessionDuration() / 365,
-                    Util.formatNumber(getLiveData().getCurrentTax()));
+                    Formatter.formatNumber(getLiveData().getCurrentTax()));
         }
     }
 
@@ -56,7 +56,7 @@ public abstract class SimulationCallPhase implements CallPhase {
 
         log.debug("Year {}: DataAverageInflation calculating inflation: {}",
                 getLiveData().getSessionDuration() / 365,
-                Util.formatNumber(inflationAmount));
+                Formatter.formatNumber(inflationAmount));
 
     }
 
@@ -107,22 +107,12 @@ public abstract class SimulationCallPhase implements CallPhase {
     }
 
     @Override
-    public LiveData getLiveData() {
+    public ILiveData getLiveData() {
         return specification.getLiveData();
     }
 
-    public String getPrettyCurrentDate() {
-        return Util.getPrettyDate(startDate, getLiveData());
-    }
-
     public String prettyString() {
-        return name + getPrettyCurrentDate() +
-                getLiveData().getCapitalInfo() +
-                getLiveData().getDepositedInfo() +
-                getLiveData().getReturnedInfo() +
-                getLiveData().getReturnInfo() +
-                getLiveData().getTaxedInfo() +
-                getLiveData().getEarningsInfo();
+        return name + getLiveData().toString();
     }
 
 }

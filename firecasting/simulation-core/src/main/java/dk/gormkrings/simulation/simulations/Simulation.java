@@ -1,6 +1,6 @@
 package dk.gormkrings.simulation.simulations;
 
-import dk.gormkrings.simulation.data.Result;
+import dk.gormkrings.simulation.results.Result;
 import dk.gormkrings.simulation.phases.Phase;
 
 import java.util.List;

@@ -1,12 +1,13 @@
-package dk.gormkrings.data;
+package dk.gormkrings.simulation.data;
 
+import dk.gormkrings.data.ILiveData;
+import dk.gormkrings.simulation.util.Formatter;
 import lombok.Getter;
 import lombok.Setter;
 
-import static dk.gormkrings.util.Util.formatField;
-
 @Getter
-public class LiveData implements Live {
+public class LiveData implements ILiveData {
+    private final long startTime;
     private long totalDurationAlive;
     @Setter
     private long sessionDuration;
@@ -27,12 +28,16 @@ public class LiveData implements Live {
     @Setter
     private double currentTax;
     private double tax;
-    private double netEarnings;
+    @Setter
+    private double currentNet;
+    private double net;
 
-    public LiveData() {
+    public LiveData(long startTime) {
+        this.startTime = startTime;
     }
 
     private LiveData(LiveData liveData) {
+        this.startTime = liveData.startTime;
         this.totalDurationAlive = liveData.totalDurationAlive;
         this.sessionDuration = liveData.sessionDuration;
         this.deposit = liveData.deposit;
@@ -47,7 +52,8 @@ public class LiveData implements Live {
         this.withdrawn = liveData.withdrawn;
         this.currentTax = liveData.currentTax;
         this.tax = liveData.tax;
-        this.netEarnings = liveData.netEarnings;
+        this.net = liveData.net;
+        this.currentNet = liveData.currentNet;
     }
 
     @Override
@@ -73,21 +79,22 @@ public class LiveData implements Live {
 
     @Override
     public String toString() {
-        return "LiveData:" +
-                getAliveInfo() +
-                getSessionInfo() +
-                getDepositInfo() +
-                getDepositedInfo() +
-                getPassiveInfo() +
-                getCapitalInfo() +
-                getInflationInfo() +
-                getReturnInfo() +
-                getReturnedInfo() +
-                getWithdrawInfo() +
-                getWithdrawnInfo() +
-                getTaxInfo() +
-                getTaxedInfo() +
-                getEarningsInfo();
+        return "{" +
+                Formatter.formatField("Alive", totalDurationAlive) +
+                Formatter.getPrettyDate(this) +
+                Formatter.formatField("Capital", capital) +
+                Formatter.formatField("Deposited", deposited) +
+                Formatter.formatField("Passive", passiveReturned) +
+                Formatter.formatField("Returned", returned) +
+                Formatter.formatField("Return", currentReturn) +
+                Formatter.formatField("Withdrawn", withdrawn) +
+                Formatter.formatField("Withdraw", withdraw) +
+                Formatter.formatField("Taxed", tax) +
+                Formatter.formatField("Tax", currentTax) +
+                Formatter.formatField("Inflation", inflation) +
+                Formatter.formatField("NetTotal", net) +
+                Formatter.formatField("Net", currentNet) +
+                "}";
     }
 
     public void addToCapital(double capital) {
@@ -135,68 +142,11 @@ public class LiveData implements Live {
     }
 
     public void addToNetEarnings(double netEarnings) {
-        this.netEarnings += netEarnings;
+        this.net += netEarnings;
     }
 
     public LiveData copy() {
         return new LiveData(this);
     }
-
-    public String getAliveInfo() {
-        return formatField("Alive", totalDurationAlive);
-    }
-
-    public String getSessionInfo() {
-        return formatField("Session", sessionDuration);
-    }
-
-    public String getDepositInfo() {
-        return formatField("Deposit", deposit);
-    }
-
-    public String getDepositedInfo() {
-        return formatField("Deposited", deposited);
-    }
-
-    public String getPassiveInfo() {
-        return formatField("Passive", passiveReturned);
-    }
-
-    public String getCapitalInfo() {
-        return formatField("Capital", capital);
-    }
-
-    public String getInflationInfo() {
-        return formatField("Inflation", inflation);
-    }
-
-    public String getReturnInfo() {
-        return formatField("Return", currentReturn);
-    }
-
-    public String getReturnedInfo() {
-        return formatField("Returned", returned);
-    }
-
-    public String getWithdrawInfo() {
-        return formatField("Withdraw", withdraw);
-    }
-
-    public String getWithdrawnInfo() {
-        return formatField("Withdrawn", withdrawn);
-    }
-
-    public String getTaxInfo() {
-        return formatField("Tax", currentTax);
-    }
-
-    public String getTaxedInfo() {
-        return formatField("Taxed", tax);
-    }
-
-    public String getEarningsInfo() {
-        return formatField("Earnings", netEarnings);
-    }
-
 
 }

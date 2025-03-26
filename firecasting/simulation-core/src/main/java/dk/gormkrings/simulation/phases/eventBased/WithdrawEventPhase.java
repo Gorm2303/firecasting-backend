@@ -1,14 +1,14 @@
 package dk.gormkrings.simulation.phases.eventBased;
 
 import dk.gormkrings.action.Withdraw;
+import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.MonthEvent;
 import dk.gormkrings.simulation.specification.Spec;
 import dk.gormkrings.simulation.specification.Specification;
+import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.taxes.CapitalGainsTax;
 import dk.gormkrings.taxes.NotionalGainsTax;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -22,7 +22,7 @@ import org.springframework.context.ApplicationEvent;
 public class WithdrawEventPhase extends SimulationEventPhase {
     private Withdraw withdraw;
 
-    public WithdrawEventPhase(Specification specification, Date startDate, long duration, Withdraw withdraw) {
+    public WithdrawEventPhase(Specification specification, IDate startDate, long duration, Withdraw withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = withdraw;
@@ -35,7 +35,7 @@ public class WithdrawEventPhase extends SimulationEventPhase {
                 monthEvent.getType() == Type.END) {
             withdrawMoney();
             addNetEarnings();
-            if (Util.debug) Util.debugLog(prettyString());
+            if (Formatter.debug) Formatter.debugLog(prettyString());
 
         }
     }
@@ -59,17 +59,14 @@ public class WithdrawEventPhase extends SimulationEventPhase {
 
     public void addNetEarnings() {
         if (getSpecification().getTaxRule() instanceof CapitalGainsTax) {
-            getLiveData().addToNetEarnings(getLiveData().getWithdraw() - getLiveData().getCurrentTax());
+            double net = getLiveData().getWithdraw() - getLiveData().getCurrentTax();
+            getLiveData().addToNetEarnings(net);
+            getLiveData().setCurrentNet(net);
         } else if (getSpecification().getTaxRule() instanceof NotionalGainsTax) {
-            getLiveData().addToNetEarnings(getLiveData().getWithdraw());
+            double net = getLiveData().getWithdraw();
+            getLiveData().addToNetEarnings(net);
+            getLiveData().setCurrentNet(net);
         }
-    }
-
-    @Override
-    public String prettyString() {
-        return super.prettyString() +
-                getLiveData().getWithdrawInfo() +
-                getLiveData().getWithdrawnInfo();
     }
 
     @Override
