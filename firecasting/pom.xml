@@ -19,11 +19,18 @@
 		<module>persistence</module>
 		<module>domain-model</module>
 		<module>application</module>
-		<module>common</module>
-		<module>simulation-core</module>
-		<module>simulation-engine</module>
+		<module>simulation</module>
 		<module>simulation-data</module>
 		<module>common-event</module>
+        <module>phase-eventBased</module>
+		<module>common-simulation</module>
+		<module>phase-callBased</module>
+		<module>simulation-engine-eventBased</module>
+		<module>simulation-engine-scheduleBased</module>
+		<module>simulation-engine-callBased</module>
+		<module>common-domain</module>
+		<module>common-math</module>
+		<module>domain-math</module>
 	</modules>
 
 	<properties>

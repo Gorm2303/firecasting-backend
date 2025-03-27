@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>common-simulation</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

@@ -1,7 +1,9 @@
 package dk.gormkrings.simulation.util;
 
-import dk.gormkrings.simulation.results.Result;
-import dk.gormkrings.simulation.results.Snapshot;
+import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.ISnapshot;
+import dk.gormkrings.simulation.result.Result;
+import dk.gormkrings.simulation.result.Snapshot;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedWriter;
@@ -12,7 +14,7 @@ import java.util.List;
 @Slf4j
 public class CsvExporter {
 
-    public static void exportResultsToCsv(List<Result> results, String fileName) {
+    public static void exportResultsToCsv(List<IResult> results, String fileName) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
             String header = "day, month, year, date, capital, deposited, passive, returned, return, withdrawn, withdraw, taxed, tax, inflation, nettotal, net";
             writer.write(header);
@@ -28,8 +30,8 @@ public class CsvExporter {
                 log.info(String.format(format, (Object[]) tokens));
             });
 
-            for (Result result : results) {
-                for (Snapshot snapshot : result.getSnapshots()) {
+            for (IResult result : results) {
+                for (ISnapshot snapshot : result.getSnapshots()) {
                     writer.write(snapshot.toCsvRow());
                     writer.newLine();
                 }

@@ -1,0 +1,119 @@
+package dk.gormkrings.phase.callBased;
+
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.data.ILiveData;
+import dk.gormkrings.event.EventType;
+import dk.gormkrings.inflation.Inflation;
+import dk.gormkrings.phase.ICallPhase;
+import dk.gormkrings.simulation.util.Formatter;
+import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.tax.NotionalGainsTax;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Getter
+@Setter
+public abstract class SimulationCallPhase implements ICallPhase {
+    private IDate startDate;
+    private long duration;
+    private ISpec specification;
+    private String name;
+
+    SimulationCallPhase(ISpec specification, IDate startDate, long duration, String name) {
+        this.startDate = startDate;
+        this.duration = duration;
+        this.specification = specification;
+        this.name = name;
+    }
+
+    public void addReturn() {
+        double r = specification.getReturner().calculateReturn(getLiveData().getCapital());
+        getLiveData().setCurrentReturn(r);
+        getLiveData().addToReturned(r);
+        getLiveData().addToCapital(r);
+    }
+
+    public void addTax() {
+        if (specification.getTaxRule() instanceof NotionalGainsTax notionalTax) {
+            double tax = notionalTax.calculateTax(getLiveData().getReturned() - notionalTax.getPreviousReturned());
+            getLiveData().subtractFromCapital(tax);
+            getLiveData().subtractFromReturned(tax);
+            getLiveData().setCurrentTax(tax);
+            getLiveData().addToTax(tax);
+            notionalTax.setPreviousReturned(getLiveData().getReturned());
+
+            log.debug("Year {}: NotionalGainsTax calculating tax: {}",
+                    getLiveData().getSessionDuration() / 365,
+                    Formatter.formatNumber(getLiveData().getCurrentTax()));
+        }
+    }
+
+    public void addInflation() {
+        Inflation inflation = getSpecification().getInflation();
+        double inflationAmount = inflation.calculatePercentage();
+        getLiveData().addToInflation(inflationAmount);
+
+        log.debug("Year {}: DataAverageInflation calculating inflation: {}",
+                getLiveData().getSessionDuration() / 365,
+                Formatter.formatNumber(inflationAmount));
+
+    }
+
+    @Override
+    public boolean supportsEvent(EventType eventType) {
+        return eventType.equals(EventType.MONTH_END) || eventType.equals(EventType.YEAR_END);
+    }
+
+    @Override
+    public void onDayStart() {
+
+    }
+
+    @Override
+    public void onDayEnd() {
+
+    }
+
+    @Override
+    public void onWeekStart() {
+
+    }
+
+    @Override
+    public void onWeekEnd() {
+
+    }
+
+    @Override
+    public void onMonthStart() {
+
+    }
+
+    @Override
+    public void onMonthEnd() {
+        addReturn();
+    }
+
+    @Override
+    public void onYearStart() {
+
+    }
+
+    @Override
+    public void onYearEnd() {
+        addTax();
+        addInflation();
+    }
+
+    @Override
+    public ILiveData getLiveData() {
+        return (ILiveData) specification.getLiveData();
+    }
+
+    public String prettyString() {
+        return name + getLiveData().toString();
+    }
+
+}

@@ -1,6 +1,5 @@
 package dk.gormkrings.event.action;
 
-import dk.gormkrings.data.ILive;
 import dk.gormkrings.event.SimulationUpdateEvent;
 import lombok.Getter;
 import lombok.Setter;

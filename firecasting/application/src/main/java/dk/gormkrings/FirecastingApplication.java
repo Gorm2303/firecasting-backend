@@ -6,21 +6,22 @@ import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.inflation.DataAverageInflation;
+import dk.gormkrings.phase.IPhase;
+import dk.gormkrings.phase.callBased.DepositCallPhase;
+import dk.gormkrings.phase.callBased.PassiveCallPhase;
+import dk.gormkrings.phase.callBased.WithdrawCallPhase;
+import dk.gormkrings.result.IResult;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
+import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.simulation.data.Date;
-import dk.gormkrings.simulation.phases.Phase;
-import dk.gormkrings.simulation.simulations.ScheduleMCSimulation;
-import dk.gormkrings.simulation.simulations.Simulation;
 import dk.gormkrings.simulation.specification.Specification;
-import dk.gormkrings.simulation.results.Result;
-import dk.gormkrings.simulation.phases.callBased.PassiveCallPhase;
-import dk.gormkrings.simulation.phases.callBased.DepositCallPhase;
-import dk.gormkrings.simulation.phases.callBased.WithdrawCallPhase;
 import dk.gormkrings.simulation.util.CsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
-import dk.gormkrings.taxes.*;
+import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.tax.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -32,9 +33,9 @@ import java.util.List;
 @SpringBootApplication(scanBasePackages = "dk.gormkrings")
 public class FirecastingApplication implements CommandLineRunner {
 
-    private final Simulation simulation;
+    private final ISimulation simulation;
 
-    public FirecastingApplication(ScheduleMCSimulation simulation) {
+    public FirecastingApplication(@Qualifier("scheduleMCSimulation") ISimulation simulation) {
         this.simulation = simulation;
     }
 
@@ -45,7 +46,7 @@ public class FirecastingApplication implements CommandLineRunner {
     @Override
     public void run(String... args) {
         Formatter.debug = false;
-        List<Phase> phases = new LinkedList<>();
+        List<IPhase> phases = new LinkedList<>();
         log.info("Application Started");
 
         int depositDurationInMonths = 20 * 12;
@@ -61,13 +62,13 @@ public class FirecastingApplication implements CommandLineRunner {
         long passiveDays = passiveStartIDate.daysUntil(withdrawStartIDate);
         long withdrawDays = withdrawStartIDate.daysUntil(withdrawEndIDate);
 
-        Specification specification = createSpecification(depositStartIDate.getEpochDay());
+        ISpec specification = createSpecification(depositStartIDate.getEpochDay());
 
         Deposit deposit = new Deposit(10000, 5000);
         Passive passive = new Passive();
         Withdraw withdraw = new Withdraw(0, 0.04);
 
-        Phase currentPhase = new DepositCallPhase(specification, depositStartIDate, depositDays, deposit);
+        IPhase currentPhase = new DepositCallPhase(specification, depositStartIDate, depositDays, deposit);
         phases.add(currentPhase);
 
         currentPhase = new PassiveCallPhase(specification, passiveStartIDate, passiveDays, passive);
@@ -77,7 +78,7 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
-        List<Result> results = simulation.run(10000, phases);
+        List<IResult> results = simulation.run(10000, phases);
         long simTime = System.currentTimeMillis();
         CsvExporter.exportResultsToCsv(results, "firecasting-results.csv");
         long exportTime = System.currentTimeMillis();
