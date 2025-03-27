@@ -20,12 +20,6 @@
     <dependencies>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>common</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>dk.gormkrings</groupId>
             <artifactId>common-domain</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
