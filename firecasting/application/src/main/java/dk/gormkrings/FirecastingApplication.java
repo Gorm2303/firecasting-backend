@@ -4,13 +4,11 @@ import dk.gormkrings.action.Deposit;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.IDate;
-import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.inflation.DataAverageInflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.data.Date;
-import dk.gormkrings.simulation.data.LiveData;
 import dk.gormkrings.simulation.phases.Phase;
 import dk.gormkrings.simulation.simulations.ScheduleMCSimulation;
 import dk.gormkrings.simulation.simulations.Simulation;
@@ -19,6 +17,7 @@ import dk.gormkrings.simulation.results.Result;
 import dk.gormkrings.simulation.phases.callBased.PassiveCallPhase;
 import dk.gormkrings.simulation.phases.callBased.DepositCallPhase;
 import dk.gormkrings.simulation.phases.callBased.WithdrawCallPhase;
+import dk.gormkrings.simulation.util.CsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.taxes.*;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +44,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Formatter.debug = true;
+        Formatter.debug = false;
         List<Phase> phases = new LinkedList<>();
         log.info("Application Started");
 
@@ -78,18 +77,14 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
+        List<Result> results = simulation.run(10000, phases);
+        long simTime = System.currentTimeMillis();
+        CsvExporter.exportResultsToCsv(results, "firecasting-results.csv");
+        long exportTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.run(1, phases);
-        log.info("Handling results in {} ms", System.currentTimeMillis() - startTime);
-        if (Formatter.debug) {
-            for (Result result : results) {
-                log.debug("Result: ");
-                result.print();
-            }
-        }
-        long endTime = System.currentTimeMillis();
-        long elapsedTime = endTime - startTime;
-        log.info("Elapsed time: {} seconds", ((double) elapsedTime) / 1000);
+        log.info("Handling runs in {} ms", simTime - startTime);
+        log.info("Handling exports in {} ms", exportTime - simTime);
+        log.info("Elapsed time: {} seconds", ((double) (System.currentTimeMillis() - startTime)) / 1000);
         log.info("Application Ended");
     }
 

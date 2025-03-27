@@ -26,8 +26,4 @@ public class Result {
     public void addResult(Result result) {
         this.snapshots.addAll(result.getSnapshots());
     }
-
-    public void print() {
-        snapshots.forEach((e) -> log.debug((e).toString()));
-    }
 }

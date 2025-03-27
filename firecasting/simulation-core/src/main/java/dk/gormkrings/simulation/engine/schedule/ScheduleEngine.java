@@ -1,5 +1,6 @@
 package dk.gormkrings.simulation.engine.schedule;
 
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.simulation.results.Result;
 import dk.gormkrings.simulation.results.Snapshot;
 import dk.gormkrings.simulation.engine.Engine;
@@ -20,7 +21,7 @@ public class ScheduleEngine implements Engine {
     public Result simulatePhases(List<Phase> phaseCopies) {
         Result result = new Result();
         CallPhase currentPhase = (CallPhase) phaseCopies.removeFirst();
-        result.addSnapshot(new Snapshot(currentPhase.getLiveData()));
+        result.addSnapshot(new Snapshot((ILiveData) currentPhase.getLiveData()));
 
         for (Event event : schedule.getEvents()) {
             switch (event.getType()) {
@@ -42,7 +43,7 @@ public class ScheduleEngine implements Engine {
                     currentPhase.onYearEnd();
                     break;
                 case PHASE_SWITCH:
-                    result.addSnapshot(new Snapshot(currentPhase.getLiveData()));
+                    result.addSnapshot(new Snapshot((ILiveData) currentPhase.getLiveData()));
                     if (!phaseCopies.isEmpty()) {
                         currentPhase = (CallPhase) phaseCopies.removeFirst();
                         currentPhase.getLiveData().resetSession();

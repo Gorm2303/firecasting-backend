@@ -1,5 +1,7 @@
 package dk.gormkrings.data;
 
+import java.util.List;
+
 public interface ILiveData extends ILive {
     void addToCapital(double capital);
     void subtractFromCapital(double capital);
@@ -35,5 +37,5 @@ public interface ILiveData extends ILive {
     // Cloning
     ILiveData copy();
     String toString();
-
+    String toCsvRow();
 }

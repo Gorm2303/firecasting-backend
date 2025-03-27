@@ -2,6 +2,7 @@ package dk.gormkrings.simulation.engine.event;
 
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.data.ILive;
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.event.RunEvent;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.date.DayEvent;
@@ -34,7 +35,7 @@ public class EventBasedEngine implements Engine {
     private Result simulatePhase(EventPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
         Result result = new Result();
-        ILive data = phase.getLiveData();
+        ILiveData data = (ILiveData) phase.getLiveData();
         IDate startDate = phase.getStartDate();
         EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);

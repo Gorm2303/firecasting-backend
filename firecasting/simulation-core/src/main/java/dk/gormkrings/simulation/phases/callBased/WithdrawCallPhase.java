@@ -29,7 +29,7 @@ public class WithdrawCallPhase extends SimulationCallPhase {
         super.onMonthEnd();
         withdrawMoney();
         addNetEarnings();
-        if (Formatter.debug) Formatter.debugLog(prettyString());
+        if (Formatter.debug) log.debug(prettyString());
     }
 
     public void withdrawMoney() {

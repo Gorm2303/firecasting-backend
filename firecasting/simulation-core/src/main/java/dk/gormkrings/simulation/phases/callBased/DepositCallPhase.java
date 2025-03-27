@@ -26,7 +26,7 @@ public class DepositCallPhase extends SimulationCallPhase {
     public void onMonthEnd() {
         super.onMonthEnd();
         depositMoney();
-        if (Formatter.debug) Formatter.debugLog(prettyString());
+        if (Formatter.debug) log.debug(prettyString());
     }
 
     public void depositMoney() {

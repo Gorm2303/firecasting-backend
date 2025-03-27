@@ -29,7 +29,7 @@ public class PassiveEventPhase extends SimulationEventPhase {
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
             calculatePassive();
-            if (Formatter.debug) Formatter.debugLog(prettyString());
+            if (Formatter.debug) log.debug(prettyString());
 
         }
     }

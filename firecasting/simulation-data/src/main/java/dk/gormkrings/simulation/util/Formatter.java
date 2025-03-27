@@ -5,25 +5,25 @@ import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.simulation.data.Date;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Locale;
+
 @Slf4j
 public class Formatter {
     public static boolean debug = false;
 
     public static String formatNumber(double number) {
-        if (!debug) return "";
         String string;
         if (number > 100) {
-            string = String.format("%.0f", number);
+            string = String.format(Locale.US,"%.0f", number);
         } else if (number <= 100 && number >= 0.1) {
-            string = String.format("%.2f", number);
+            string = String.format(Locale.US,"%.2f", number);
         } else {
-            string = String.format("%.4f", number);
+            string = String.format(Locale.US,"%.4f", number);
         }
         return string;
     }
 
     public static String getPrettyDate(ILiveData data) {
-        if (!debug) return "";
         long session = data.getSessionDuration();
         long alive = data.getTotalDurationAlive();
         IDate startDate = new Date((int) data.getStartTime());
@@ -46,10 +46,5 @@ public class Formatter {
 
     public static String formatField(String label, long value) {
         return Formatter.formatToString(label, value);
-    }
-
-    public static void debugLog(String string) {
-        if (!debug) return;
-        log.debug(string);
     }
 }

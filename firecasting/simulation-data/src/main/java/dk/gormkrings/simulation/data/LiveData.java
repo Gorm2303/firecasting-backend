@@ -149,4 +149,31 @@ public class LiveData implements ILiveData {
         return new LiveData(this);
     }
 
+    @Override
+    public String toCsvRow() {
+        Date startdate = new Date((int) startTime);
+        Date date = new Date((int) (startTime + totalDurationAlive));
+        long day = totalDurationAlive;
+        long year = date.getYear() - startdate.getYear();
+        long month = date.getMonth() + 12 * year - 1;
+
+        return String.format("%d,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
+                day,
+                month,
+                year,
+                date,
+                Formatter.formatNumber(capital),
+                Formatter.formatNumber(deposited),
+                Formatter.formatNumber(passiveReturned),
+                Formatter.formatNumber(returned),
+                Formatter.formatNumber(currentReturn),
+                Formatter.formatNumber(withdrawn),
+                Formatter.formatNumber(withdraw),
+                Formatter.formatNumber(tax),
+                Formatter.formatNumber(currentTax),
+                Formatter.formatNumber(inflation),
+                Formatter.formatNumber(net),
+                Formatter.formatNumber(currentNet));
+    }
+
 }

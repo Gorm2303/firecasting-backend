@@ -1,7 +1,7 @@
 package dk.gormkrings.simulation.engine;
 
 import dk.gormkrings.data.IDate;
-import dk.gormkrings.data.ILive;
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.simulation.results.Result;
 import dk.gormkrings.simulation.results.Snapshot;
@@ -27,7 +27,7 @@ public class CallEngine implements Engine {
     private Result simulatePhase(CallPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
         Result result = new Result();
-        ILive data = phase.getLiveData();
+        ILiveData data = (ILiveData) phase.getLiveData();
         IDate startDate = phase.getStartDate();
 
         result.addSnapshot(new Snapshot(data));

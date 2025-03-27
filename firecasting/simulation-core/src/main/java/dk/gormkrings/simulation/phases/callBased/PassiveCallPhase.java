@@ -24,7 +24,7 @@ public class PassiveCallPhase extends SimulationCallPhase {
     public void onMonthEnd() {
         super.onMonthEnd();
         calculatePassive();
-        if (Formatter.debug) Formatter.debugLog(prettyString());
+        if (Formatter.debug) log.debug(prettyString());
     }
 
     private void calculatePassive() {
