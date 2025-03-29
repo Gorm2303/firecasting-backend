@@ -3,12 +3,12 @@ package dk.gormkrings.simulation.specification;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.simulation.data.LiveData;
-import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.TaxRule;
 import lombok.Getter;
 
 @Getter
-public class Specification implements ISpec {
+public class Specification implements ISpecification {
     private final LiveData liveData;
     private final TaxRule taxRule;
     private final Return returner;

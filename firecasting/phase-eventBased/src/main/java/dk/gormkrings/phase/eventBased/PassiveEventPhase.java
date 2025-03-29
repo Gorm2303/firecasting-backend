@@ -1,26 +1,30 @@
 package dk.gormkrings.phase.eventBased;
 
+import dk.gormkrings.action.Action;
+import dk.gormkrings.phase.IPassivePhase;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
-import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.simulation.util.Formatter;
-import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.specification.ISpecification;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 
-
+@Getter
 @Slf4j
-public class PassiveEventPhase extends SimulationEventPhase {
+public class PassiveEventPhase extends SimulationEventPhase implements IPassivePhase {
     private Passive passive;
+    @Setter
     private boolean firstTime = true;
 
-    public PassiveEventPhase(ISpec specification, IDate startDate, long duration, Passive passive) {
+    public PassiveEventPhase(ISpecification specification, IDate startDate, long duration, Action passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
-        this.passive = passive;
+        this.passive = (Passive) passive;
     }
 
     @Override
@@ -30,29 +34,13 @@ public class PassiveEventPhase extends SimulationEventPhase {
                 monthEvent.getType() == Type.END) {
             calculatePassive();
             if (Formatter.debug) log.debug(prettyString());
-
         }
-    }
-
-    private void calculatePassive() {
-        double passiveReturn = 0;
-        if (firstTime) {
-            firstTime = false;
-            passive.setPreviouslyReturned(getLiveData().getReturned());
-            passiveReturn = getLiveData().getCurrentReturn();
-        } else {
-            passiveReturn = getLiveData().getReturned() - passive.getPreviouslyReturned();
-            passive.setPreviouslyReturned(getLiveData().getReturned());
-        }
-
-        getLiveData().setPassiveReturn(passiveReturn);
-        getLiveData().addToPassiveReturned(passiveReturn);
     }
 
     @Override
-    public PassiveEventPhase copy(ISpec specificationCopy) {
+    public PassiveEventPhase copy(ISpecification specificationCopy) {
         return new PassiveEventPhase(
-                (Specification) specificationCopy,
+                specificationCopy,
                 getStartDate(),
                 getDuration(),
                 this.passive.copy()

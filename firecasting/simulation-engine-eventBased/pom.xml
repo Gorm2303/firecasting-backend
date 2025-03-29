@@ -25,12 +25,6 @@
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>simulation-data</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>dk.gormkrings</groupId>
             <artifactId>common-event</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>

@@ -4,7 +4,7 @@ import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import dk.gormkrings.simulation.ISimulation;
-import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.specification.ISpecification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ public class MonteCarloSimulation implements ISimulation {
 
     // Inject all IEngine beans as a map and select one based on a configuration property.
     public MonteCarloSimulation(Map<String, IEngine> engines,
-                                @Value("${simulation.engine.selected:scheduleEngine}") String engineName) {
+                                @Value("${simulation.engine.selected:callEngine}") String engineName) {
         if (engines.containsKey(engineName)) {
             this.engine = engines.get(engineName);
             log.info("Selected engine: {} from available engines: {}", engineName, engines.keySet());
@@ -44,7 +44,7 @@ public class MonteCarloSimulation implements ISimulation {
 
         for (int i = 0; i < runs; i++) {
             List<IPhase> phaseCopies = new ArrayList<>();
-            ISpec specification = phases.getFirst().getSpecification().copy();
+            ISpecification specification = phases.getFirst().getSpecification().copy();
             for (IPhase phase : phases) {
                 phaseCopies.add(phase.copy(specification));
             }

@@ -1,12 +1,12 @@
 package dk.gormkrings.phase.eventBased;
 
+import dk.gormkrings.phase.IDepositPhase;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
-import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.simulation.util.Formatter;
-import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.specification.ISpecification;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -16,12 +16,12 @@ import org.springframework.context.ApplicationEvent;
 @Slf4j
 @Getter
 @Setter
-public class DepositEventPhase extends SimulationEventPhase {
+public class DepositEventPhase extends SimulationEventPhase implements IDepositPhase {
     private Deposit deposit;
     private boolean firstTime = true;
 
-    public DepositEventPhase(ISpec specification, IDate startDate, long duration, Deposit deposit) {
-        super(specification, startDate, duration,"Deposit");
+    public DepositEventPhase(ISpecification specification, IDate startDate, long duration, Deposit deposit) {
+        super(specification, startDate, duration, "Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = deposit;
     }
@@ -29,31 +29,17 @@ public class DepositEventPhase extends SimulationEventPhase {
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
         super.onApplicationEvent(event);
-        if (event instanceof MonthEvent monthEvent &&
-                monthEvent.getType() == Type.END) {
+        if (event instanceof MonthEvent monthEvent && monthEvent.getType() == Type.END) {
+            // Use the common deposit logic.
             depositMoney();
             if (Formatter.debug) log.debug(prettyString());
-
         }
-    }
-
-    public void depositMoney() {
-        if (firstTime) {
-            getLiveData().addToDeposited(deposit.getInitial());
-            getLiveData().addToCapital(deposit.getInitial());
-            firstTime = false;
-        }
-        double depositAmount = deposit.getMonthly();
-        getLiveData().setDeposit(depositAmount);
-        getLiveData().addToDeposited(depositAmount);
-        getLiveData().addToCapital(depositAmount);
-        deposit.increaseMonthly(deposit.getMonthlyIncrease());
     }
 
     @Override
-    public DepositEventPhase copy(ISpec specificationCopy) {
+    public DepositEventPhase copy(ISpecification specificationCopy) {
         return new DepositEventPhase(
-                (Specification) specificationCopy,
+                specificationCopy,
                 this.getStartDate(),
                 getDuration(),
                 this.deposit.copy()

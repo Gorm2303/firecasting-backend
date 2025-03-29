@@ -9,7 +9,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>phase-callBased</artifactId>
+    <artifactId>simulation-phase-factory</artifactId>
 
     <properties>
         <maven.compiler.source>23</maven.compiler.source>
@@ -19,13 +19,19 @@
     <dependencies>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>domain-model</artifactId>
+            <artifactId>simulation-phase</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>simulation-data</artifactId>
+            <artifactId>phase-callBased</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>dk.gormkrings</groupId>
+            <artifactId>phase-eventBased</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
@@ -43,7 +49,7 @@
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>simulation-phase</artifactId>
+            <artifactId>domain-model</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

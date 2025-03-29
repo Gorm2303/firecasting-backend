@@ -15,7 +15,6 @@
 	<name>Firecasting</name>
 	<description>Simulation project for Spring Boot</description>
 	<modules>
-		<module>api</module>
 		<module>persistence</module>
 		<module>domain-model</module>
 		<module>application</module>
@@ -31,8 +30,10 @@
 		<module>common-domain</module>
 		<module>common-math</module>
 		<module>domain-math</module>
-        <module>phase-eventBased/phase-schedule</module>
-    </modules>
+        <module>simulation-phase</module>
+        <module>simulation-phase-factory</module>
+		<module>api</module>
+	</modules>
 
 	<properties>
 		<java.version>23</java.version>

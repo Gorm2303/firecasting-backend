@@ -1,22 +1,26 @@
 package dk.gormkrings.phase.callBased;
 
+import dk.gormkrings.phase.IPassivePhase;
+import dk.gormkrings.action.Action;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.IDate;
-import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.simulation.util.Formatter;
-import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.specification.ISpecification;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
-public class PassiveCallPhase extends SimulationCallPhase {
+@Getter
+public class PassiveCallPhase extends SimulationCallPhase implements IPassivePhase {
     private Passive passive;
+    @Setter
     private boolean firstTime = true;
 
-    public PassiveCallPhase(ISpec specification, IDate startDate, long duration, Passive passive) {
+    public PassiveCallPhase(ISpecification specification, IDate startDate, long duration, Action passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
-        this.passive = passive;
+        this.passive = (Passive) passive;
     }
 
     @Override
@@ -26,25 +30,10 @@ public class PassiveCallPhase extends SimulationCallPhase {
         if (Formatter.debug) log.debug(prettyString());
     }
 
-    private void calculatePassive() {
-        double passiveReturn = 0;
-        if (firstTime) {
-            firstTime = false;
-            passive.setPreviouslyReturned(getLiveData().getReturned());
-            passiveReturn = getLiveData().getCurrentReturn();
-        } else {
-            passiveReturn = getLiveData().getReturned() - passive.getPreviouslyReturned();
-            passive.setPreviouslyReturned(getLiveData().getReturned());
-        }
-
-        getLiveData().setPassiveReturn(passiveReturn);
-        getLiveData().addToPassiveReturned(passiveReturn);
-    }
-
     @Override
-    public PassiveCallPhase copy(ISpec specificationCopy) {
+    public PassiveCallPhase copy(ISpecification specificationCopy) {
         return new PassiveCallPhase(
-                (Specification) specificationCopy,
+                specificationCopy,
                 getStartDate(),
                 getDuration(),
                 this.passive.copy()

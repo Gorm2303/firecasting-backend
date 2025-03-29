@@ -1,8 +1,8 @@
 package dk.gormkrings.phase;
 
-import dk.gormkrings.specification.ISpec;
+import dk.gormkrings.specification.ISpecification;
 import org.springframework.context.event.SmartApplicationListener;
 
 public interface IEventPhase extends IPhase, SmartApplicationListener {
-    IEventPhase copy(ISpec specificationCopy);
+    IEventPhase copy(ISpecification specificationCopy);
 }

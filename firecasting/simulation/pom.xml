@@ -20,7 +20,7 @@
     <dependencies>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>simulation-engine-scheduleBased</artifactId>
+            <artifactId>common-simulation</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
@@ -32,7 +32,13 @@
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>common-simulation</artifactId>
+            <artifactId>simulation-engine-eventBased</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>dk.gormkrings</groupId>
+            <artifactId>simulation-engine-scheduleBased</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

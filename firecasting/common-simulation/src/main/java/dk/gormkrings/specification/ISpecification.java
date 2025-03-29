@@ -5,8 +5,8 @@ import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.tax.TaxRule;
 
-public interface ISpec {
-    ISpec copy();
+public interface ISpecification {
+    ISpecification copy();
     ILive getLiveData();
     TaxRule getTaxRule();
     Return getReturner();
