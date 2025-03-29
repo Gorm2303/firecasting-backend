@@ -24,7 +24,6 @@ import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpec;
 import dk.gormkrings.tax.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -39,7 +38,7 @@ public class FirecastingApplication implements CommandLineRunner {
     private final ISimulation simulation;
     private final IDateFactory dateFactory;
 
-    public FirecastingApplication(@Qualifier("scheduleMCSimulation") ISimulation simulation, IDateFactory dateFactory) {
+    public FirecastingApplication(ISimulation simulation, IDateFactory dateFactory) {
         this.simulation = simulation;
         this.dateFactory = dateFactory;
     }

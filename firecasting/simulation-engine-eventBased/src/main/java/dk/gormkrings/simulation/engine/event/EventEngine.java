@@ -16,12 +16,12 @@ import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.SimpleApplicationEventMulticaster;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Slf4j
-@Component
+@Service("eventEngine")
 public class EventEngine implements IEngine {
 
     private final IDateFactory dateFactory;

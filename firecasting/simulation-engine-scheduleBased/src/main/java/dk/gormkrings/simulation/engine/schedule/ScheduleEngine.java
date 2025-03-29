@@ -1,24 +1,25 @@
 package dk.gormkrings.simulation.engine.schedule;
 
 import dk.gormkrings.data.ILiveData;
+import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.engine.schedule.ISchedule;
-import dk.gormkrings.engine.schedule.IScheduleEngine;
 import dk.gormkrings.engine.schedule.IScheduleEvent;
 import dk.gormkrings.engine.schedule.IScheduleFactory;
 import dk.gormkrings.factory.IResultFactory;
 import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
+import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Setter
 @Getter
-@Component
-public class ScheduleEngine implements IScheduleEngine {
+@Service("scheduleEngine")
+public class ScheduleEngine implements IEngine {
     private IResultFactory resultFactory;
     private ISnapshotFactory snapshotFactory;
     private static IScheduleFactory scheduleFactory;
@@ -29,10 +30,11 @@ public class ScheduleEngine implements IScheduleEngine {
         ScheduleEngine.scheduleFactory = scheduleFactory;
     }
 
-    public IResult simulatePhases(List<ICallPhase> phaseCopies) {
+    @Override
+    public IResult simulatePhases(List<IPhase> phaseCopies) {
         ISchedule schedule = scheduleFactory.build(phaseCopies);
         IResult result = resultFactory.newResult();
-        ICallPhase currentPhase = phaseCopies.removeFirst();
+        ICallPhase currentPhase = (ICallPhase) phaseCopies.removeFirst();
         result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
 
         for (IScheduleEvent event : schedule.getEvents()) {
@@ -57,7 +59,7 @@ public class ScheduleEngine implements IScheduleEngine {
                 case PHASE_SWITCH:
                     result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
                     if (!phaseCopies.isEmpty()) {
-                        currentPhase = phaseCopies.removeFirst();
+                        currentPhase = (ICallPhase) phaseCopies.removeFirst();
                         currentPhase.getLiveData().resetSession();
                     }
                     break;

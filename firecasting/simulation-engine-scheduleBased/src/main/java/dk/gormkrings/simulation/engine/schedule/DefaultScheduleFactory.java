@@ -31,11 +31,11 @@ public class DefaultScheduleFactory implements IScheduleFactory {
         this.dateFactory = dateFactory;
     }
 
-    public ISchedule build(List<ICallPhase> phases) {
+    public ISchedule build(List<IPhase> phases) {
         if (schedule != null) return schedule;
         events = new ArrayList<>();
-        for (ICallPhase phase : phases) {
-            buildSchedule(phase);
+        for (IPhase phase : phases) {
+            buildSchedule((ICallPhase) phase);
             int lastEpochDay = (int) (phase.getStartDate().getEpochDay() + phase.getDuration());
             events.add(new ScheduleEvent(lastEpochDay, EventType.PHASE_SWITCH));
         }

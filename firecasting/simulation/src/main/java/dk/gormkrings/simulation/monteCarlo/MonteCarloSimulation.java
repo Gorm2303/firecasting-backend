@@ -6,10 +6,12 @@ import dk.gormkrings.result.IResult;
 import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.specification.ISpec;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,12 +23,18 @@ public class MonteCarloSimulation implements ISimulation {
 
     private final IEngine engine;
     private final List<IResult> results = new ArrayList<>();
-
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
 
-    public MonteCarloSimulation(IEngine engine) {
-        this.engine = engine;
-        log.debug("Initializing Monte Carlo Simulation");
+    // Inject all IEngine beans as a map and select one based on a configuration property.
+    public MonteCarloSimulation(Map<String, IEngine> engines,
+                                @Value("${simulation.engine.selected:scheduleEngine}") String engineName) {
+        if (engines.containsKey(engineName)) {
+            this.engine = engines.get(engineName);
+            log.info("Selected engine: {} from available engines: {}", engineName, engines.keySet());
+        } else {
+            throw new IllegalArgumentException("No engine found with name: " + engineName +
+                    ". Available engines: " + engines.keySet());
+        }
     }
 
     public List<IResult> run(long runs, List<IPhase> phases) {
@@ -40,7 +48,6 @@ public class MonteCarloSimulation implements ISimulation {
             for (IPhase phase : phases) {
                 phaseCopies.add(phase.copy(specification));
             }
-
             Future<IResult> future = executorService.submit(() -> engine.simulatePhases(phaseCopies));
             futures.add(future);
         }
@@ -50,7 +57,7 @@ public class MonteCarloSimulation implements ISimulation {
                 IResult result = future.get();
                 results.add(result);
             } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+                log.error("Error during simulation run", e);
             }
         }
 
