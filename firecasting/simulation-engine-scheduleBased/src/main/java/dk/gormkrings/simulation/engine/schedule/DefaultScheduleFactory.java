@@ -1,17 +1,20 @@
 package dk.gormkrings.simulation.engine.schedule;
 
 import dk.gormkrings.data.IDate;
+import dk.gormkrings.engine.schedule.ISchedule;
+import dk.gormkrings.engine.schedule.IScheduleFactory;
+import dk.gormkrings.engine.schedule.IScheduleEvent;
 import dk.gormkrings.event.EventType;
-import dk.gormkrings.event.IEvent;
+import dk.gormkrings.factory.IDateFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.simulation.data.Date;
-import dk.gormkrings.simulation.event.Event;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ScheduleBuilder {
+@Component
+public class DefaultScheduleFactory implements IScheduleFactory {
     private int nextWeekStartEpoch;
     private int weekEndEpoch;
     private int nextMonthStartEpoch;
@@ -20,16 +23,24 @@ public class ScheduleBuilder {
     private int yearEndEpoch;
     private int finalEpoch;
     private int currentEpoch;
-    private List<IEvent> events;
+    private List<IScheduleEvent> events;
+    private final IDateFactory dateFactory;
+    private ISchedule schedule;
 
-    public Schedule buildSchedule(List<IPhase> phases) {
+    public DefaultScheduleFactory(IDateFactory dateFactory) {
+        this.dateFactory = dateFactory;
+    }
+
+    public ISchedule build(List<ICallPhase> phases) {
+        if (schedule != null) return schedule;
         events = new ArrayList<>();
-        for (IPhase phase : phases) {
-            buildSchedule((ICallPhase) phase);
+        for (ICallPhase phase : phases) {
+            buildSchedule(phase);
             int lastEpochDay = (int) (phase.getStartDate().getEpochDay() + phase.getDuration());
-            events.add(new Event(lastEpochDay, EventType.PHASE_SWITCH));
+            events.add(new ScheduleEvent(lastEpochDay, EventType.PHASE_SWITCH));
         }
-        return new Schedule(events);
+        schedule = new Schedule(events);
+        return schedule;
     }
 
     private void initPhase(IPhase phase) {
@@ -80,7 +91,7 @@ public class ScheduleBuilder {
         if (currentEpoch != yearEndEpoch || !supportYearEnd) return;
 
         addEvent(EventType.YEAR_END);
-        IDate nextDay = new Date(currentEpoch);
+        IDate nextDay = dateFactory.fromEpochDay(currentEpoch);
         yearEndEpoch = nextDay.computeNextYearEnd();
     }
 
@@ -89,7 +100,7 @@ public class ScheduleBuilder {
         if (currentEpoch != nextYearStartEpoch || !supportYearStart) return;
 
         addEvent(EventType.YEAR_START);
-        IDate newDate = new Date(currentEpoch);
+        IDate newDate = dateFactory.fromEpochDay(currentEpoch);
         nextYearStartEpoch = newDate.computeNextYearStart();
     }
 
@@ -98,7 +109,7 @@ public class ScheduleBuilder {
         if (currentEpoch != monthEndEpoch || !supportMonthEnd) return;
 
         addEvent(EventType.MONTH_END);
-        IDate nextDay = new Date(currentEpoch);
+        IDate nextDay = dateFactory.fromEpochDay(currentEpoch);
         monthEndEpoch = nextDay.computeNextMonthEnd();
     }
 
@@ -107,7 +118,7 @@ public class ScheduleBuilder {
         if (currentEpoch != nextMonthStartEpoch || !supportMonthStart) return;
 
         addEvent(EventType.MONTH_START);
-        IDate newDate = new Date(currentEpoch);
+        IDate newDate = dateFactory.fromEpochDay(currentEpoch);
         nextMonthStartEpoch = newDate.computeNextMonthStart();
     }
 
@@ -116,7 +127,7 @@ public class ScheduleBuilder {
         if (currentEpoch != weekEndEpoch || !supportWeekEnd) return;
 
         addEvent(EventType.WEEK_END);
-        IDate nextDay = new Date(currentEpoch);
+        IDate nextDay = dateFactory.fromEpochDay(currentEpoch);
         weekEndEpoch = nextDay.computeNextWeekEnd();
     }
 
@@ -125,7 +136,7 @@ public class ScheduleBuilder {
         if (currentEpoch != nextWeekStartEpoch || !supportWeekStart) return;
 
         addEvent(EventType.WEEK_START);
-        IDate newDate = new Date(currentEpoch);
+        IDate newDate = dateFactory.fromEpochDay(currentEpoch);
         this.nextWeekStartEpoch = newDate.computeNextWeekStart();
     }
 
@@ -142,6 +153,6 @@ public class ScheduleBuilder {
     }
 
     private void addEvent(EventType eventType) {
-        events.add(new Event(currentEpoch, eventType));
+        events.add(new ScheduleEvent(currentEpoch, eventType));
     }
 }

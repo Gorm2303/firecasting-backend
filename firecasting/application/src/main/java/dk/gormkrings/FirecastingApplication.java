@@ -4,17 +4,20 @@ import dk.gormkrings.action.Deposit;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.IDate;
+import dk.gormkrings.factory.IDateFactory;
 import dk.gormkrings.inflation.Inflation;
 import dk.gormkrings.inflation.DataAverageInflation;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.phase.callBased.DepositCallPhase;
 import dk.gormkrings.phase.callBased.PassiveCallPhase;
 import dk.gormkrings.phase.callBased.WithdrawCallPhase;
+import dk.gormkrings.phase.eventBased.DepositEventPhase;
+import dk.gormkrings.phase.eventBased.PassiveEventPhase;
+import dk.gormkrings.phase.eventBased.WithdrawEventPhase;
 import dk.gormkrings.result.IResult;
 import dk.gormkrings.returns.Return;
 import dk.gormkrings.returns.SimpleMonthlyReturn;
 import dk.gormkrings.simulation.ISimulation;
-import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.simulation.util.CsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
@@ -34,9 +37,11 @@ import java.util.List;
 public class FirecastingApplication implements CommandLineRunner {
 
     private final ISimulation simulation;
+    private final IDateFactory dateFactory;
 
-    public FirecastingApplication(@Qualifier("scheduleMCSimulation") ISimulation simulation) {
+    public FirecastingApplication(@Qualifier("scheduleMCSimulation") ISimulation simulation, IDateFactory dateFactory) {
         this.simulation = simulation;
+        this.dateFactory = dateFactory;
     }
 
     public static void main(String[] args) {
@@ -53,7 +58,7 @@ public class FirecastingApplication implements CommandLineRunner {
         int passiveDurationInMonths = 5 * 12;
         int withdrawDurationInMonths = 30 * 12;
 
-        IDate depositStartIDate = new Date(2025,1,1);
+        IDate depositStartIDate = dateFactory.dateOf(2025,1,1);
         IDate passiveStartIDate = depositStartIDate.plusMonths(depositDurationInMonths);
         IDate withdrawStartIDate = passiveStartIDate.plusMonths(passiveDurationInMonths);
         IDate withdrawEndIDate = withdrawStartIDate.plusMonths(withdrawDurationInMonths);
@@ -78,7 +83,7 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
-        List<IResult> results = simulation.run(10000, phases);
+        List<IResult> results = simulation.run(1, phases);
         long simTime = System.currentTimeMillis();
         CsvExporter.exportResultsToCsv(results, "firecasting-results.csv");
         long exportTime = System.currentTimeMillis();
@@ -90,7 +95,7 @@ public class FirecastingApplication implements CommandLineRunner {
     }
 
     private static Specification createSpecification(long startTime) {
-        CapitalGainsTax taxation = new CapitalGainsTax(42);
+        NotionalGainsTax taxation = new NotionalGainsTax(42);
         StockExemptionTax stockExemptionTax = null;
         if (stockExemptionTax != null) taxation.setStockExemptionTax(stockExemptionTax);
         TaxExemptionCard taxExemptionCard = null;

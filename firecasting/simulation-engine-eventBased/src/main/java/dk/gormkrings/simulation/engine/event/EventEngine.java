@@ -8,12 +8,12 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.DayEvent;
 import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.event.YearEvent;
+import dk.gormkrings.factory.IDateFactory;
+import dk.gormkrings.factory.IResultFactory;
+import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.IEventPhase;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
-import dk.gormkrings.simulation.data.Date;
-import dk.gormkrings.simulation.result.Result;
-import dk.gormkrings.simulation.result.Snapshot;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.SimpleApplicationEventMulticaster;
 import org.springframework.stereotype.Component;
@@ -22,10 +22,21 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class EventBasedEngine implements IEngine {
+public class EventEngine implements IEngine {
+
+    private final IDateFactory dateFactory;
+    private final IResultFactory resultFactory;
+    private final ISnapshotFactory snapshotFactory;
+
+    public EventEngine(IDateFactory dateFactory, IResultFactory resultFactory,ISnapshotFactory snapshotFactory) {
+        this.dateFactory = dateFactory;
+        this.resultFactory = resultFactory;
+        this.snapshotFactory = snapshotFactory;
+    }
 
     public IResult simulatePhases(List<IPhase> phaseCopies) {
-        IResult result = new Result();
+        IResult result = resultFactory.newResult();
+        result.addSnapshot(snapshotFactory.snapshot((ILiveData) phaseCopies.getFirst().getLiveData()));
         for (IPhase phase : phaseCopies) {
             result.addResult(simulatePhase((IEventPhase) phase));
         }
@@ -34,13 +45,11 @@ public class EventBasedEngine implements IEngine {
 
     private IResult simulatePhase(IEventPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
-        IResult result = new Result();
+        IResult result = resultFactory.newResult();
         ILiveData data = (ILiveData) phase.getLiveData();
         IDate startDate = phase.getStartDate();
         EventDispatcher dispatcher = new EventDispatcher(new SimpleApplicationEventMulticaster());
         dispatcher.register(phase);
-
-        result.addSnapshot(new Snapshot(data));
 
         RunEvent simStart = new RunEvent(this, Type.START);
         dispatcher.notifyListeners(simStart);
@@ -75,7 +84,7 @@ public class EventBasedEngine implements IEngine {
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {
                 dispatcher.notifyListeners(monthEventStart);
                 // Update boundary for next month start.
-                IDate newCurrentDate = new Date(currentEpochDay);
+                IDate newCurrentDate = dateFactory.fromEpochDay(currentEpochDay);
                 nextMonthStartEpochDay = newCurrentDate.computeNextMonthStart();
             }
 
@@ -83,21 +92,21 @@ public class EventBasedEngine implements IEngine {
             if (currentEpochDay == currentMonthEndEpochDay) {
                 dispatcher.notifyListeners(monthEventEnd);
                 // Update boundary for month end.
-                IDate nextDay = new Date(currentEpochDay);
+                IDate nextDay = dateFactory.fromEpochDay(currentEpochDay);
                 currentMonthEndEpochDay = nextDay.computeNextMonthEnd();
             }
 
             // Publish Year Start Event.
             if (currentEpochDay == nextYearStartEpochDay && currentEpochDay != startEpochDay) {
                 dispatcher.notifyListeners(yearEventStart);
-                IDate newCurrentDate = new Date(currentEpochDay);
+                IDate newCurrentDate = dateFactory.fromEpochDay(currentEpochDay);
                 nextYearStartEpochDay = newCurrentDate.computeNextYearStart();
             }
 
             // Publish Year End Event.
             if (currentEpochDay == currentYearEndEpochDay) {
                 dispatcher.notifyListeners(yearEventEnd);
-                IDate nextDay = new Date(currentEpochDay);
+                IDate nextDay = dateFactory.fromEpochDay(currentEpochDay);
                 currentYearEndEpochDay = nextDay.computeNextYearEnd();
             }
         }
@@ -105,7 +114,7 @@ public class EventBasedEngine implements IEngine {
         RunEvent simEnd = new RunEvent(this, Type.END);
         dispatcher.notifyListeners(simEnd);
 
-        result.addSnapshot(new Snapshot(data));
+        result.addSnapshot(snapshotFactory.snapshot(data));
         data.resetSession();
         dispatcher.clearRegistrations();
         return result;

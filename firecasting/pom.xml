@@ -31,7 +31,8 @@
 		<module>common-domain</module>
 		<module>common-math</module>
 		<module>domain-math</module>
-	</modules>
+        <module>phase-eventBased/phase-schedule</module>
+    </modules>
 
 	<properties>
 		<java.version>23</java.version>

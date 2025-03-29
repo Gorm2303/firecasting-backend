@@ -3,13 +3,14 @@ package dk.gormkrings.simulation.engine.call;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.engine.IEngine;
+import dk.gormkrings.factory.IDateFactory;
+import dk.gormkrings.factory.IResultFactory;
+import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
-import dk.gormkrings.simulation.data.Date;
-import dk.gormkrings.simulation.result.Result;
-import dk.gormkrings.simulation.result.Snapshot;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,8 +19,20 @@ import java.util.List;
 @Component
 public class CallEngine implements IEngine {
 
+    private final IDateFactory dateFactory;
+    private final IResultFactory resultFactory;
+    private final ISnapshotFactory snapshotFactory;
+
+    @Autowired
+    public CallEngine(IDateFactory dateFactory, IResultFactory resultFactory, ISnapshotFactory snapshotFactory) {
+        this.dateFactory = dateFactory;
+        this.resultFactory = resultFactory;
+        this.snapshotFactory = snapshotFactory;
+    }
+
     public IResult simulatePhases(List<IPhase> phaseCopies) {
-        IResult result = new Result();
+        IResult result = resultFactory.newResult();
+        result.addSnapshot(snapshotFactory.snapshot((ILiveData) phaseCopies.getFirst().getLiveData()));
         for (IPhase phase : phaseCopies) {
             result.addResult(simulatePhase((ICallPhase) phase));
         }
@@ -28,11 +41,9 @@ public class CallEngine implements IEngine {
 
     private IResult simulatePhase(ICallPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
-        IResult result = new Result();
+        IResult result = resultFactory.newResult();
         ILiveData data = (ILiveData) phase.getLiveData();
         IDate startDate = phase.getStartDate();
-
-        result.addSnapshot(new Snapshot(data));
 
         // Precompute boundaries using epoch day values.
         int currentEpochDay = startDate.getEpochDay() - 1;
@@ -59,7 +70,7 @@ public class CallEngine implements IEngine {
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {
                 phase.onMonthStart();
                 // Update boundary for next month start.
-                IDate newCurrentDate = new Date(currentEpochDay);
+                IDate newCurrentDate = dateFactory.fromEpochDay(currentEpochDay);
                 nextMonthStartEpochDay = newCurrentDate.computeNextMonthStart();
             }
 
@@ -67,26 +78,26 @@ public class CallEngine implements IEngine {
             if (currentEpochDay == currentMonthEndEpochDay) {
                 phase.onMonthEnd();
                 // Update boundary for month end.
-                IDate nextDay = new Date(currentEpochDay);
+                IDate nextDay = dateFactory.fromEpochDay(currentEpochDay);
                 currentMonthEndEpochDay = nextDay.computeNextMonthEnd();
             }
 
             // Call Year Start Methods.
             if (currentEpochDay == nextYearStartEpochDay && currentEpochDay != startEpochDay) {
                 phase.onYearStart();
-                IDate newCurrentDate = new Date(currentEpochDay);
+                IDate newCurrentDate = dateFactory.fromEpochDay(currentEpochDay);
                 nextYearStartEpochDay = newCurrentDate.computeNextYearStart();
             }
 
             // Call Year End Methods.
             if (currentEpochDay == currentYearEndEpochDay) {
                 phase.onYearEnd();
-                IDate nextDay = new Date(currentEpochDay);
+                IDate nextDay = dateFactory.fromEpochDay(currentEpochDay);
                 currentYearEndEpochDay = nextDay.computeNextYearEnd();
             }
         }
 
-        result.addSnapshot(new Snapshot(data));
+        result.addSnapshot(snapshotFactory.snapshot(data));
         data.resetSession();
         return result;
     }

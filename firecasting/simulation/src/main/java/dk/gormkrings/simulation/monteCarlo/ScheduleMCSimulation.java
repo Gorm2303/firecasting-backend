@@ -1,11 +1,10 @@
 package dk.gormkrings.simulation.monteCarlo;
 
+import dk.gormkrings.engine.schedule.IScheduleEngine;
+import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import dk.gormkrings.simulation.ISimulation;
-import dk.gormkrings.simulation.engine.schedule.Schedule;
-import dk.gormkrings.simulation.engine.schedule.ScheduleBuilder;
-import dk.gormkrings.simulation.engine.schedule.ScheduleEngine;
 import dk.gormkrings.specification.ISpec;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,30 +20,27 @@ import java.util.concurrent.Future;
 @Service
 public class ScheduleMCSimulation implements ISimulation {
 
-    private final ScheduleEngine scheduleEngine;
+    private final IScheduleEngine scheduleEngine;
     private final List<IResult> results = new ArrayList<>();
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
 
-    public ScheduleMCSimulation(ScheduleEngine scheduleEngine) {
+    public ScheduleMCSimulation(IScheduleEngine scheduleEngine) {
         this.scheduleEngine = scheduleEngine;
         log.debug("Initializing Schedule Monte Carlo Simulation");
+
     }
 
     public List<IResult> run(long runs, List<IPhase> phases) {
         results.clear();
 
-        ScheduleBuilder scheduleBuilder = new ScheduleBuilder();
-        Schedule schedule = scheduleBuilder.buildSchedule(phases);
-        scheduleEngine.setSchedule(schedule);
-
         List<Future<IResult>> futures = new ArrayList<>();
 
         for (int i = 0; i < runs; i++) {
-            List<IPhase> phaseCopies = new ArrayList<>();
+            List<ICallPhase> phaseCopies = new ArrayList<>();
             ISpec specification = phases.getFirst().getSpecification().copy();
             for (IPhase phase : phases) {
-                phaseCopies.add(phase.copy(specification));
+                phaseCopies.add((ICallPhase) phase.copy(specification));
             }
             Future<IResult> future = executorService.submit(() -> scheduleEngine.simulatePhases(phaseCopies));
             futures.add(future);

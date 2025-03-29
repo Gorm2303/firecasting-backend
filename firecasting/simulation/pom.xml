@@ -26,6 +26,12 @@
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>
+            <artifactId>simulation-engine-callBased</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>dk.gormkrings</groupId>
             <artifactId>common-simulation</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
