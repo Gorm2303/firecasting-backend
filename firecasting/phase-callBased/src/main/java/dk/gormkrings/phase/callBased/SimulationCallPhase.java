@@ -19,7 +19,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     private ISpecification specification;
     private String name;
 
-    SimulationCallPhase(ISpecification specification, IDate startDate, long duration, String name) {
+    public SimulationCallPhase(ISpecification specification, IDate startDate, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;

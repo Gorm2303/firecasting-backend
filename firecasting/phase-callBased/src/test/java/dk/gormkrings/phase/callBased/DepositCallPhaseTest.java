@@ -4,6 +4,7 @@ import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.test.DummyDate;
 import dk.gormkrings.test.DummyLiveData;
+import dk.gormkrings.test.DummyReturn;
 import dk.gormkrings.test.DummySpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ class DepositCallPhaseTest {
     @BeforeEach
     void setUp() {
         dummySpec = new DummySpecification();
+        dummySpec.setReturner(new DummyReturn());
         IDate dummyDate = new DummyDate(1000);
         Deposit deposit = new Deposit(10000, 5000);
         depositPhase = new DepositCallPhase(dummySpec, dummyDate, 30, deposit);
