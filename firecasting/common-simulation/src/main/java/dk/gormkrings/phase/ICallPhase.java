@@ -11,5 +11,7 @@ public interface ICallPhase extends IPhase {
     void onMonthEnd();
     void onYearStart();
     void onYearEnd();
+    void onPhaseStart();
+    void onPhaseEnd();
     boolean supportsEvent(EventType eventType);
 }

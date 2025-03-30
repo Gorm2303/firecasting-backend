@@ -73,6 +73,16 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     }
 
     @Override
+    public void onPhaseEnd() {
+
+    }
+
+    @Override
+    public void onPhaseStart() {
+
+    }
+
+    @Override
     public ILiveData getLiveData() {
         return (ILiveData) specification.getLiveData();
     }

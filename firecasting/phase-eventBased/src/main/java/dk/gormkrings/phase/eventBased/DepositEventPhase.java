@@ -28,9 +28,11 @@ public class DepositEventPhase extends SimulationEventPhase implements IDepositP
 
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
+        if (event instanceof MonthEvent monthEvent && monthEvent.getType() == Type.START) {
+            depositInitialDeposit();
+        }
         super.onApplicationEvent(event);
         if (event instanceof MonthEvent monthEvent && monthEvent.getType() == Type.END) {
-            // Use the common deposit logic.
             depositMoney();
             if (Formatter.debug) log.debug(prettyString());
         }

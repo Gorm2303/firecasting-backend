@@ -7,28 +7,24 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 public class Withdraw implements IAction {
     private double monthlyAmount;
-    private double percent;
+    private double monthlyPercent;
 
-    public Withdraw(double monthlyAmount, double percent) {
+    public Withdraw(double monthlyAmount, double monthlyPercent) {
         this.monthlyAmount = monthlyAmount;
-        this.percent = percent;
-        log.debug("Initializing withdraw: {} monthly, {} percent", monthlyAmount, percent);
+        this.monthlyPercent = monthlyPercent;
+        log.debug("Initializing withdraw: {} monthly, {} percent", monthlyAmount, monthlyPercent);
     }
 
     public double getMonthlyAmount(double capital) {
         if (monthlyAmount > 0) return monthlyAmount;
-        else if (percent > 0) return (percent * capital)/12;
+        else if (monthlyPercent > 0) return (monthlyPercent * capital)/12;
         else return 0;
-    }
-
-    public double getYearlyAmount(double capital) {
-        return getMonthlyAmount(capital)*12;
     }
 
     public Withdraw copy() {
         return new Withdraw(
                 this.monthlyAmount,
-                this.percent
+                this.monthlyPercent
         );
     }
 }

@@ -17,8 +17,6 @@ public class Deposit implements IAction {
     public Deposit(double initial, double monthly) {
         this.initial = initial;
         this.monthly = monthly;
-        this.increaseMonthlyAmount = 0;
-        this.increaseMonthlyPercentage = 0;
         log.debug("Initializing Deposit: {} initial and {} monthly", initial, monthly);
     }
 

@@ -64,7 +64,7 @@ public class CallEngine implements IEngine {
             currentEpochDay++; // advance one day
 
             // Call Day Methods.
-            phase.onDayStart();
+            //phase.onDayStart();
 
             // Call Month Start Methods.
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {

@@ -39,9 +39,6 @@ public class ScheduleEngine implements IEngine {
 
         for (IScheduleEvent event : schedule.getEvents()) {
             switch (event.getType()) {
-                case DAY_START:
-                    currentPhase.onDayStart();
-                    break;
                 case MONTH_START:
                     currentPhase.onMonthStart();
                     break;
@@ -56,7 +53,11 @@ public class ScheduleEngine implements IEngine {
                 case YEAR_END:
                     currentPhase.onYearEnd();
                     break;
-                case PHASE_SWITCH:
+                case PHASE_START:
+                    currentPhase.onPhaseStart();
+                    break;
+                case PHASE_END:
+                    currentPhase.onPhaseEnd();
                     result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
                     if (!phaseCopies.isEmpty()) {
                         currentPhase = (ICallPhase) phaseCopies.removeFirst();

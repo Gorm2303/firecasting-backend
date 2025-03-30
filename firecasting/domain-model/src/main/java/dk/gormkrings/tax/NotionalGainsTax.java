@@ -31,10 +31,12 @@ public class NotionalGainsTax implements ITaxRule {
 
     @Override
     public NotionalGainsTax copy() {
-        return new NotionalGainsTax(
+        NotionalGainsTax notionalGainsTax = new NotionalGainsTax(
                 this.taxRate,
                 this.stockExemptionTax,
                 this.taxExemptionCard
         );
+        notionalGainsTax.setPreviousReturned(this.previousReturned);
+        return notionalGainsTax;
     }
 }

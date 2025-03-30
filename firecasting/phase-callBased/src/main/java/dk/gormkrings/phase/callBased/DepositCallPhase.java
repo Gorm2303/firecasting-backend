@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 public class DepositCallPhase extends SimulationCallPhase implements IDepositPhase {
     private Deposit deposit;
-    private boolean firstTime = true;
 
     public DepositCallPhase(ISpecification specification, IDate startDate, long duration, IAction deposit) {
         super(specification, startDate, duration, "Deposit");
@@ -28,6 +27,11 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
         super.onMonthEnd();
         depositMoney();
         if (Formatter.debug) log.debug(prettyString());
+    }
+
+    @Override
+    public void onPhaseStart() {
+        depositInitialDeposit();
     }
 
     @Override

@@ -36,8 +36,9 @@ public class DefaultScheduleFactory implements IScheduleFactory {
         events = new ArrayList<>();
         for (IPhase phase : phases) {
             buildSchedule((ICallPhase) phase);
+            events.add(new ScheduleEvent(phase.getStartDate().getEpochDay(), EventType.PHASE_START));
             int lastEpochDay = (int) (phase.getStartDate().getEpochDay() + phase.getDuration());
-            events.add(new ScheduleEvent(lastEpochDay, EventType.PHASE_SWITCH));
+            events.add(new ScheduleEvent(lastEpochDay, EventType.PHASE_END));
         }
         schedule = new Schedule(events);
         return schedule;

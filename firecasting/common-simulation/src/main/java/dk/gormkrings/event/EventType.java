@@ -1,6 +1,7 @@
 package dk.gormkrings.event;
 
 public enum EventType {
+    PHASE_START,
     DAY_START,
     DAY_END,
     WEEK_START,
@@ -9,5 +10,5 @@ public enum EventType {
     MONTH_END,
     YEAR_START,
     YEAR_END,
-    PHASE_SWITCH
+    PHASE_END
 }

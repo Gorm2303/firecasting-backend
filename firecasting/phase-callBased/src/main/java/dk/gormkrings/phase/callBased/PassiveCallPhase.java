@@ -7,15 +7,12 @@ import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Getter
 public class PassiveCallPhase extends SimulationCallPhase implements IPassivePhase {
     private Passive passive;
-    @Setter
-    private boolean firstTime = true;
 
     public PassiveCallPhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
         super(specification, startDate, duration, "Passive");
@@ -28,6 +25,11 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
         super.onMonthEnd();
         calculatePassive();
         if (Formatter.debug) log.debug(prettyString());
+    }
+
+    @Override
+    public void onPhaseStart() {
+        initializePreviouslyReturned();
     }
 
     @Override
