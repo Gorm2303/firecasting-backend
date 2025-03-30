@@ -1,31 +1,31 @@
 package dk.gormkrings.simulation.specification;
 
-import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.returns.Return;
+import dk.gormkrings.inflation.IInflation;
+import dk.gormkrings.returns.IReturn;
 import dk.gormkrings.simulation.data.LiveData;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.TaxRule;
+import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 
 @Getter
 public class Specification implements ISpecification {
     private final LiveData liveData;
-    private final TaxRule taxRule;
-    private final Return returner;
-    private final Inflation inflation;
+    private final ITaxRule taxRule;
+    private final IReturn returner;
+    private final IInflation Inflation;
 
-    public Specification(long startTime, TaxRule taxRule, Return returner, Inflation inflation) {
+    public Specification(long startTime, ITaxRule taxRule, IReturn returner, IInflation Inflation) {
         this.liveData = new LiveData(startTime);
         this.taxRule = taxRule;
         this.returner = returner;
-        this.inflation = inflation;
+        this.Inflation = Inflation;
     }
 
-    private Specification(LiveData liveData, TaxRule taxRule, Return returner, Inflation inflation) {
+    private Specification(LiveData liveData, ITaxRule taxRule, IReturn returner, IInflation Inflation) {
         this.liveData = liveData;
         this.taxRule = taxRule;
         this.returner = returner;
-        this.inflation = inflation;
+        this.Inflation = Inflation;
     }
 
     @Override
@@ -34,7 +34,7 @@ public class Specification implements ISpecification {
                 liveData.copy(),
                 taxRule.copy(),
                 returner.copy(),
-                inflation.copy()
+                Inflation.copy()
         );
     }
 }

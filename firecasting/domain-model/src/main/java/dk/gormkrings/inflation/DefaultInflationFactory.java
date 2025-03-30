@@ -5,12 +5,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class DefaultInflationFactory implements IInflationFactory {
     @Override
-    public Inflation createInflation() {
+    public IInflation createInflation() {
         return new DataAverageInflation();
     }
 
     @Override
-    public Inflation createInflation(float inflationPercentage) {
+    public IInflation createInflation(float inflationPercentage) {
         return new DataAverageInflation();
     }
 }

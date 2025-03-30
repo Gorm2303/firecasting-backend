@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Setter
-public class Withdraw implements Action {
+public class Withdraw implements IAction {
     private double monthlyAmount;
     private double percent;
 

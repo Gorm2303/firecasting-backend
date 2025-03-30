@@ -1,6 +1,6 @@
 package dk.gormkrings.phase.eventBased;
 
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.phase.IPassivePhase;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.IDate;
@@ -21,7 +21,7 @@ public class PassiveEventPhase extends SimulationEventPhase implements IPassiveP
     @Setter
     private boolean firstTime = true;
 
-    public PassiveEventPhase(ISpecification specification, IDate startDate, long duration, Action passive) {
+    public PassiveEventPhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = (Passive) passive;

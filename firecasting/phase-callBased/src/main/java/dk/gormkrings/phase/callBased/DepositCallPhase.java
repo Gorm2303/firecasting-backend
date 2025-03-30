@@ -1,7 +1,7 @@
 package dk.gormkrings.phase.callBased;
 
 import dk.gormkrings.phase.IDepositPhase;
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
@@ -17,7 +17,7 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
     private Deposit deposit;
     private boolean firstTime = true;
 
-    public DepositCallPhase(ISpecification specification, IDate startDate, long duration, Action deposit) {
+    public DepositCallPhase(ISpecification specification, IDate startDate, long duration, IAction deposit) {
         super(specification, startDate, duration, "Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = (Deposit) deposit;

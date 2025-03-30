@@ -1,6 +1,6 @@
 package dk.gormkrings.factory;
 
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.phase.callBased.PassiveCallPhase;
@@ -17,7 +17,7 @@ public class DefaultPassivePhaseFactory implements IPassivePhaseFactory {
     private String passivePhaseType;
 
     @Override
-    public IPhase createPassivePhase(ISpecification specification, IDate startDate, long duration, Action passive) {
+    public IPhase createPassivePhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
         if ("event".equalsIgnoreCase(passivePhaseType)) {
             log.debug("Creating event-based passive phase");
             return new PassiveEventPhase(specification, startDate, duration, passive);

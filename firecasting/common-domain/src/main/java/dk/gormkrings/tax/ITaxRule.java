@@ -1,7 +1,7 @@
 package dk.gormkrings.tax;
 
-public interface TaxRule {
+public interface ITaxRule {
     double calculateTax(double amount);
-    TaxRule copy();
+    ITaxRule copy();
 
 }

@@ -1,4 +1,4 @@
 package dk.gormkrings.action;
 
-public interface Action {
+public interface IAction {
 }

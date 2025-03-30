@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Setter
 @Getter
-public class CapitalGainsTax implements TaxRule {
+public class CapitalGainsTax implements ITaxRule {
     private final double taxRate;
     private StockExemptionTax stockExemptionTax;
     private TaxExemptionCard taxExemptionCard;

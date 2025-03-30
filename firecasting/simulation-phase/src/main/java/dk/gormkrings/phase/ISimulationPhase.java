@@ -1,7 +1,7 @@
 package dk.gormkrings.phase;
 
 import dk.gormkrings.data.ILiveData;
-import dk.gormkrings.inflation.Inflation;
+import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.NotionalGainsTax;
 
@@ -29,8 +29,8 @@ public interface ISimulationPhase {
     }
 
     default void addInflation() {
-        Inflation inflation = getSpecification().getInflation();
-        double inflationAmount = inflation.calculatePercentage();
+        IInflation IInflation = getSpecification().getInflation();
+        double inflationAmount = IInflation.calculatePercentage();
         getLiveData().addToInflation(inflationAmount);
     }
 }

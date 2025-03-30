@@ -1,6 +1,6 @@
 package dk.gormkrings;
 
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
@@ -12,7 +12,6 @@ import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.simulation.util.CsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -31,22 +30,19 @@ public class FirecastingApplication implements CommandLineRunner {
     private final IPassivePhaseFactory passivePhaseFactory;
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
-    private final ITaxRuleFactory taxRuleFactory;
 
     public FirecastingApplication(ISimulation simulation,
                                   IDateFactory dateFactory,
                                   IDepositPhaseFactory depositPhaseFactory,
                                   IPassivePhaseFactory passivePhaseFactory,
                                   IWithdrawPhaseFactory withdrawPhaseFactory,
-                                  ISpecificationFactory specificationFactory,
-                                  ITaxRuleFactory taxRuleFactory) {
+                                  ISpecificationFactory specificationFactory) {
         this.simulation = simulation;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
         this.passivePhaseFactory = passivePhaseFactory;
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
-        this.taxRuleFactory = taxRuleFactory;
     }
 
     public static void main(String[] args) {
@@ -72,11 +68,11 @@ public class FirecastingApplication implements CommandLineRunner {
         long passiveDays = passiveStartIDate.daysUntil(withdrawStartIDate);
         long withdrawDays = withdrawStartIDate.daysUntil(withdrawEndIDate);
 
-        ISpecification specification = createSpecification(depositStartIDate.getEpochDay());
+        ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), 42, 7);
 
-        Action deposit = new Deposit(10000, 5000);
-        Action passive = new Passive();
-        Action withdraw = new Withdraw(0, 0.04);
+        IAction deposit = new Deposit(10000, 5000);
+        IAction passive = new Passive();
+        IAction withdraw = new Withdraw(0, 0.04);
 
         IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositDays, deposit);
         phases.add(currentPhase);
@@ -97,9 +93,5 @@ public class FirecastingApplication implements CommandLineRunner {
         log.info("Handling exports in {} ms", exportTime - simTime);
         log.info("Elapsed time: {} seconds", ((double) (System.currentTimeMillis() - startTime)) / 1000);
         log.info("Application Ended");
-    }
-
-    private ISpecification createSpecification(long startTime) {
-        return specificationFactory.newSpecification(startTime, 42, 7);
     }
 }

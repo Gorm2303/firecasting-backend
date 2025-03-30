@@ -1,6 +1,6 @@
 package dk.gormkrings.phase.eventBased;
 
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.phase.IWithdrawPhase;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.IDate;
@@ -20,7 +20,7 @@ import org.springframework.context.ApplicationEvent;
 public class WithdrawEventPhase extends SimulationEventPhase implements IWithdrawPhase {
     private Withdraw withdraw;
 
-    public WithdrawEventPhase(ISpecification specification, IDate startDate, long duration, Action withdraw) {
+    public WithdrawEventPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = (Withdraw) withdraw;

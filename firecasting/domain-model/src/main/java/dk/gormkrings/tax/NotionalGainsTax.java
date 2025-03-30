@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Getter
 @Setter
-public class NotionalGainsTax implements TaxRule {
+public class NotionalGainsTax implements ITaxRule {
     private final double taxRate;
     private double previousReturned = 0;
     private StockExemptionTax stockExemptionTax;

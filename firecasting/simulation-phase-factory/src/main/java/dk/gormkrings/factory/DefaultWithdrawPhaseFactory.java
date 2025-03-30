@@ -1,6 +1,6 @@
 package dk.gormkrings.factory;
 
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.phase.callBased.WithdrawCallPhase;
@@ -17,7 +17,7 @@ public class DefaultWithdrawPhaseFactory implements IWithdrawPhaseFactory {
     private String withdrawPhaseType;
 
     @Override
-    public IPhase createWithdrawPhase(ISpecification specification, IDate startDate, long duration, Action withdraw) {
+    public IPhase createWithdrawPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
         if ("event".equalsIgnoreCase(withdrawPhaseType)) {
             log.debug("Creating event-based withdraw phase");
             return new WithdrawEventPhase(specification, startDate, duration, withdraw);

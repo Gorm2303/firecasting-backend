@@ -1,6 +1,6 @@
 package dk.gormkrings.inflation;
 
-public interface Inflation {
+public interface IInflation {
     double calculatePercentage();
-    Inflation copy();
+    IInflation copy();
 }

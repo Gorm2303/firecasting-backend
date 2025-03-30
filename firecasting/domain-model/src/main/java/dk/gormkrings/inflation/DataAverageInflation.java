@@ -7,7 +7,7 @@ import java.io.*;
 
 @Slf4j
 @Getter
-public class DataAverageInflation implements Inflation {
+public class DataAverageInflation implements IInflation {
     private double averagePercentage;
 
     public DataAverageInflation() {
@@ -29,7 +29,7 @@ public class DataAverageInflation implements Inflation {
     }
 
     @Override
-    public Inflation copy() {
+    public IInflation copy() {
         return new DataAverageInflation(this.averagePercentage);
     }
 

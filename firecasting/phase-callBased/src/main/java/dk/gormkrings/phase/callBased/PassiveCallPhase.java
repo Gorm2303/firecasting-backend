@@ -1,7 +1,7 @@
 package dk.gormkrings.phase.callBased;
 
 import dk.gormkrings.phase.IPassivePhase;
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
@@ -17,7 +17,7 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
     @Setter
     private boolean firstTime = true;
 
-    public PassiveCallPhase(ISpecification specification, IDate startDate, long duration, Action passive) {
+    public PassiveCallPhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = (Passive) passive;

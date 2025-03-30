@@ -1,5 +1,5 @@
 package dk.gormkrings.fee;
 
-public interface Fee {
+public interface IFee {
     public float calculateFee();
 }

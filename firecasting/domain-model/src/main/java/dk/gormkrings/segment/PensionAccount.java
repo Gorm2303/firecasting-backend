@@ -1,6 +1,6 @@
 package dk.gormkrings.segment;
 
-public class PensionAccount implements Segment {
+public class PensionAccount implements ISegment {
     @Override
     public void process() {
 

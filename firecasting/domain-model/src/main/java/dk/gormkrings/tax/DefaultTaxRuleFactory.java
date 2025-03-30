@@ -12,7 +12,7 @@ public class DefaultTaxRuleFactory implements ITaxRuleFactory {
     private String taxRule;
 
     @Override
-    public TaxRule createTaxRule(double taxRate) {
+    public ITaxRule createTaxRule(double taxRate) {
         if ("capital".equalsIgnoreCase(taxRule)) {
             log.debug("Creating Capital Gains Tax rule");
             return new CapitalGainsTax(taxRate);

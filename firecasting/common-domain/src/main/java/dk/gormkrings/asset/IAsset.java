@@ -1,5 +1,5 @@
 package dk.gormkrings.asset;
 
-public interface Asset {
+public interface IAsset {
     double calculateRateOfReturn();
 }

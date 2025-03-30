@@ -1,14 +1,14 @@
 package dk.gormkrings.specification;
 
 import dk.gormkrings.data.ILive;
-import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.returns.Return;
-import dk.gormkrings.tax.TaxRule;
+import dk.gormkrings.inflation.IInflation;
+import dk.gormkrings.returns.IReturn;
+import dk.gormkrings.tax.ITaxRule;
 
 public interface ISpecification {
     ISpecification copy();
     ILive getLiveData();
-    TaxRule getTaxRule();
-    Return getReturner();
-    Inflation getInflation();
+    ITaxRule getTaxRule();
+    IReturn getReturner();
+    IInflation getInflation();
 }

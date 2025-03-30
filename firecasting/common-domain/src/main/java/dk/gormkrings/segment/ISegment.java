@@ -1,5 +1,5 @@
 package dk.gormkrings.segment;
 
-public interface Segment {
+public interface ISegment {
     void process();
 }

@@ -1,7 +1,7 @@
 package dk.gormkrings.phase.callBased;
 
 import dk.gormkrings.phase.IWithdrawPhase;
-import dk.gormkrings.action.Action;
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawPhase {
     private Withdraw withdraw;
 
-    public WithdrawCallPhase(ISpecification specification, IDate startDate, long duration, Action withdraw) {
+    public WithdrawCallPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = (Withdraw) withdraw;
