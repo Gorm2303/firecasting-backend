@@ -18,7 +18,7 @@ public class Formatter {
         Formatter.dateFactory = dateFactory;
     }
 
-    public static String formatNumber(double number) {
+    public static String numberToString(double number) {
         String string;
         if (number > 100) {
             string = String.format(Locale.US,"%.0f", number);
@@ -48,7 +48,7 @@ public class Formatter {
     }
 
     public static String formatField(String label, double value) {
-        return Formatter.formatToString(label, formatNumber(value));
+        return Formatter.formatToString(label, numberToString(value));
     }
 
     public static String formatField(String label, long value) {

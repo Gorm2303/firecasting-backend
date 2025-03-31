@@ -9,7 +9,7 @@ import dk.gormkrings.factory.*;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import dk.gormkrings.simulation.ISimulation;
-import dk.gormkrings.simulation.util.CsvExporter;
+import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
 import lombok.extern.slf4j.Slf4j;
@@ -84,9 +84,9 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
-        List<IResult> results = simulation.run(1, phases);
+        List<IResult> results = simulation.run(100000, phases);
         long simTime = System.currentTimeMillis();
-        CsvExporter.exportResultsToCsv(results, "firecasting-results.csv");
+        ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
         long exportTime = System.currentTimeMillis();
 
         log.info("Handling runs in {} ms", simTime - startTime);

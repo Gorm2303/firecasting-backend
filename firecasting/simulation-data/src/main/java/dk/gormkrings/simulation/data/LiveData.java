@@ -157,23 +157,22 @@ public class LiveData implements ILiveData {
         long year = date.getYear() - startdate.getYear();
         long month = date.getMonth() + 12 * year - 1;
 
-        return String.format("%d,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
-                day,
-                month,
-                year,
-                date,
-                Formatter.formatNumber(capital),
-                Formatter.formatNumber(deposited),
-                Formatter.formatNumber(passiveReturned),
-                Formatter.formatNumber(returned),
-                Formatter.formatNumber(currentReturn),
-                Formatter.formatNumber(withdrawn),
-                Formatter.formatNumber(withdraw),
-                Formatter.formatNumber(tax),
-                Formatter.formatNumber(currentTax),
-                Formatter.formatNumber(inflation),
-                Formatter.formatNumber(net),
-                Formatter.formatNumber(currentNet));
+        return  day + "," +
+                month + "," +
+                year + "," +
+                date + "," +
+                Formatter.numberToString(capital) + "," +
+                Formatter.numberToString(deposited) + "," +
+                Formatter.numberToString(passiveReturned) + "," +
+                Formatter.numberToString(returned) + "," +
+                Formatter.numberToString(currentReturn) + "," +
+                Formatter.numberToString(withdrawn) + "," +
+                Formatter.numberToString(withdraw) + "," +
+                Formatter.numberToString(tax) + "," +
+                Formatter.numberToString(currentTax) + "," +
+                Formatter.numberToString(inflation) + "," +
+                Formatter.numberToString(net) + "," +
+                Formatter.numberToString(currentNet);
     }
 
 }
