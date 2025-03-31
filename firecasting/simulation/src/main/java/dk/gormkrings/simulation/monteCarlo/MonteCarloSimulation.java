@@ -27,7 +27,7 @@ public class MonteCarloSimulation implements ISimulation {
 
     // Inject all IEngine beans as a map and select one based on a configuration property.
     public MonteCarloSimulation(Map<String, IEngine> engines,
-                                @Value("${simulation.engine.selected:callEngine}") String engineName) {
+                                @Value("${simulation.engine.selected:scheduleEngine}") String engineName) {
         if (engines.containsKey(engineName)) {
             this.engine = engines.get(engineName);
             log.info("Selected engine: {} from available engines: {}", engineName, engines.keySet());
@@ -38,7 +38,9 @@ public class MonteCarloSimulation implements ISimulation {
     }
 
     public List<IResult> run(long runs, List<IPhase> phases) {
+        if (phases.isEmpty() || runs < 0) throw new IllegalArgumentException("No phases to run") ;
         results.clear();
+        engine.init(phases);
 
         List<Future<IResult>> futures = new ArrayList<>();
 
@@ -57,10 +59,12 @@ public class MonteCarloSimulation implements ISimulation {
                 IResult result = future.get();
                 results.add(result);
             } catch (InterruptedException | ExecutionException e) {
-                log.error("Error during simulation run", e);
+                log.info("Some simulation runs failed: {} result(s), {} run(s)", results.size(), runs);
+                log.debug("Error during simulation run", e);
             }
         }
 
+        log.info("Completed simulation runs: {}/{} result(s)", results.size(), runs);
         return results;
     }
 }

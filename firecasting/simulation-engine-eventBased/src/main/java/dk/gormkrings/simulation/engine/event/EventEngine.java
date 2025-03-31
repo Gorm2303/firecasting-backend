@@ -119,5 +119,10 @@ public class EventEngine implements IEngine {
         dispatcher.clearRegistrations();
         return result;
     }
+
+    @Override
+    public void init(List<IPhase> phases) {
+
+    }
 }
 

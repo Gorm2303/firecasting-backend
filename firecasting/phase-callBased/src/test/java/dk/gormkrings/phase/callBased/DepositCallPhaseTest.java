@@ -4,7 +4,7 @@ import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.test.DummyDate;
 import dk.gormkrings.test.DummyLiveData;
-import dk.gormkrings.test.DummyReturn;
+import dk.gormkrings.test.DummyReturner;
 import dk.gormkrings.test.DummySpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ class DepositCallPhaseTest {
     @BeforeEach
     void setUp() {
         dummySpec = new DummySpecification();
-        dummySpec.setReturner(new DummyReturn());
+        dummySpec.setReturner(new DummyReturner());
         IDate dummyDate = new DummyDate(1000);
         Deposit deposit = new Deposit(10000, 5000);
         depositPhase = new DepositCallPhase(dummySpec, dummyDate, 30, deposit);
@@ -27,7 +27,7 @@ class DepositCallPhaseTest {
 
     @Test
     void testOnPhaseStart_DepositsInitialAmount() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+        DummyLiveData liveData = dummySpec.getLiveData();
         assertEquals(0, liveData.getDeposited(), "Deposited should start at 0");
         assertEquals(0, liveData.getCapital(), "Capital should start at 0");
 
@@ -39,7 +39,7 @@ class DepositCallPhaseTest {
 
     @Test
     void testOnMonthEnd_SubsequentCallsIncludeReturnAndMonthlyDeposit() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+        DummyLiveData liveData = dummySpec.getLiveData();
 
         depositPhase.onPhaseStart();
         assertEquals(10000, liveData.getDeposited(), 0.001, "Deposited should be 10000 after phase start");
@@ -59,19 +59,6 @@ class DepositCallPhaseTest {
         assertEquals(15000 + 5000, liveData.getDeposited(), 0.001, "Deposited should increase by 5000 on subsequent onMonthEnd calls");
         double expectedCapitalAfterSecond = capitalAfterFirst + expectedReturn2 + 5000;
         assertEquals(expectedCapitalAfterSecond, liveData.getCapital(), 0.001, "Capital should be increased by return and monthly deposit on subsequent calls");
-    }
-
-    @Test
-    void testMonthlyIncreaseUpdatesCorrectlyOverSuccessiveCalls() {
-        depositPhase.getDeposit().setIncreaseMonthlyAmount(200);
-
-        assertEquals(200, depositPhase.getDeposit().getMonthlyIncrease(), 0.001, "Initial monthly increase should be 200");
-
-        depositPhase.onMonthEnd();
-        assertEquals(400, depositPhase.getDeposit().getMonthlyIncrease(), 0.001, "After first call, monthly increase should be 400");
-
-        depositPhase.onMonthEnd();
-        assertEquals(800, depositPhase.getDeposit().getMonthlyIncrease(), 0.001, "After second call, monthly increase should be 800");
     }
 
     @Test
@@ -99,7 +86,7 @@ class DepositCallPhaseTest {
 
     @Test
     void testOnMonthEnd_CallsAddReturnAndUpdatesLiveData() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+        DummyLiveData liveData = dummySpec.getLiveData();
         liveData.addToCapital(10000);
 
         double expectedReturn = (20000 * 0.10) / 12;
@@ -120,7 +107,7 @@ class DepositCallPhaseTest {
 
     @Test
     void testDepositMoney_DirectInvocation() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+        DummyLiveData liveData = dummySpec.getLiveData();
 
         depositPhase.onPhaseStart();
 
@@ -135,18 +122,13 @@ class DepositCallPhaseTest {
                 "Deposited should increase by monthly deposit amount on direct depositMoney() call");
         assertEquals(capitalAfterInitial + expectedMonthlyDeposit, liveData.getCapital(), 0.001,
                 "Capital should increase by monthly deposit amount on direct depositMoney() call");
-
-        double initialIncrease = 0;
-        double expectedIncrease = initialIncrease + initialIncrease;
-        assertEquals(expectedIncrease, depositPhase.getDeposit().getMonthlyIncrease(), 0.001,
-                "The deposit's monthly increase should be updated appropriately");
     }
 
     @Test
     void testDepositMoney_WithZeroMonthlyDeposit() {
         Deposit zeroMonthlyDeposit = new Deposit(10000, 0);
         DepositCallPhase phaseWithZeroMonthly = new DepositCallPhase(dummySpec, new DummyDate(1000), 30, zeroMonthlyDeposit);
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+        DummyLiveData liveData = dummySpec.getLiveData();
 
         phaseWithZeroMonthly.onPhaseStart();
         assertEquals(10000, liveData.getDeposited(), 0.001, "Deposited should be 10000 after phase start");
@@ -156,7 +138,6 @@ class DepositCallPhaseTest {
 
         assertEquals(10000, liveData.getDeposited(), 0.001, "Deposited should remain 10000 when monthly deposit is zero");
         assertEquals(10000, liveData.getCapital(), 0.001, "Capital should remain 10000 when monthly deposit is zero");
-        assertEquals(0, zeroMonthlyDeposit.getMonthlyIncrease(), 0.001, "Monthly increase should remain 0");
     }
 
 

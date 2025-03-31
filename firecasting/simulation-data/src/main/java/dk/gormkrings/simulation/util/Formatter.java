@@ -4,10 +4,12 @@ import dk.gormkrings.data.IDate;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.factory.IDateFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 
 @Slf4j
+@Component
 public class Formatter {
     public static boolean debug = false;
     private static IDateFactory dateFactory;

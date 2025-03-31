@@ -1,8 +1,8 @@
 package dk.gormkrings.test;
 
-import dk.gormkrings.returns.IReturn;
+import dk.gormkrings.returns.IReturner;
 
-public class DummyReturn implements IReturn {
+public class DummyReturner implements IReturner {
     @Override
     public double calculateReturn(double amount) {
         // For testing, return a fixed fraction, for example 10% annualized monthly:
@@ -10,7 +10,7 @@ public class DummyReturn implements IReturn {
     }
 
     @Override
-    public IReturn copy() {
+    public IReturner copy() {
         return null;
     }
 }

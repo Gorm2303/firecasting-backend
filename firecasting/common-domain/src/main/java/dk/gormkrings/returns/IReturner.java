@@ -1,6 +1,6 @@
 package dk.gormkrings.returns;
 
-public interface IReturn {
+public interface IReturner {
     double calculateReturn(double amount);
-    IReturn copy();
+    IReturner copy();
 }

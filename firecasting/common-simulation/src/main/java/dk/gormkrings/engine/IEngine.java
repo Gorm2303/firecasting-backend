@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface IEngine {
     IResult simulatePhases(List<IPhase> phaseCopies);
+    void init(List<IPhase> phases);
     }

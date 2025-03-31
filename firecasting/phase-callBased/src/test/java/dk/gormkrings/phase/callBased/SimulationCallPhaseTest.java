@@ -1,7 +1,7 @@
 package dk.gormkrings.phase.callBased;
 
 import dk.gormkrings.inflation.IInflation;
-import dk.gormkrings.returns.IReturn;
+import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.tax.CapitalGainsTax;
 import dk.gormkrings.tax.NotionalGainsTax;
 import dk.gormkrings.test.*;
@@ -28,7 +28,7 @@ public class SimulationCallPhaseTest {
                 return null;
             }
         });
-        dummySpec.setReturner(new DummyReturn());
+        dummySpec.setReturner(new DummyReturner());
         dummySpec.setTaxRule(new NotionalGainsTax(42));
         testPhase = new TestSimulationCallPhase(dummySpec, new DummyDate(1000), 30, "TestPhase");
     }
@@ -268,13 +268,13 @@ public class SimulationCallPhaseTest {
 
     @Test
     void testAddReturn_InvalidComputedReturn() {
-        dummySpec.setReturner(new IReturn() {
+        dummySpec.setReturner(new IReturner() {
             @Override
             public double calculateReturn(double amount) {
                 return Double.NaN;
             }
             @Override
-            public IReturn copy() {
+            public IReturner copy() {
                 return this;
             }
         });

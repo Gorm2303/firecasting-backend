@@ -10,7 +10,6 @@ import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,7 +22,6 @@ public class CallEngine implements IEngine {
     private final IResultFactory resultFactory;
     private final ISnapshotFactory snapshotFactory;
 
-    @Autowired
     public CallEngine(IDateFactory dateFactory, IResultFactory resultFactory, ISnapshotFactory snapshotFactory) {
         this.dateFactory = dateFactory;
         this.resultFactory = resultFactory;
@@ -100,5 +98,10 @@ public class CallEngine implements IEngine {
         result.addSnapshot(snapshotFactory.snapshot(data));
         data.resetSession();
         return result;
+    }
+
+    @Override
+    public void init(List<IPhase> phases) {
+
     }
 }

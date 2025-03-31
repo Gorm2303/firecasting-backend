@@ -6,7 +6,7 @@ import dk.gormkrings.tax.CapitalGainsTax;
 import dk.gormkrings.tax.NotionalGainsTax;
 import dk.gormkrings.test.DummyDate;
 import dk.gormkrings.test.DummyLiveData;
-import dk.gormkrings.test.DummyReturn;
+import dk.gormkrings.test.DummyReturner;
 import dk.gormkrings.test.DummySpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ public class WithdrawCallPhaseTest {
     @BeforeEach
     void setUp() {
         dummySpec = new DummySpecification();
-        dummySpec.setReturner(new DummyReturn());
+        dummySpec.setReturner(new DummyReturner());
         IDate dummyDate = new DummyDate(1000);
         Withdraw withdraw = new Withdraw(5000, 0);
         withdrawPhase = new WithdrawCallPhase(dummySpec, dummyDate, 30, withdraw);

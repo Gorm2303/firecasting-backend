@@ -1,7 +1,7 @@
 package dk.gormkrings.test;
 
 import dk.gormkrings.inflation.IInflation;
-import dk.gormkrings.returns.IReturn;
+import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
@@ -13,7 +13,7 @@ public class DummySpecification implements ISpecification {
     private final DummyLiveData liveData = new DummyLiveData();
     private ITaxRule taxRule;
     private IInflation inflation;
-    private IReturn returner;
+    private IReturner returner;
 
     @Override
     public ISpecification copy() {
@@ -21,7 +21,7 @@ public class DummySpecification implements ISpecification {
     }
 
     @Override
-    public IReturn getReturner() {
+    public IReturner getReturner() {
         return returner;
     }
 

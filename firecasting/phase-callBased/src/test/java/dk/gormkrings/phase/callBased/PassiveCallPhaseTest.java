@@ -4,7 +4,7 @@ import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.test.DummyDate;
 import dk.gormkrings.test.DummyLiveData;
-import dk.gormkrings.test.DummyReturn;
+import dk.gormkrings.test.DummyReturner;
 import dk.gormkrings.test.DummySpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ public class PassiveCallPhaseTest {
     @BeforeEach
     void setUp() {
         dummySpec = new DummySpecification();
-        dummySpec.setReturner(new DummyReturn());
+        dummySpec.setReturner(new DummyReturner());
         IDate dummyDate = new DummyDate(1000);
         Passive passive = new Passive();
         passivePhase = new PassiveCallPhase(dummySpec, dummyDate, 30, passive);

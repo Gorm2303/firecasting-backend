@@ -44,6 +44,11 @@ public class DefaultScheduleFactory implements IScheduleFactory {
         return schedule;
     }
 
+    @Override
+    public ISchedule getSchedule() {
+        return schedule;
+    }
+
     private void initPhase(IPhase phase) {
         IDate startDate = phase.getStartDate();
         int startEpoch = startDate.getEpochDay();

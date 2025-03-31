@@ -32,7 +32,7 @@ public class ScheduleEngine implements IEngine {
 
     @Override
     public IResult simulatePhases(List<IPhase> phaseCopies) {
-        ISchedule schedule = scheduleFactory.build(phaseCopies);
+        ISchedule schedule = scheduleFactory.getSchedule();
         IResult result = resultFactory.newResult();
         ICallPhase currentPhase = (ICallPhase) phaseCopies.removeFirst();
         result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
@@ -67,6 +67,11 @@ public class ScheduleEngine implements IEngine {
             }
         }
         return result;
+    }
+
+    @Override
+    public void init(List<IPhase> phases) {
+        scheduleFactory.build(phases);
     }
 }
 

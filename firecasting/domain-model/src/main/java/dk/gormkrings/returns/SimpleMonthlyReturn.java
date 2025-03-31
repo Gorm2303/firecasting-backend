@@ -4,7 +4,7 @@ package dk.gormkrings.returns;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SimpleMonthlyReturn implements IReturn {
+public class SimpleMonthlyReturn implements IReturner {
     private final float averagePercentage;
 
     public SimpleMonthlyReturn(float averagePercentage) {
