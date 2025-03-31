@@ -225,18 +225,19 @@ public class MonteCarloSimulationTest {
         engines.put("testEngine", mockEngine);
         MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
 
-        ExecutorService realExecutor = Executors.newFixedThreadPool(2);
-        ExecutorService spyExecutor = spy(realExecutor);
+        CountingExecutorService countingExecutor = new CountingExecutorService(2);
 
         Field executorField = MonteCarloSimulation.class.getDeclaredField("executorService");
         executorField.setAccessible(true);
-        executorField.set(simulation, spyExecutor);
+        executorField.set(simulation, countingExecutor);
 
         int runs = 5;
         simulation.run(runs, phases);
-        verify(spyExecutor, times(runs)).submit(any(Callable.class));
-        spyExecutor.shutdown();
+
+        assertEquals(runs, countingExecutor.getSubmitCount(), "The submit count should equal the number of runs");
+        countingExecutor.shutdown();
     }
+
 
     @Test
     void testMultipleSuccessfulRuns() throws Exception {
