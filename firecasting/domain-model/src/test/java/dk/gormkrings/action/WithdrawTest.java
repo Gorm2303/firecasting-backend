@@ -7,6 +7,19 @@ import static org.junit.jupiter.api.Assertions.*;
 class WithdrawTest {
 
     @Test
+    void testConstructorRejectsBothNegative() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Withdraw(-10000, 5000);
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Withdraw(10000, -5000);
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Withdraw(-10000, -5000);
+        });
+    }
+
+    @Test
     void testGetMonthlyAmountDirect() {
         Withdraw withdraw = new Withdraw(500, 0.1);
         double capital = 100000;
@@ -23,11 +36,46 @@ class WithdrawTest {
     }
 
     @Test
-    void testCopyCreatesEquivalentInstance() {
-        Withdraw original = new Withdraw(700, 0.08);
+    void copyMethodTest() {
+        double monthlyAmount = 500.0;
+        double monthlyPercent = 0.04;
+        double capital = 10000.0;
+
+        Withdraw original = new Withdraw(monthlyAmount, monthlyPercent);
+
         Withdraw copy = original.copy();
-        double capital = 100000;
-        assertEquals(original.getMonthlyAmount(capital), copy.getMonthlyAmount(capital), "Copy should have the same monthly amount");
-        assertNotSame(original, copy, "Copy should be a different instance");
+
+        assertNotSame(original, copy, "The copied instance should be a different object than the original");
+        assertEquals(original.getMonthlyAmount(capital), copy.getMonthlyAmount(capital),
+                "The monthly amount returned should be the same for the copy and the original");
+        original.setMonthlyAmount(800.0);
+        assertNotEquals(original.getMonthlyAmount(capital), copy.getMonthlyAmount(capital),
+                "The copy should remain unchanged after modifying the original");
+    }
+
+    @Test
+    void setterAndGetterTest() {
+        double capital = 10000.0;
+
+        Withdraw withdraw = new Withdraw(500.0, 0.06);
+
+        double newMonthlyAmount = 0.0;
+        double newMonthlyPercent = 0.12;
+        withdraw.setMonthlyAmount(newMonthlyAmount);
+        withdraw.setMonthlyPercent(newMonthlyPercent);
+
+        double expected = (newMonthlyPercent * capital) / 12;
+        assertEquals(expected, withdraw.getMonthlyAmount(capital),
+                "After setting new values, getMonthlyAmount should compute based on monthlyPercent when monthlyAmount is not positive");
+
+        withdraw.setMonthlyAmount(700.0);
+
+        assertEquals(700.0, withdraw.getMonthlyAmount(capital),
+                "When monthlyAmount is positive, getMonthlyAmount should return it directly");
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            withdraw.setMonthlyAmount(-700.0);
+        });
+        assertNotEquals(-200.0, withdraw.getMonthlyAmount(capital), "The setter should not be able to set negative value");
     }
 }

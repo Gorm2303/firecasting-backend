@@ -4,41 +4,29 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+@Getter
 @Slf4j
 @Setter
 public class Deposit implements IAction {
-    @Getter
     private double initial;
-    @Getter
     private double monthly;
-    private double increaseMonthlyAmount;
-    private double increaseMonthlyPercentage;
 
     public Deposit(double initial, double monthly) {
+        if (initial < 0 || monthly < 0) throw new IllegalArgumentException("Deposit constructor called with a negative initial value");
         this.initial = initial;
         this.monthly = monthly;
         log.debug("Initializing Deposit: {} initial and {} monthly", initial, monthly);
     }
 
-    public double getMonthlyIncrease() {
-       if (increaseMonthlyAmount > 0)
-           return increaseMonthlyAmount;
-       else if (increaseMonthlyPercentage > 0)
-           return monthly * increaseMonthlyPercentage;
-       else return 0;
-    }
-
-    public void increaseMonthly(double amount) {
-        increaseMonthlyAmount += amount;
+    public void setMonthly(double monthly) {
+        if (monthly < 0) throw new IllegalArgumentException("Monthly setter called with a negative value");
+        this.monthly = monthly;
     }
 
     public Deposit copy() {
-        Deposit deposit = new Deposit(
+        return new Deposit(
                 this.getInitial(),
                 this.getMonthly()
         );
-        deposit.setIncreaseMonthlyAmount(this.increaseMonthlyAmount);
-        deposit.setIncreaseMonthlyPercentage(this.increaseMonthlyPercentage);
-        return deposit;
     }
 }

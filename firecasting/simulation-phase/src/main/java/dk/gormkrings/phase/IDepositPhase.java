@@ -12,7 +12,6 @@ public interface IDepositPhase extends ISimulationPhase {
         getLiveData().setDeposit(depositAmount);
         getLiveData().addToDeposited(depositAmount);
         getLiveData().addToCapital(depositAmount);
-        getDeposit().increaseMonthly(getDeposit().getMonthlyIncrease());
     }
 
     default void depositInitialDeposit() {

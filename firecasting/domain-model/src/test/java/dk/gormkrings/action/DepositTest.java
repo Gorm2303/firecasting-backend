@@ -7,38 +7,62 @@ import static org.junit.jupiter.api.Assertions.*;
 class DepositTest {
 
     @Test
-    void testConstructorInitialValues() {
-        Deposit deposit = new Deposit(10000, 5000);
-        assertEquals(10000, deposit.getInitial(), "Initial value should be 10000");
-        assertEquals(5000, deposit.getMonthly(), "Monthly value should be 5000");
-        assertEquals(0, deposit.getMonthlyIncrease(), "Monthly increase should be 0 initially");
+    void validConstructionTest() {
+        double initial = 1000.0;
+        double monthly = 100.0;
+
+        Deposit deposit = new Deposit(initial, monthly);
+
+        assertEquals(initial, deposit.getInitial(), "Initial value should match the provided value");
+        assertEquals(monthly, deposit.getMonthly(), "Monthly value should match the provided value");
     }
 
     @Test
-    void testIncreaseMonthlyAmountTakesPrecedence() {
-        Deposit deposit = new Deposit(10000, 5000);
-        deposit.increaseMonthly(200);
-        deposit.setIncreaseMonthlyPercentage(0.1);
-        assertEquals(200, deposit.getMonthlyIncrease(), "IncreaseMonthlyAmount takes precedence over percentage");
+    void testConstructorRejectsBothNegative() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Deposit(-10000, 5000);
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Deposit(10000, -5000);
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Deposit(-10000, -5000);
+        });
     }
 
     @Test
-    void testIncreaseMonthlyPercentageUsedWhenAmountIsZero() {
-        Deposit deposit = new Deposit(10000, 5000);
-        deposit.setIncreaseMonthlyPercentage(0.1);
-        assertEquals(500, deposit.getMonthlyIncrease(), "Monthly increase should be computed as monthly * percentage");
+    void copyMethodTest() {
+        double initial = 1000.0;
+        double monthly = 100.0;
+        Deposit original = new Deposit(initial, monthly);
+
+        Deposit copy = original.copy();
+
+        assertNotSame(original, copy, "The copied instance should be a different object than the original");
+        assertEquals(original.getInitial(), copy.getInitial(), "The initial values of the copy and original should match");
+        assertEquals(original.getMonthly(), copy.getMonthly(), "The monthly values of the copy and original should match");
+        original.setMonthly(500);
+        assertNotEquals(original.getMonthly(), copy.getMonthly(), "The monthly value of the copy should not change when setting monthly of the original");
     }
 
     @Test
-    void testCopyCreatesEquivalentInstance() {
-        Deposit deposit = new Deposit(10000, 5000);
-        deposit.increaseMonthly(150);
-        deposit.setIncreaseMonthlyPercentage(0.05);
+    void setterAndGetterTest() {
+        double initial = 1000.0;
+        double monthly = 100.0;
+        Deposit deposit = new Deposit(initial, monthly);
 
-        Deposit copy = deposit.copy();
-        assertEquals(deposit.getInitial(), copy.getInitial(), "Initial values should be equal");
-        assertEquals(deposit.getMonthly(), copy.getMonthly(), "Monthly values should be equal");
-        assertEquals(deposit.getMonthlyIncrease(), copy.getMonthlyIncrease(), "Monthly increase should be equal");
-        assertNotSame(deposit, copy, "Copy should be a different instance");
+        double newInitial = 2000.0;
+        double newMonthly = 200.0;
+        deposit.setInitial(newInitial);
+        deposit.setMonthly(newMonthly);
+
+        assertEquals(newInitial, deposit.getInitial(), "The getter should return the updated initial value");
+        assertEquals(newMonthly, deposit.getMonthly(), "The getter should return the updated monthly value");
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            deposit.setMonthly(-200.0);
+        });
+        assertNotEquals(-200.0, deposit.getMonthly(), "The setter should not be able to set negative value");
     }
+
 }
