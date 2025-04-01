@@ -49,7 +49,7 @@
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>
-            <artifactId>simulation-phase</artifactId>
+            <artifactId>common-simulation-phase</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

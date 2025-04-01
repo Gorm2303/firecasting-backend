@@ -30,7 +30,7 @@
 		<module>common-domain</module>
 		<module>common-math</module>
 		<module>domain-math</module>
-        <module>simulation-phase</module>
+        <module>common-simulation-phase</module>
         <module>simulation-phase-factory</module>
 		<module>api</module>
 	</modules>

@@ -8,6 +8,7 @@ import dk.gormkrings.event.EventType;
 import dk.gormkrings.factory.IDateFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
+import lombok.Getter;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class DefaultScheduleFactory implements IScheduleFactory {
     private int currentEpoch;
     private List<IScheduleEvent> events;
     private final IDateFactory dateFactory;
+    @Getter
     private ISchedule schedule;
 
     public DefaultScheduleFactory(IDateFactory dateFactory) {
@@ -36,16 +38,8 @@ public class DefaultScheduleFactory implements IScheduleFactory {
         events = new ArrayList<>();
         for (IPhase phase : phases) {
             buildSchedule((ICallPhase) phase);
-            events.add(new ScheduleEvent(phase.getStartDate().getEpochDay(), EventType.PHASE_START));
-            int lastEpochDay = (int) (phase.getStartDate().getEpochDay() + phase.getDuration());
-            events.add(new ScheduleEvent(lastEpochDay, EventType.PHASE_END));
         }
         schedule = new Schedule(events);
-        return schedule;
-    }
-
-    @Override
-    public ISchedule getSchedule() {
         return schedule;
     }
 
@@ -53,7 +47,7 @@ public class DefaultScheduleFactory implements IScheduleFactory {
         IDate startDate = phase.getStartDate();
         int startEpoch = startDate.getEpochDay();
         finalEpoch = startEpoch + (int) phase.getDuration();
-        currentEpoch = startEpoch - 1;
+        currentEpoch = startEpoch;
 
         // Precompute boundaries using the Date instance.
         nextWeekStartEpoch  = startDate.computeNextWeekStart();
@@ -77,10 +71,9 @@ public class DefaultScheduleFactory implements IScheduleFactory {
         boolean supportYearStart  = phase.supportsEvent(EventType.YEAR_START);
         boolean supportYearEnd    = phase.supportsEvent(EventType.YEAR_END);
 
+        addEvent(EventType.PHASE_START);
         // Loop over each day in the phase.
         while (currentEpoch < finalEpoch) {
-            currentEpoch++; // Advance one day.
-
             checkDayStartEvent(supportDayStart);
             checkDayEndEvent(supportDayEnd);
             checkWeekStartEvent(supportWeekStart);
@@ -89,7 +82,10 @@ public class DefaultScheduleFactory implements IScheduleFactory {
             checkMonthEndEvent(supportMonthEnd);
             checkYearStartEvent(supportYearStart);
             checkYearEndEvent(supportYearEnd);
+            currentEpoch++; // Advance one day.
         }
+        int phaseEndEpoch = currentEpoch == 0 ? currentEpoch : currentEpoch - 1;
+        events.add(new ScheduleEvent(phaseEndEpoch, EventType.PHASE_END));
     }
 
     private void checkYearEndEvent(boolean supportYearEnd) {
