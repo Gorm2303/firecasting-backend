@@ -2,7 +2,9 @@ package dk.gormkrings.distribution;
 
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
+import org.springframework.stereotype.Component;
 
+@Component
 public class BrownianMotionDistribution implements IDistribution {
     private final double drift;
     private final double volatility;

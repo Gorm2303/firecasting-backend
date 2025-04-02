@@ -5,7 +5,9 @@ import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
 import dk.gormkrings.math.randomVariable.IRandomVariable;
 import dk.gormkrings.randomNumberGenerator.DefaultRandomNumberGenerator;
+import org.springframework.stereotype.Component;
 
+@Component
 public class DefaultRandomVariable implements IRandomVariable {
     private final IDistribution distribution;
     private final IRandomNumberGenerator rng;
