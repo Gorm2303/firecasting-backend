@@ -51,11 +51,13 @@
             <groupId>dk.gormkrings</groupId>
             <artifactId>simulation</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>
             <artifactId>simulation-phase-factory</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

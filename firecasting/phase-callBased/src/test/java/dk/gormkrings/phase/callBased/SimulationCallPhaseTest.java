@@ -38,10 +38,10 @@ public class SimulationCallPhaseTest {
         DummyLiveData liveData = dummySpec.getLiveData();
         liveData.setCapital(20000);
         liveData.setReturned(0);
-        double expectedReturn = (20000 * 0.10) / 12;
+        double expectedReturn = (20000 * 0.10) / 252;
 
 
-        testPhase.onMonthEnd();
+        testPhase.onDayEnd();
 
         assertEquals(expectedReturn, liveData.getCurrentReturn(), 0.001, "Current return should equal the calculated interest");
         assertEquals(expectedReturn, liveData.getReturned(), 0.001, "Returned should be increased by the calculated interest");
@@ -97,9 +97,9 @@ public class SimulationCallPhaseTest {
         liveData.setCapital(-500);
         liveData.setReturned(-500);
         liveData.setCurrentReturn(0);
-        double expectedReturn = (-500 * 0.10) / 12;
+        double expectedReturn = (-500 * 0.10) / 252;
 
-        testPhase.onMonthEnd();
+        testPhase.onDayEnd();
 
         double expectedCapital = -500 + expectedReturn;
         double expectedReturned = -500 + expectedReturn;
@@ -114,7 +114,7 @@ public class SimulationCallPhaseTest {
         DummyLiveData liveData = dummySpec.getLiveData();
         liveData.setCapital(20000);
         liveData.setReturned(0);
-        double expectedReturn = (20000 * 0.10) / 12;
+        double expectedReturn = (20000 * 0.10) / 252;
 
         testPhase.addReturn();
 
@@ -133,7 +133,7 @@ public class SimulationCallPhaseTest {
         liveData.setCapital(0);
         liveData.setReturned(0);
         testPhase.addReturn();
-        double expectedReturnZero = (0 * 0.10) / 12;
+        double expectedReturnZero = (0 * 0.10) / 252;
         assertEquals(expectedReturnZero, liveData.getCurrentReturn(), 0.001,
                 "When capital is zero, current return should be 0");
         assertEquals(expectedReturnZero, liveData.getReturned(), 0.001,
@@ -144,7 +144,7 @@ public class SimulationCallPhaseTest {
         liveData.setCapital(-500);
         liveData.setReturned(-500);
         testPhase.addReturn();
-        double expectedReturnNegative = (-500 * 0.10) / 12;
+        double expectedReturnNegative = (-500 * 0.10) / 252;
         assertEquals(expectedReturnNegative, liveData.getCurrentReturn(), 0.001,
                 "For negative capital, current return should be correctly calculated");
         assertEquals(-500 + expectedReturnNegative, liveData.getReturned(), 0.001,
@@ -158,7 +158,7 @@ public class SimulationCallPhaseTest {
         DummyLiveData liveData = dummySpec.getLiveData();
         liveData.setCapital(20000);
         liveData.setReturned(0);
-        double expectedReturn1 = (20000 * 0.10) / 12;
+        double expectedReturn1 = (20000 * 0.10) / 252;
 
         testPhase.addReturn();
 
@@ -170,7 +170,7 @@ public class SimulationCallPhaseTest {
                 "After first call, capital should increase by expectedReturn1");
 
         double capitalAfterFirst = liveData.getCapital();
-        double expectedReturn2 = (capitalAfterFirst * 0.10) / 12;
+        double expectedReturn2 = (capitalAfterFirst * 0.10) / 252;
         testPhase.addReturn();
 
         double cumulativeReturn = expectedReturn1 + expectedReturn2;
@@ -191,7 +191,7 @@ public class SimulationCallPhaseTest {
         liveData.setInflation(0);
 
         testPhase.addReturn();
-        double expectedReturn = (20000 * 0.10) / 12;
+        double expectedReturn = (20000 * 0.10) / 252;
         assertEquals(expectedReturn, liveData.getCurrentReturn(), 0.001, "After addReturn, current return should be as expected");
         double capitalAfterReturn = 20000 + expectedReturn;
         double returnedAfterReturn = 300 + expectedReturn;
@@ -225,10 +225,10 @@ public class SimulationCallPhaseTest {
 
         double tax = (300 * 42) / 100.0;
         double capitalAfterTax = 20000 - tax; 
-        double interest = (capitalAfterTax * 0.10) / 12.0; 
+        double interest = (capitalAfterTax * 0.10) / 252;
         double expectedIncorrectCapital = capitalAfterTax + interest; 
 
-        double expectedReturnCorrect = (20000 * 0.10) / 12.0; 
+        double expectedReturnCorrect = (20000 * 0.10) / 252;
         double capitalAfterReturn = 20000 + expectedReturnCorrect; 
         double correctTax = (466.67 * 42) / 100.0; 
         double expectedCorrectCapital = capitalAfterReturn - correctTax; 

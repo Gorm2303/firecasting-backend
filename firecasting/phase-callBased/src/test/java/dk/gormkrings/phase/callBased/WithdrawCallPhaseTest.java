@@ -40,8 +40,9 @@ public class WithdrawCallPhaseTest {
         DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
         liveData.setCapital(20000);
         double expectedWithdrawal = withdrawPhase.getWithdraw().getMonthlyAmount(liveData.getCapital());
-        double expectedReturn = (20000 * 0.10) / 12; //
+        double expectedReturn = (20000 * 0.10) / 252; //
 
+        withdrawPhase.onDayEnd();
         withdrawPhase.onMonthEnd();
 
         double expectedCapital = (20000 + expectedReturn) - expectedWithdrawal;
@@ -110,8 +111,9 @@ public class WithdrawCallPhaseTest {
 
         double expectedWithdrawal = withdrawPhase.getWithdraw().getMonthlyAmount(liveData.getCapital());
         assertEquals(5000, expectedWithdrawal, 0.001, "Expected withdrawal should be 5000");
-        double expectedReturn = (20000 * 0.10) / 12;
+        double expectedReturn = (20000 * 0.10) / 252;
 
+        withdrawPhase.onDayEnd();
         withdrawPhase.onMonthEnd();
 
         double expectedCapital = (20000 + expectedReturn) - expectedWithdrawal;

@@ -1,5 +1,6 @@
 package dk.gormkrings.phase.callBased;
 
+import dk.gormkrings.event.EventType;
 import dk.gormkrings.phase.IPassivePhase;
 import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Passive;
@@ -21,8 +22,8 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
     }
 
     @Override
-    public void onMonthEnd() {
-        super.onMonthEnd();
+    public void onDayEnd() {
+        super.onDayEnd();
         calculatePassive();
         if (Formatter.debug) log.debug(prettyString());
     }
@@ -30,6 +31,11 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
     @Override
     public void onPhaseStart() {
         initializePreviouslyReturned();
+    }
+
+    @Override
+    public boolean supportsEvent(EventType eventType) {
+        return super.supportsEvent(eventType) || eventType.equals(EventType.MONTH_END);
     }
 
     @Override

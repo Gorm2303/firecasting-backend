@@ -12,7 +12,7 @@ public interface IWithdrawPhase extends ISimulationPhase{
     ISpecification getSpecification();
 
     default void withdrawMoney() {
-        double withdrawAmount = getWithdraw().getMonthlyAmount(getLiveData().getCapital());
+        double withdrawAmount = getWithdraw().getMonthlyAmount(getLiveData().getCapital(), getLiveData().getInflation());
         getLiveData().setWithdraw(withdrawAmount);
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);

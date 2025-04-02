@@ -1,5 +1,6 @@
 package dk.gormkrings.phase.callBased;
 
+import dk.gormkrings.event.EventType;
 import dk.gormkrings.phase.IWithdrawPhase;
 import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Withdraw;
@@ -28,6 +29,11 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
         withdrawMoney();
         addNetEarnings();
         if (Formatter.debug) log.debug(prettyString());
+    }
+
+    @Override
+    public boolean supportsEvent(EventType eventType) {
+        return super.supportsEvent(eventType) || eventType.equals(EventType.MONTH_END);
     }
 
     @Override

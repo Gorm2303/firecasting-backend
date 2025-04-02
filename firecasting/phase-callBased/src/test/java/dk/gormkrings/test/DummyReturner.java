@@ -6,7 +6,7 @@ public class DummyReturner implements IReturner {
     @Override
     public double calculateReturn(double amount) {
         // For testing, return a fixed fraction, for example 10% annualized monthly:
-        return (amount * 0.10) / 12;
+        return (amount * 0.10) / 252;
     }
 
     @Override

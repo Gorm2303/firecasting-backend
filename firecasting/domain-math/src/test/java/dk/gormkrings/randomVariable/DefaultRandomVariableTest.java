@@ -1,6 +1,7 @@
+package dk.gormkrings.randomVariable;
+
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
-import dk.gormkrings.randomVariable.DefaultRandomVariable;
 
 import org.junit.jupiter.api.Test;
 

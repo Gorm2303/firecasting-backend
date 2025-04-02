@@ -10,9 +10,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DefaultSpecificationFactory implements ISpecificationFactory {
-    private IInflationFactory inflationFactory;
-    private ITaxRuleFactory taxRuleFactory;
-    private IReturnFactory returnFactory;
+    private final IInflationFactory inflationFactory;
+    private final ITaxRuleFactory taxRuleFactory;
+    private final IReturnFactory returnFactory;
 
     public DefaultSpecificationFactory(IInflationFactory inflationFactory, ITaxRuleFactory taxRuleFactory, IReturnFactory returnFactory) {
         this.inflationFactory = inflationFactory;

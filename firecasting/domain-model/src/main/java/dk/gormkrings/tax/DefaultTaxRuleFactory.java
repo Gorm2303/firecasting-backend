@@ -14,10 +14,10 @@ public class DefaultTaxRuleFactory implements ITaxRuleFactory {
     @Override
     public ITaxRule createTaxRule(double taxRate) {
         if ("capital".equalsIgnoreCase(taxRule)) {
-            log.debug("Creating Capital Gains Tax rule");
+            log.info("Creating Capital Gains Tax rule");
             return new CapitalGainsTax(taxRate);
         } else {
-            log.debug("Creating Notional Gains Tax rule");
+            log.info("Creating Notional Gains Tax rule");
             return new NotionalGainsTax(taxRate);
         }
     }

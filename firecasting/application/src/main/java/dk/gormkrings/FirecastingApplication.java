@@ -51,7 +51,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Formatter.debug = true;
+        Formatter.debug = false;
         List<IPhase> phases = new LinkedList<>();
         log.info("Application Started");
 
@@ -70,7 +70,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), 42, 7);
 
-        IAction deposit = new Deposit(10000, 5000);
+        IAction deposit = new Deposit(10000, 10000);
         IAction passive = new Passive();
         IAction withdraw = new Withdraw(0, 0.04);
 
@@ -84,7 +84,7 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
-        List<IResult> results = simulation.run(1, phases);
+        List<IResult> results = simulation.run(1000, phases);
         long simTime = System.currentTimeMillis();
         ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
         long exportTime = System.currentTimeMillis();

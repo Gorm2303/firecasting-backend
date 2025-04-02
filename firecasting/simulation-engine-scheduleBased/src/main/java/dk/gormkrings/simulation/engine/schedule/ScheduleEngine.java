@@ -39,12 +39,23 @@ public class ScheduleEngine implements IEngine {
 
         for (IScheduleEvent event : schedule.getEvents()) {
             switch (event.getType()) {
+                case DAY_START:
+                    currentPhase.onDayStart();
+                    break;
+                case DAY_END:
+                    currentPhase.getLiveData().incrementTime();
+                    currentPhase.onDayEnd();
+                    break;
+                case WEEK_START:
+                    currentPhase.onWeekStart();
+                    break;
+                case WEEK_END:
+                    currentPhase.onWeekEnd();
+                    break;
                 case MONTH_START:
                     currentPhase.onMonthStart();
                     break;
                 case MONTH_END:
-                    long time = event.getEpoch() - (currentPhase.getStartDate().getEpochDay() + currentPhase.getLiveData().getSessionDuration() - 1);
-                    currentPhase.getLiveData().incrementTime(time);
                     currentPhase.onMonthEnd();
                     break;
                 case YEAR_START:
@@ -52,6 +63,7 @@ public class ScheduleEngine implements IEngine {
                     break;
                 case YEAR_END:
                     currentPhase.onYearEnd();
+                    result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
                     break;
                 case PHASE_START:
                     currentPhase.onPhaseStart();

@@ -53,7 +53,7 @@ public class PassiveCallPhaseTest {
         liveData.setReturned(prevReturned + 250);
         liveData.addToCapital(250);
 
-        passivePhase.onMonthEnd();
+        passivePhase.onDayEnd();
 
         double newReturned = liveData.getReturned();
         double expectedPassiveReturn = newReturned - prevReturned;
@@ -90,7 +90,7 @@ public class PassiveCallPhaseTest {
 
     @Test
     void testOnMonthEnd_IntegrationOfAddReturnAndCalculatePassive() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+        DummyLiveData liveData = dummySpec.getLiveData();
 
         liveData.setCapital(10000);
         liveData.setReturned(300);
@@ -100,9 +100,9 @@ public class PassiveCallPhaseTest {
         double initialPrevReturned = passivePhase.getPassive().getPreviouslyReturned();
         assertEquals(300, initialPrevReturned, 0.001, "Initially, previouslyReturned should be 300");
 
-        passivePhase.onMonthEnd();
+        passivePhase.onDayEnd();
 
-        double expectedReturn = (10000 * 0.10) / 12;
+        double expectedReturn = (10000 * 0.10) / 252;
         double expectedReturned = 300 + expectedReturn;
         double expectedPassiveReturn = expectedReturned - 300;
 
@@ -130,7 +130,7 @@ public class PassiveCallPhaseTest {
         liveData.setReturned(liveData.getReturned() + 200);
         liveData.addToCapital(200);
 
-        passivePhase.onMonthEnd();
+        passivePhase.onDayEnd();
 
         double expectedPassiveReturn = liveData.getReturned() - storedPreviouslyReturned;
 

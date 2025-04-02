@@ -9,6 +9,7 @@ import lombok.Setter;
 public class DummyLiveData implements ILiveData {
     private long totalDurationAlive;
     private long sessionDuration;
+    private boolean tradingDay;
     private double deposit;
     private double deposited;
     private double passiveReturn;

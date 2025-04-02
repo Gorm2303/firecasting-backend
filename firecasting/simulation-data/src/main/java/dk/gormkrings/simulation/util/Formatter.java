@@ -20,9 +20,9 @@ public class Formatter {
 
     public static String numberToString(double number) {
         String string;
-        if (number > 100) {
+        if (number > 100 || (number < -100)) {
             string = String.format(Locale.US,"%.0f", number);
-        } else if (number <= 100 && number >= 0.1) {
+        } else if ((number <= 100 && number >= 0.1) || (number >= -100 && number <= - 0.1)) {
             string = String.format(Locale.US,"%.2f", number);
         } else {
             string = String.format(Locale.US,"%.4f", number);

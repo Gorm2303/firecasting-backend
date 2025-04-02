@@ -1,5 +1,6 @@
+package dk.gormkrings.randomNumberGenerator;
+
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
-import dk.gormkrings.randomNumberGenerator.DefaultRandomNumberGenerator;
 import org.apache.commons.math3.distribution.UniformRealDistribution;
 import org.junit.jupiter.api.Test;
 

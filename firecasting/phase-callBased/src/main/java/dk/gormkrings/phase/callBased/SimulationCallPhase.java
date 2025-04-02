@@ -28,7 +28,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public boolean supportsEvent(EventType eventType) {
-        return eventType.equals(EventType.MONTH_END) || eventType.equals(EventType.YEAR_END);
+        return eventType.equals(EventType.DAY_END) || eventType.equals(EventType.YEAR_END);
     }
 
     @Override
@@ -38,7 +38,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onDayEnd() {
-
+        if (startDate.plusDays(specification.getLiveData().getSessionDuration()).getDayOfWeek() < 5) addReturn();
     }
 
     @Override
@@ -58,7 +58,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onMonthEnd() {
-        addReturn();
+
     }
 
     @Override

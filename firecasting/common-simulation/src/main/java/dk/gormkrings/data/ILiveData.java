@@ -24,6 +24,7 @@ public interface ILiveData extends ILive {
     double getWithdraw();
     double getCurrentTax();
     double getCurrentReturn();
+    double getInflation();
     long getStartTime();
     long getTotalDurationAlive();
     void setCurrentReturn(double returned);

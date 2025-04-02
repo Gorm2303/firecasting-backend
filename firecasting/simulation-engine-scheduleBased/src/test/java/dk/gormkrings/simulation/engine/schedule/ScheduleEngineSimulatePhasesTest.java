@@ -80,6 +80,10 @@ public class ScheduleEngineSimulatePhasesTest {
     public void testSimulatePhasesSinglePhaseAllEvents() {
         ISchedule schedule = mock(ISchedule.class);
 
+        IScheduleEvent eventDayStart = mock(IScheduleEvent.class);
+        IScheduleEvent eventDayEnd = mock(IScheduleEvent.class);
+        IScheduleEvent eventWeekStart = mock(IScheduleEvent.class);
+        IScheduleEvent eventWeekEnd = mock(IScheduleEvent.class);
         IScheduleEvent eventMonthStart = mock(IScheduleEvent.class);
         IScheduleEvent eventMonthEnd = mock(IScheduleEvent.class);
         IScheduleEvent eventYearStart = mock(IScheduleEvent.class);
@@ -87,6 +91,10 @@ public class ScheduleEngineSimulatePhasesTest {
         IScheduleEvent eventPhaseStart = mock(IScheduleEvent.class);
         IScheduleEvent eventPhaseEnd = mock(IScheduleEvent.class);
 
+        when(eventDayStart.getType()).thenReturn(EventType.DAY_START);
+        when(eventDayEnd.getType()).thenReturn(EventType.DAY_END);
+        when(eventWeekStart.getType()).thenReturn(EventType.WEEK_START);
+        when(eventWeekEnd.getType()).thenReturn(EventType.WEEK_END);
         when(eventMonthStart.getType()).thenReturn(EventType.MONTH_START);
         when(eventMonthEnd.getType()).thenReturn(EventType.MONTH_END);
         when(eventYearStart.getType()).thenReturn(EventType.YEAR_START);
@@ -94,10 +102,11 @@ public class ScheduleEngineSimulatePhasesTest {
         when(eventPhaseStart.getType()).thenReturn(EventType.PHASE_START);
         when(eventPhaseEnd.getType()).thenReturn(EventType.PHASE_END);
 
-        int dummyEpoch = 1000;
-        when(eventMonthEnd.getEpoch()).thenReturn(dummyEpoch);
-
         List<IScheduleEvent> events = Arrays.asList(
+                eventDayStart,
+                eventDayEnd,
+                eventWeekStart,
+                eventWeekEnd,
                 eventMonthStart,
                 eventMonthEnd,
                 eventYearStart,
@@ -109,9 +118,6 @@ public class ScheduleEngineSimulatePhasesTest {
 
         IScheduleFactory spyScheduleFactory = spy(scheduleFactory);
         doReturn(schedule).when(spyScheduleFactory).getSchedule();
-
-        when(liveData.getSessionDuration()).thenReturn(10L);
-        long expectedTimeIncrement = dummyEpoch - (10);
 
         IResult result = mock(IResult.class);
         when(resultFactory.newResult()).thenReturn(result);
@@ -133,7 +139,7 @@ public class ScheduleEngineSimulatePhasesTest {
         verify(phase, times(1)).onPhaseStart();
         verify(phase, times(1)).onPhaseEnd();
 
-        verify(liveData, times(1)).incrementTime(eq(expectedTimeIncrement));
+        verify(liveData, times(1)).incrementTime();
 
         assertSame(result, simulationResult, "simulatePhases should return the result from resultFactory");
     }

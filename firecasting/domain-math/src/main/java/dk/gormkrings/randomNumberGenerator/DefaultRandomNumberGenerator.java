@@ -1,24 +1,31 @@
 package dk.gormkrings.randomNumberGenerator;
 
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
-import org.springframework.stereotype.Component;
 
-import java.util.Random;
+import java.util.SplittableRandom;
 
-@Component
 public class DefaultRandomNumberGenerator implements IRandomNumberGenerator {
-    private final Random random;
+    private final SplittableRandom random;
 
     public DefaultRandomNumberGenerator() {
-        this.random = new Random();
+        this.random = new SplittableRandom();
+    }
+
+    private DefaultRandomNumberGenerator(SplittableRandom random) {
+        this.random = random.split();
     }
 
     public DefaultRandomNumberGenerator(long seed) {
-        this.random = new Random(seed);
+        this.random = new SplittableRandom(seed);
     }
 
     @Override
     public double nextDouble() {
         return random.nextDouble();
+    }
+
+    @Override
+    public IRandomNumberGenerator copy() {
+        return new DefaultRandomNumberGenerator(this.random);
     }
 }

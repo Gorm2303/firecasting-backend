@@ -20,10 +20,10 @@ public class DefaultDepositPhaseFactory implements IDepositPhaseFactory {
     @Override
     public IPhase createDepositPhase(ISpecification specification, IDate startDate, long duration, IAction deposit) {
         if ("event".equalsIgnoreCase(depositPhaseType)) {
-            log.debug("Creating event-based deposit phase");
+            log.info("Creating event-based deposit phase");
             return new DepositEventPhase(specification, startDate, duration, (Deposit) deposit);
         } else {
-            log.debug("Creating call-based deposit phase");
+            log.info("Creating call-based deposit phase");
             return new DepositCallPhase(specification, startDate, duration, deposit);
         }
     }

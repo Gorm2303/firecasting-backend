@@ -1,4 +1,5 @@
-import dk.gormkrings.distribution.BrownianMotionDistribution;
+package dk.gormkrings.distribution;
+
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
 import org.junit.jupiter.api.Test;
 
@@ -12,13 +13,14 @@ public class BrownianMotionDistributionTest {
         double u2 = 0.25;
         double drift = 1.0;
         double volatility = 2.0;
-
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(drift, volatility);
+        // Using default dt = 1.0 in the constructor
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(u1, u2);
 
         double standardNormal = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-        double expected = drift + volatility * standardNormal;
+        // Expected sample: (drift - 0.5 * volatility^2) * dt + volatility * sqrt(dt) * standardNormal, dt=1.0
+        double expected = (drift - 0.5 * volatility * volatility) + volatility * standardNormal;
         double actual = distribution.sample(rng);
 
         assertEquals(expected, actual, 1e-9, "The sample method should compute the correct value using the Box-Muller transform");
@@ -29,7 +31,7 @@ public class BrownianMotionDistributionTest {
         double drift = 0.0;
         double volatility = 1.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(drift, volatility);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.5);
         distribution.sample(rng);
@@ -42,11 +44,12 @@ public class BrownianMotionDistributionTest {
         double drift = 1.5;
         double volatility = 0.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(drift, volatility);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.3, 0.7);
 
         double actual = distribution.sample(rng);
+        // When volatility is zero, sample should be drift - 0.5*0^2 = drift
         assertEquals(drift, actual, 1e-9, "When volatility is zero, the output should equal the drift value");
     }
 
@@ -55,7 +58,7 @@ public class BrownianMotionDistributionTest {
         double drift = 1.0;
         double volatility = 2.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(drift, volatility);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
 
         double u1 = 1e-10;
@@ -64,7 +67,7 @@ public class BrownianMotionDistributionTest {
         when(rng.nextDouble()).thenReturn(u1, u2);
 
         double standardNormal = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-        double expected = drift + volatility * standardNormal;
+        double expected = (drift - 0.5 * volatility * volatility) + volatility * standardNormal;
         double actual = distribution.sample(rng);
 
         assertEquals(expected, actual, 1e-9, "The sample method should handle a u1 value very close to zero correctly.");
@@ -74,14 +77,14 @@ public class BrownianMotionDistributionTest {
     public void testConsistencyWithDeterministicRNG() {
         double drift = 1.0;
         double volatility = 2.0;
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(drift, volatility);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
 
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.25, 0.7, 0.3, 0.2, 0.8);
 
-        double expected1 = drift + volatility * (Math.sqrt(-2 * Math.log(0.5)) * Math.cos(2 * Math.PI * 0.25));
-        double expected2 = drift + volatility * (Math.sqrt(-2 * Math.log(0.7)) * Math.cos(2 * Math.PI * 0.3));
-        double expected3 = drift + volatility * (Math.sqrt(-2 * Math.log(0.2)) * Math.cos(2 * Math.PI * 0.8));
+        double expected1 = (drift - 0.5 * volatility * volatility) + volatility * (Math.sqrt(-2 * Math.log(0.5)) * Math.cos(2 * Math.PI * 0.25));
+        double expected2 = (drift - 0.5 * volatility * volatility) + volatility * (Math.sqrt(-2 * Math.log(0.7)) * Math.cos(2 * Math.PI * 0.3));
+        double expected3 = (drift - 0.5 * volatility * volatility) + volatility * (Math.sqrt(-2 * Math.log(0.2)) * Math.cos(2 * Math.PI * 0.8));
 
         double actual1 = distribution.sample(rng);
         double actual2 = distribution.sample(rng);

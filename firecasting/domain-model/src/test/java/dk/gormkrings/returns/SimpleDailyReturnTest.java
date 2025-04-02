@@ -4,21 +4,21 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SimpleMonthlyReturnTest {
+class SimpleDailyReturnTest {
 
     @Test
     void testCalculateReturn() {
-        SimpleMonthlyReturn monthlyReturn = new SimpleMonthlyReturn(12);
+        SimpleDailyReturn monthlyReturn = new SimpleDailyReturn(12);
         double amount = 1200;
-        double expected = 12;
+        double expected = amount * 0.12 / 252;
         double result = monthlyReturn.calculateReturn(amount);
         assertEquals(expected, result, 0.0001, "The calculated monthly return should be 12");
     }
 
     @Test
     void testCopy() {
-        SimpleMonthlyReturn original = new SimpleMonthlyReturn(12);
-        SimpleMonthlyReturn copy = original.copy();
+        SimpleDailyReturn original = new SimpleDailyReturn(12);
+        SimpleDailyReturn copy = original.copy();
         double amount = 1000;
         assertEquals(original.calculateReturn(amount), copy.calculateReturn(amount), 0.0001,
                 "The copy should compute the same return as the original");

@@ -19,10 +19,10 @@ public class DefaultPassivePhaseFactory implements IPassivePhaseFactory {
     @Override
     public IPhase createPassivePhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
         if ("event".equalsIgnoreCase(passivePhaseType)) {
-            log.debug("Creating event-based passive phase");
+            log.info("Creating event-based passive phase");
             return new PassiveEventPhase(specification, startDate, duration, passive);
         } else {
-            log.debug("Creating call-based passive phase");
+            log.info("Creating call-based passive phase");
             return new PassiveCallPhase(specification, startDate, duration, passive);
         }
     }

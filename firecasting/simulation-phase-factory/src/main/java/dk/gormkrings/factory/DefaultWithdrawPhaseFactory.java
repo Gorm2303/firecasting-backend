@@ -19,10 +19,10 @@ public class DefaultWithdrawPhaseFactory implements IWithdrawPhaseFactory {
     @Override
     public IPhase createWithdrawPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
         if ("event".equalsIgnoreCase(withdrawPhaseType)) {
-            log.debug("Creating event-based withdraw phase");
+            log.info("Creating event-based withdraw phase");
             return new WithdrawEventPhase(specification, startDate, duration, withdraw);
         } else {
-            log.debug("Creating call-based withdraw phase");
+            log.info("Creating call-based withdraw phase");
             return new WithdrawCallPhase(specification, startDate, duration, withdraw);
         }
     }

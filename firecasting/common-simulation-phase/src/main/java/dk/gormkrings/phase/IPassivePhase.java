@@ -3,7 +3,7 @@ package dk.gormkrings.phase;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.ILiveData;
 
-public interface IPassivePhase {
+public interface IPassivePhase extends ISimulationPhase {
     Passive getPassive();
     ILiveData getLiveData();
 

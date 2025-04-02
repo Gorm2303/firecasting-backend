@@ -1,5 +1,6 @@
 package dk.gormkrings.phase.callBased;
 
+import dk.gormkrings.event.EventType;
 import dk.gormkrings.phase.IDepositPhase;
 import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Deposit;
@@ -32,6 +33,11 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
     @Override
     public void onPhaseStart() {
         depositInitialDeposit();
+    }
+
+    @Override
+    public boolean supportsEvent(EventType eventType) {
+        return super.supportsEvent(eventType) || eventType.equals(EventType.MONTH_END);
     }
 
     @Override
