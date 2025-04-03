@@ -14,6 +14,7 @@ import dk.gormkrings.factory.ISpecificationFactory;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import dk.gormkrings.simulation.ISimulation;
+import dk.gormkrings.simulation.util.Formatter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/simulation")
 public class FirecastingController {
 
@@ -47,6 +49,7 @@ public class FirecastingController {
 
     @PostMapping
     public ResponseEntity<List<IResult>> runSimulation(@RequestBody SimulationRequest request) {
+        Formatter.debug = true;
         var specification = specificationFactory.newSpecification(
                 request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage());
 
