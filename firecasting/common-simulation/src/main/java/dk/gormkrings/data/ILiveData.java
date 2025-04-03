@@ -33,7 +33,9 @@ public interface ILiveData extends ILive {
     void setPassiveReturn(double passiveReturn);
     void setWithdraw(double withdraw);
     void setCurrentNet(double net);
+    void setPhaseName(String phaseName);
     ILiveData copy();
     String toString();
     String toCsvRow();
+    String getPhaseName();
 }

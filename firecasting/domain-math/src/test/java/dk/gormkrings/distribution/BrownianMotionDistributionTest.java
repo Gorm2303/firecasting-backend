@@ -13,13 +13,12 @@ public class BrownianMotionDistributionTest {
         double u2 = 0.25;
         double drift = 1.0;
         double volatility = 2.0;
-        // Using default dt = 1.0 in the constructor
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1,2,1);
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(u1, u2);
 
         double standardNormal = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-        // Expected sample: (drift - 0.5 * volatility^2) * dt + volatility * sqrt(dt) * standardNormal, dt=1.0
         double expected = (drift - 0.5 * volatility * volatility) + volatility * standardNormal;
         double actual = distribution.sample(rng);
 
@@ -31,7 +30,7 @@ public class BrownianMotionDistributionTest {
         double drift = 0.0;
         double volatility = 1.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution(0,1,1);
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.5);
         distribution.sample(rng);
@@ -44,12 +43,11 @@ public class BrownianMotionDistributionTest {
         double drift = 1.5;
         double volatility = 0.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1.5, 0, 1);
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.3, 0.7);
 
         double actual = distribution.sample(rng);
-        // When volatility is zero, sample should be drift - 0.5*0^2 = drift
         assertEquals(drift, actual, 1e-9, "When volatility is zero, the output should equal the drift value");
     }
 
@@ -58,7 +56,7 @@ public class BrownianMotionDistributionTest {
         double drift = 1.0;
         double volatility = 2.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1, 2, 1);
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
 
         double u1 = 1e-10;
@@ -77,7 +75,7 @@ public class BrownianMotionDistributionTest {
     public void testConsistencyWithDeterministicRNG() {
         double drift = 1.0;
         double volatility = 2.0;
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1, 2, 1);
 
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.25, 0.7, 0.3, 0.2, 0.8);

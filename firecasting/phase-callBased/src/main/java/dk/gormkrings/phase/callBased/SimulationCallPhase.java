@@ -79,7 +79,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onPhaseStart() {
-
+        getLiveData().setPhaseName(name);
     }
 
     @Override
@@ -88,7 +88,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     }
 
     public String prettyString() {
-        return name + getLiveData().toString();
+        return getLiveData().toString();
     }
 
 }

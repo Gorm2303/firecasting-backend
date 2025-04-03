@@ -25,11 +25,16 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
     public void onDayEnd() {
         super.onDayEnd();
         calculatePassive();
+    }
+
+    @Override
+    public void onMonthEnd() {
         if (Formatter.debug) log.debug(prettyString());
     }
 
     @Override
     public void onPhaseStart() {
+        super.onPhaseStart();
         initializePreviouslyReturned();
     }
 

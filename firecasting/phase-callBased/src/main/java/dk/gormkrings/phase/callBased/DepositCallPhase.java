@@ -32,6 +32,7 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
 
     @Override
     public void onPhaseStart() {
+        super.onPhaseStart();
         depositInitialDeposit();
     }
 

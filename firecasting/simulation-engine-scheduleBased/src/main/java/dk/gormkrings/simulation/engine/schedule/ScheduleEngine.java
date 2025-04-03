@@ -70,7 +70,6 @@ public class ScheduleEngine implements IEngine {
                     break;
                 case PHASE_END:
                     currentPhase.onPhaseEnd();
-                    result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
                     if (!phaseCopies.isEmpty()) {
                         currentPhase = (ICallPhase) phaseCopies.removeFirst();
                         currentPhase.getLiveData().resetSession();

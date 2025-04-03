@@ -12,6 +12,8 @@ public class LiveData implements ILiveData {
     @Setter
     private long sessionDuration;
     @Setter
+    private String phaseName;
+    @Setter
     private double deposit;
     private double deposited;
     @Setter
@@ -40,6 +42,7 @@ public class LiveData implements ILiveData {
         this.startTime = liveData.startTime;
         this.totalDurationAlive = liveData.totalDurationAlive;
         this.sessionDuration = liveData.sessionDuration;
+        this.phaseName = liveData.phaseName;
         this.deposit = liveData.deposit;
         this.deposited = liveData.deposited;
         this.passiveReturn = liveData.passiveReturn;
@@ -80,6 +83,7 @@ public class LiveData implements ILiveData {
     @Override
     public String toString() {
         return "{" +
+                phaseName +
                 Formatter.formatField("Alive", totalDurationAlive) +
                 Formatter.getPrettyDate(this) +
                 Formatter.formatField("Capital", capital) +
@@ -157,7 +161,8 @@ public class LiveData implements ILiveData {
         long year = date.getYear() - startdate.getYear();
         long month = date.getMonth() + 12 * year - 1;
 
-        return  day + "," +
+        return  phaseName + "," +
+                day + "," +
                 month + "," +
                 year + "," +
                 date + "," +
