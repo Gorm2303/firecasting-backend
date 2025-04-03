@@ -2,7 +2,9 @@ package dk.gormkrings.simulation.result;
 
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.result.ISnapshot;
+import lombok.Getter;
 
+@Getter
 public final class Snapshot implements ISnapshot {
     private final ILiveData state;
 

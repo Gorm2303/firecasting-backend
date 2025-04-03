@@ -1,9 +1,13 @@
 package dk.gormkrings.simulation.data;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.simulation.util.Formatter;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Getter
 public class LiveData implements ILiveData {
@@ -178,6 +182,36 @@ public class LiveData implements ILiveData {
                 Formatter.numberToString(inflation) + "," +
                 Formatter.numberToString(net) + "," +
                 Formatter.numberToString(currentNet);
+    }
+
+    @JsonValue
+    public Map<String, Object> asJson() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("phaseName", phaseName);
+
+        Date startdate = new Date((int) startTime);
+        Date date = new Date((int) (startTime + totalDurationAlive));
+        long day = totalDurationAlive;
+        long year = date.getYear() - startdate.getYear();
+        long month = date.getMonth() + 12 * year - 1;
+
+        map.put("day", day);
+        map.put("month", month);
+        map.put("year", year);
+        map.put("date", date.toString());
+        map.put("capital", capital);
+        map.put("deposited", deposited);
+        map.put("passiveReturned", passiveReturned);
+        map.put("returned", returned);
+        map.put("currentReturn", currentReturn);
+        map.put("withdrawn", withdrawn);
+        map.put("withdraw", withdraw);
+        map.put("tax", tax);
+        map.put("currentTax", currentTax);
+        map.put("inflation", inflation);
+        map.put("net", net);
+        map.put("currentNet", currentNet);
+        return map;
     }
 
 }

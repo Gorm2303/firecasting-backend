@@ -1,7 +1,11 @@
 package dk.gormkrings.simulation.data;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dk.gormkrings.data.IDate;
 import lombok.Getter;
+
+import java.time.LocalDate;
 
 @Getter
 public final class Date implements IDate {
@@ -27,6 +31,26 @@ public final class Date implements IDate {
         // Epoch for 1900-01-01 in JDN is 2415021.
         epochDay = jdn - 2415021;
         new Date(epochDay);
+    }
+
+    // Add a Jackson-friendly constructor that accepts a date string.
+    @JsonCreator
+    public Date(@JsonProperty("date") String dateStr) {
+        LocalDate ld = LocalDate.parse(dateStr);
+        new Date(ld.getYear(), ld.getMonthValue(), ld.getDayOfMonth());
+        int year = ld.getYear();
+        int month = ld.getMonthValue();
+        int day = ld.getDayOfMonth();
+        if (month <= 2) {
+            year--;
+            month += 12;
+        }
+        int a = year / 100;
+        int b = 2 - a + a / 4;
+        int jdn = (int)(365.25 * (year + 4716))
+                + (int)(30.6001 * (month + 1))
+                + day + b - 1524;
+        this.epochDay = jdn - 2415021;
     }
 
     public Date plusDays(long days) {

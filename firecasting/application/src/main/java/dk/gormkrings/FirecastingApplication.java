@@ -50,8 +50,13 @@ public class FirecastingApplication implements CommandLineRunner {
     }
 
     @Override
+    public void run(String... args) throws Exception {
+
+    }
+/*
+    @Override
     public void run(String... args) {
-        Formatter.debug = false;
+        Formatter.debug = true;
         List<IPhase> phases = new LinkedList<>();
         log.info("Application Started");
 
@@ -84,7 +89,7 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
-        List<IResult> results = simulation.run(1000, phases);
+        List<IResult> results = simulation.run(1, phases);
         long simTime = System.currentTimeMillis();
         ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
         long exportTime = System.currentTimeMillis();
@@ -93,5 +98,5 @@ public class FirecastingApplication implements CommandLineRunner {
         log.info("Handling exports in {} ms", exportTime - simTime);
         log.info("Elapsed time: {} seconds", ((double) (System.currentTimeMillis() - startTime)) / 1000);
         log.info("Application Ended");
-    }
+    } */
 }
