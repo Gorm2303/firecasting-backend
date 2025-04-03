@@ -1,217 +1,144 @@
 package dk.gormkrings.phase.callBased;
 
 import dk.gormkrings.action.Withdraw;
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.data.IDate;
+import dk.gormkrings.event.EventType;
+import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.CapitalGainsTax;
 import dk.gormkrings.tax.NotionalGainsTax;
-import dk.gormkrings.test.DummyDate;
-import dk.gormkrings.test.DummyLiveData;
-import dk.gormkrings.test.DummyReturner;
-import dk.gormkrings.test.DummySpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class WithdrawCallPhaseTest {
-    private DummySpecification dummySpec;
-    private WithdrawCallPhase withdrawPhase;
+
+    @Mock
+    private ISpecification specification;
+    @Mock
+    private IDate startDate;
+    @Mock
+    private ILiveData liveData;
+    @Mock
+    private Withdraw withdraw;
+    @Mock
+    private CapitalGainsTax capitalGainsTax;
+    @Mock
+    private NotionalGainsTax notionalGainsTax;
+
+    private WithdrawCallPhase withdrawCallPhase;
+    private final long duration = 30L;
 
     @BeforeEach
-    void setUp() {
-        dummySpec = new DummySpecification();
-        dummySpec.setReturner(new DummyReturner());
-        IDate dummyDate = new DummyDate(1000);
-        Withdraw withdraw = new Withdraw(5000, 0);
-        withdrawPhase = new WithdrawCallPhase(dummySpec, dummyDate, 30, withdraw);
+    public void setup() {
+        lenient().when(specification.getLiveData()).thenReturn(liveData);
+        withdrawCallPhase = new WithdrawCallPhase(specification, startDate, duration, withdraw);
     }
 
     @Test
-    void testInitialStateBeforeWithdrawal() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        assertEquals(0, liveData.getWithdraw(), "Initial withdraw should be 0");
-        assertEquals(0, liveData.getWithdrawn(), "Initial withdrawn should be 0");
-        assertEquals(0, liveData.getCurrentTax(), "Initial current tax should be 0");
-        assertEquals(0, liveData.getCurrentNet(), "Initial current net should be 0");
+    public void testOnMonthEnd_BasicOperation_CapitalGainsTax() {
+        double withdrawAmount = 100.0;
+        when(liveData.getCapital()).thenReturn(1000.0);
+        when(liveData.getInflation()).thenReturn(2.5);
+        when(withdraw.getMonthlyAmount(1000.0, 2.5)).thenReturn(withdrawAmount);
+        when(liveData.getWithdraw()).thenReturn(withdrawAmount);
+        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(capitalGainsTax.calculateTax(withdrawAmount)).thenReturn(20.0);
+        when(liveData.getCurrentTax()).thenReturn(20.0);
+
+        withdrawCallPhase.onMonthEnd();
+
+        verify(liveData).setWithdraw(withdrawAmount);
+        verify(liveData).addToWithdrawn(withdrawAmount);
+        verify(liveData).subtractFromCapital(withdrawAmount);
+        verify(liveData).setCurrentTax(20.0);
+        verify(liveData).addToTax(20.0);
+        verify(liveData).addToNetEarnings(80.0);
+        verify(liveData).setCurrentNet(80.0);
     }
 
     @Test
-    void testOnMonthEnd_WithdrawalCalculation_WithReturn() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        liveData.setCapital(20000);
-        double expectedWithdrawal = withdrawPhase.getWithdraw().getMonthlyAmount(liveData.getCapital());
-        double expectedReturn = (20000 * 0.10) / 252; //
-
-        withdrawPhase.onDayEnd();
-        withdrawPhase.onMonthEnd();
-
-        double expectedCapital = (20000 + expectedReturn) - expectedWithdrawal;
-
-        assertEquals(expectedWithdrawal, liveData.getWithdraw(), 0.001,
-                "Withdraw should be set to the expected monthly withdrawal");
-        assertEquals(expectedWithdrawal, liveData.getWithdrawn(), 0.001,
-                "Withdrawn should increase by the expected withdrawal amount");
-        assertEquals(expectedCapital, liveData.getCapital(), 0.001,
-                "Capital should be decreased correctly after adding return and subtracting withdrawal");
+    public void testSupportsEvent() {
+        assertTrue(withdrawCallPhase.supportsEvent(EventType.MONTH_END), "Should support MONTH_END events");
+        assertTrue(withdrawCallPhase.supportsEvent(EventType.DAY_END), "Should support DAY_END events");
+        assertTrue(withdrawCallPhase.supportsEvent(EventType.YEAR_END), "Should support YEAR_END events");
     }
 
     @Test
-    void testOnMonthEnd_TaxCalculation_CapitalGainsTax() {
-        dummySpec.setTaxRule(new CapitalGainsTax(42));
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        liveData.setCapital(20000);
+    public void testCopy_ReturnsNewInstance() {
+        Withdraw withdrawCopy = mock(Withdraw.class);
+        when(withdraw.copy()).thenReturn(withdrawCopy);
+        ISpecification specCopy = mock(ISpecification.class);
 
-        double expectedWithdrawal = withdrawPhase.getWithdraw().getMonthlyAmount(liveData.getCapital());
-        double expectedTax = (expectedWithdrawal * 42) / 100;
+        WithdrawCallPhase copyPhase = withdrawCallPhase.copy(specCopy);
 
-        withdrawPhase.onMonthEnd();
-
-        assertEquals(expectedWithdrawal, liveData.getWithdraw(), 0.001,
-                "Withdraw should equal the expected monthly withdrawal amount");
-        assertEquals(expectedWithdrawal, liveData.getWithdrawn(), 0.001,
-                "Withdrawn should equal the expected monthly withdrawal amount");
-        assertEquals(expectedTax, liveData.getCurrentTax(), 0.001,
-                "Current tax should equal withdrawal * taxRate/100 for CapitalGainsTax");
-        assertEquals(expectedTax, liveData.getTax(), 0.001,
-                "Total tax should equal the calculated tax for CapitalGainsTax");
-
-        double expectedNet = expectedWithdrawal - expectedTax;
-        assertEquals(expectedNet, liveData.getCurrentNet(), 0.001,
-                "Current net earnings should equal withdrawal minus current tax for CapitalGainsTax");
-        assertEquals(expectedNet, liveData.getNet(), 0.001,
-                "Net earnings should equal withdrawal minus tax for CapitalGainsTax");
-    }
-
-
-    @Test
-    void testOnMonthEnd_TaxCalculation_NotionalGainsTax() {
-        dummySpec.setTaxRule(new NotionalGainsTax(42));
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        liveData.setCapital(20000);
-        double expectedWithdrawal = withdrawPhase.getWithdraw().getMonthlyAmount(liveData.getCapital());
-        double expectedTax = 0;
-
-        withdrawPhase.onMonthEnd();
-
-        assertEquals(expectedTax, liveData.getCurrentTax(), 0.001,
-                "For NotionalGainsTax, current tax should be 0");
-        assertEquals(expectedTax, liveData.getTax(), 0.001,
-                "For NotionalGainsTax, total tax should be 0");
-        assertEquals(expectedWithdrawal, liveData.getCurrentNet(), 0.001,
-                "For NotionalGainsTax, current net earnings should equal the withdrawal amount");
-        assertEquals(expectedWithdrawal, liveData.getNet(), 0.001,
-                "For NotionalGainsTax, net earnings should equal the withdrawal amount");
+        assertNotSame(withdrawCallPhase, copyPhase, "copy() should return a new instance");
+        assertSame(specCopy, copyPhase.getSpecification(), "Specification should be replaced by provided copy");
+        assertSame(startDate, copyPhase.getStartDate(), "Start date should be preserved");
+        assertEquals(duration, copyPhase.getDuration(), "Duration should be preserved");
+        assertSame(withdrawCopy, copyPhase.getWithdraw(), "Withdraw should be the result of withdraw.copy()");
     }
 
     @Test
-    void testOnMonthEnd_IntegrationOfMethods_OrderVerification() {
-        dummySpec.setTaxRule(new CapitalGainsTax(42));
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        liveData.setCapital(20000);
+    public void testAddNetEarnings_NotionalGainsTax() {
+        double withdrawAmount = 100.0;
+        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
+        when(liveData.getWithdraw()).thenReturn(withdrawAmount);
 
-        double expectedWithdrawal = withdrawPhase.getWithdraw().getMonthlyAmount(liveData.getCapital());
-        assertEquals(5000, expectedWithdrawal, 0.001, "Expected withdrawal should be 5000");
-        double expectedReturn = (20000 * 0.10) / 252;
+        withdrawCallPhase.addNetEarnings();
 
-        withdrawPhase.onDayEnd();
-        withdrawPhase.onMonthEnd();
-
-        double expectedCapital = (20000 + expectedReturn) - expectedWithdrawal;
-        double expectedTax = (expectedWithdrawal * 42) / 100;
-        double expectedNet = expectedWithdrawal - expectedTax;
-
-        assertEquals(expectedWithdrawal, liveData.getWithdraw(), 0.001,
-                "Withdraw field should be set to the expected withdrawal amount");
-        assertEquals(expectedWithdrawal, liveData.getWithdrawn(), 0.001,
-                "Withdrawn field should equal the expected withdrawal amount");
-        assertEquals(expectedTax, liveData.getCurrentTax(), 0.001,
-                "Current tax should equal the withdrawal amount multiplied by tax rate/100");
-        assertEquals(expectedTax, liveData.getTax(), 0.001,
-                "Overall tax should equal the calculated tax");
-        assertEquals(expectedNet, liveData.getCurrentNet(), 0.001,
-                "Current net earnings should equal withdrawal minus tax");
-        assertEquals(expectedNet, liveData.getNet(), 0.001,
-                "Net earnings should equal withdrawal minus tax");
-        assertEquals(expectedCapital, liveData.getCapital(), 0.001,
-                "Capital should be increased by the return and then decreased by the withdrawal");
+        verify(liveData).addToNetEarnings(withdrawAmount);
+        verify(liveData).setCurrentNet(withdrawAmount);
     }
 
     @Test
-    void testCopyCreatesIndependentInstanceForWithdrawCallPhase() {
-        WithdrawCallPhase copyPhase = withdrawPhase.copy(dummySpec);
+    public void testWithdrawMoney_ExceedsCapital_NoClamping() {
+        when(liveData.getCapital()).thenReturn(500.0);
+        when(liveData.getInflation()).thenReturn(2.5);
+        when(withdraw.getMonthlyAmount(500.0, 2.5)).thenReturn(600.0);
+        when(liveData.getWithdraw()).thenReturn(600.0);
+        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(capitalGainsTax.calculateTax(600.0)).thenReturn(60.0);
+        when(liveData.getCurrentTax()).thenReturn(60.0);
 
-        assertNotSame(withdrawPhase, copyPhase, "Copy should be a distinct instance");
-        assertEquals(withdrawPhase.getStartDate().getEpochDay(), copyPhase.getStartDate().getEpochDay(),
-                "Start dates should be equal");
-        assertEquals(withdrawPhase.getDuration(), copyPhase.getDuration(),
-                "Durations should be equal");
+        withdrawCallPhase.onMonthEnd();
 
-        double capital = 10000;
-
-        Withdraw originalAction = withdrawPhase.getWithdraw();
-        Withdraw copyAction = copyPhase.getWithdraw();
-        assertNotSame(originalAction, copyAction, "Copy should be a distinct instance");
-        assertEquals(originalAction.getMonthlyAmount(capital), copyAction.getMonthlyAmount(capital), 0.001,
-                "Monthly withdrawal amounts should be equal in the copy");
-
-        originalAction.setMonthlyAmount(6000);
-
-        assertNotEquals(originalAction.getMonthlyAmount(capital), copyAction.getMonthlyAmount(capital), 0.001,
-                "Changes to the original withdraw action should not affect the copy");
+        verify(liveData).setWithdraw(600.0);
+        verify(liveData).addToWithdrawn(600.0);
+        verify(liveData).subtractFromCapital(600.0);
+        verify(liveData).setCurrentTax(60.0);
+        verify(liveData).addToTax(60.0);
+        verify(liveData).addToNetEarnings(540.0);
+        verify(liveData).setCurrentNet(540.0);
     }
 
     @Test
-    void testOnMonthEnd_ZeroMonthlyWithdrawal() {
-        Withdraw zeroWithdraw = new Withdraw(0, 0);
-        WithdrawCallPhase zeroWithdrawPhase = new WithdrawCallPhase(dummySpec, new DummyDate(1000), 30, zeroWithdraw);
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+    public void testOnMonthEnd_OrderOfOperations() {
+        double withdrawAmount = 100.0;
+        when(liveData.getCapital()).thenReturn(1000.0);
+        when(liveData.getInflation()).thenReturn(2.5);
+        when(withdraw.getMonthlyAmount(1000.0, 2.5)).thenReturn(withdrawAmount);
+        when(liveData.getWithdraw()).thenReturn(withdrawAmount);
+        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(capitalGainsTax.calculateTax(withdrawAmount)).thenReturn(20.0);
+        when(liveData.getCurrentTax()).thenReturn(20.0);
 
-        liveData.setCapital(20000);
+        withdrawCallPhase.onMonthEnd();
 
-        double initialWithdraw = liveData.getWithdraw();
-        double initialWithdrawn = liveData.getWithdrawn();
-        double initialCapital = liveData.getCapital();
-        double initialTax = liveData.getCurrentTax();
-        double initialNet = liveData.getCurrentNet();
-
-        zeroWithdrawPhase.onMonthEnd();
-
-        assertEquals(initialWithdraw, liveData.getWithdraw(), 0.001, "Withdraw should remain unchanged");
-        assertEquals(initialWithdrawn, liveData.getWithdrawn(), 0.001, "Withdrawn should remain unchanged");
-        assertEquals(initialTax, liveData.getCurrentTax(), 0.001, "Current tax should remain unchanged");
-        assertEquals(initialNet, liveData.getCurrentNet(), 0.001, "Current net earnings should remain unchanged");
-        assertEquals(initialCapital+ liveData.getCurrentReturn(), liveData.getCapital(), 0.001, "Capital should remain unchanged");
+        InOrder inOrder = inOrder(liveData);
+        inOrder.verify(liveData).setWithdraw(withdrawAmount);
+        inOrder.verify(liveData).addToWithdrawn(withdrawAmount);
+        inOrder.verify(liveData).subtractFromCapital(withdrawAmount);
+        inOrder.verify(liveData).setCurrentTax(20.0);
+        inOrder.verify(liveData).addToTax(20.0);
+        inOrder.verify(liveData).addToNetEarnings(80.0);
+        inOrder.verify(liveData).setCurrentNet(80.0);
     }
-
-    @Test
-    void testOnMonthEnd_WithLowOrNegativeCapital_WithInterest() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-
-        liveData.setCapital(100);
-        liveData.setCurrentReturn(0);
-
-        withdrawPhase.getWithdraw().setMonthlyAmount(0);
-
-        withdrawPhase.onMonthEnd();
-
-        assertEquals(0, liveData.getWithdraw(), 0.001, "Withdraw should be 0 when capital is very low");
-        assertEquals(0, liveData.getWithdrawn(), 0.001, "Withdrawn should be 0 when capital is very low");
-        assertEquals(0, liveData.getCurrentTax(), 0.001, "Current tax should be 0 when withdrawal is 0");
-        assertEquals(0, liveData.getCurrentNet(), 0.001, "Net earnings should be 0 when withdrawal is 0");
-        assertEquals(100 + liveData.getCurrentReturn(), liveData.getCapital() , 0.001, "Capital should remain unchanged when withdrawal is 0");
-
-        liveData.setCapital(-500);
-        liveData.setCurrentReturn(0);
-        withdrawPhase.getWithdraw().setMonthlyAmount(0);
-
-        withdrawPhase.onMonthEnd();
-
-        assertEquals(0, liveData.getWithdraw(), 0.001, "Withdraw should be 0 when capital is negative");
-        assertEquals(0, liveData.getWithdrawn(), 0.001, "Withdrawn should be 0 when capital is negative");
-        assertEquals(0, liveData.getCurrentTax(), 0.001, "Current tax should be 0 when capital is negative");
-        assertEquals(0, liveData.getCurrentNet(), 0.001, "Net earnings should be 0 when capital is negative");
-        assertEquals(-500 + liveData.getCurrentReturn(), liveData.getCapital(), 0.001, "Capital should remain unchanged when negative");
-    }
-
-
 }

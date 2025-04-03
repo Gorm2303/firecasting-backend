@@ -1,69 +1,91 @@
 package dk.gormkrings.phase.callBased;
 
 import dk.gormkrings.action.Deposit;
-import dk.gormkrings.data.IDate;
 import dk.gormkrings.data.ILiveData;
-import dk.gormkrings.returns.IReturner;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.event.EventType;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.simulation.util.Formatter;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
-class DepositCallPhaseTest {
+@ExtendWith(MockitoExtension.class)
+public class DepositCallPhaseTest {
 
     @Mock
-    private ISpecification spec;
-
+    private ISpecification specification;
+    @Mock
+    private IDate startDate;
     @Mock
     private ILiveData liveData;
-
     @Mock
-    private IReturner returner;
-
-    // We can either mock IDate or use a dummy implementation.
-    @Mock
-    private IDate date;
-
     private Deposit deposit;
-    private DepositCallPhase depositPhase;
+
+    private DepositCallPhase depositCallPhase;
+    private final long duration = 30L;
 
     @BeforeEach
-    void setUp() {
-
+    public void setup() {
+        lenient().when(specification.getLiveData()).thenReturn(liveData);
+        depositCallPhase = new DepositCallPhase(specification, startDate, duration, deposit);
     }
 
     @Test
-    void testOnPhaseStart_DepositsInitialAmount() {
+    public void testOnPhaseStart_CallsDepositInitialDeposit() {
+        double initialAmount = 500.0;
+        when(deposit.getInitial()).thenReturn(initialAmount);
 
+        depositCallPhase.onPhaseStart();
+
+        verify(liveData).setPhaseName("Deposit");
+        verify(liveData).addToDeposited(initialAmount);
+        verify(liveData).addToCapital(initialAmount);
     }
 
     @Test
-    void testOnMonthEnd_SubsequentCallsIncludeReturnAndMonthlyDeposit() {
+    public void testOnMonthEnd_CallsDepositMoney() {
+        double monthlyAmount = 100.0;
+        when(deposit.getMonthly()).thenReturn(monthlyAmount);
 
+        depositCallPhase.onMonthEnd();
+
+        verify(liveData).setDeposit(monthlyAmount);
+        verify(liveData).addToDeposited(monthlyAmount);
+        verify(liveData).addToCapital(monthlyAmount);
     }
 
     @Test
-    void testCopyCreatesIndependentInstance() {
-
+    public void testSupportsEvent() {
+        assertTrue(depositCallPhase.supportsEvent(EventType.MONTH_END), "Should support MONTH_END events");
+        assertTrue(depositCallPhase.supportsEvent(EventType.DAY_END), "Should support DAY_END events");
+        assertTrue(depositCallPhase.supportsEvent(EventType.YEAR_END), "Should support YEAR_END events");
     }
 
     @Test
-    void testOnMonthEnd_CallsAddReturnAndUpdatesLiveData() {
+    public void testCopy_ReturnsNewInstance() {
+        Deposit depositCopy = mock(Deposit.class);
+        when(deposit.copy()).thenReturn(depositCopy);
+        ISpecification specCopy = mock(ISpecification.class);
 
+        DepositCallPhase copyPhase = depositCallPhase.copy(specCopy);
+
+        assertNotSame(depositCallPhase, copyPhase, "copy() should return a new instance");
+        assertSame(specCopy, copyPhase.getSpecification(), "The specification should be replaced by the provided copy");
+        assertSame(startDate, copyPhase.getStartDate(), "Start date should be preserved");
+        assertEquals(duration, copyPhase.getDuration(), "Duration should be preserved");
+        assertSame(depositCopy, copyPhase.getDeposit(), "Deposit should be the result of deposit.copy()");
     }
 
     @Test
-    void testDepositMoney_DirectInvocation() {
-
-    }
-
-    @Test
-    void testDepositMoney_WithZeroMonthlyDeposit() {
-
+    public void testSupportsEvent_Unsupported() {
+        assertFalse(depositCallPhase.supportsEvent(EventType.WEEK_END),
+                "Should not support WEEK_END events if not implemented");
     }
 }

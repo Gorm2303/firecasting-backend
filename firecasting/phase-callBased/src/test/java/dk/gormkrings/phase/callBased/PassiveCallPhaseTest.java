@@ -1,158 +1,128 @@
 package dk.gormkrings.phase.callBased;
 
 import dk.gormkrings.action.Passive;
+import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.data.IDate;
-import dk.gormkrings.test.DummyDate;
-import dk.gormkrings.test.DummyLiveData;
-import dk.gormkrings.test.DummyReturner;
-import dk.gormkrings.test.DummySpecification;
+import dk.gormkrings.event.EventType;
+import dk.gormkrings.returns.IReturner;
+import dk.gormkrings.specification.ISpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class PassiveCallPhaseTest {
-    private DummySpecification dummySpec;
-    private PassiveCallPhase passivePhase;
+
+    @Mock
+    private ISpecification specification;
+    @Mock
+    private IDate startDate;
+    @Mock
+    private ILiveData liveData;
+    @Mock
+    private Passive passive;
+
+    private PassiveCallPhase passiveCallPhase;
+    private final long duration = 30L;
 
     @BeforeEach
-    void setUp() {
-        dummySpec = new DummySpecification();
-        dummySpec.setReturner(new DummyReturner());
-        IDate dummyDate = new DummyDate(1000);
-        Passive passive = new Passive();
-        passivePhase = new PassiveCallPhase(dummySpec, dummyDate, 30, passive);
+    public void setup() {
+        lenient().when(specification.getLiveData()).thenReturn(liveData);
+        passiveCallPhase = new PassiveCallPhase(specification, startDate, duration, passive);
     }
 
     @Test
-    void testOnPhaseStart_InitializesPreviouslyReturned() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        liveData.setReturned(300);
-        liveData.setCurrentReturn(100);
+    public void testOnPhaseStart_CallsInitializePreviouslyReturned() {
+        double returnedAmount = 600.0;
+        double currentReturn = 70.0;
+        when(liveData.getReturned()).thenReturn(returnedAmount);
+        when(liveData.getCurrentReturn()).thenReturn(currentReturn);
 
-        passivePhase.onPhaseStart();
+        passiveCallPhase.onPhaseStart();
 
-        assertEquals(300, passivePhase.getPassive().getPreviouslyReturned(), 0.001,
-                "Passive previouslyReturned should equal liveData.getReturned() after onPhaseStart");
-        assertEquals(100, liveData.getPassiveReturn(), 0.001,
-                "Passive return should equal liveData.getCurrentReturn() after onPhaseStart");
-        assertEquals(100, liveData.getPassiveReturned(), 0.001,
-                "PassiveReturned should be increased by currentReturn after onPhaseStart");
+        verify(liveData).setPhaseName("Passive");
+        verify(passive).setPreviouslyReturned(returnedAmount);
+        verify(liveData).setPassiveReturn(currentReturn);
+        verify(liveData).addToPassiveReturned(currentReturn);
     }
 
     @Test
-    void testOnMonthEnd_CalculatesPassiveReturn() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        liveData.setReturned(300);
-        liveData.setCurrentReturn(50);
+    public void testOnDayEnd_CallsCalculatePassive() {
+        double returnedAmount = 500.0;
+        double previousReturned = 300.0;
+        double expectedPassiveReturn = returnedAmount - previousReturned;
 
-        passivePhase.onPhaseStart();
+        when(liveData.getReturned()).thenReturn(returnedAmount);
+        when(passive.getPreviouslyReturned()).thenReturn(previousReturned);
+        IReturner returner = mock(IReturner.class);
+        when(specification.getReturner()).thenReturn(returner);
 
-        double prevReturned = passivePhase.getPassive().getPreviouslyReturned();
-        double passiveReturnedBefore = liveData.getPassiveReturned();
-        liveData.setReturned(prevReturned + 250);
-        liveData.addToCapital(250);
+        IDate dayAfter = mock(IDate.class);
+        when(startDate.plusDays(anyLong())).thenReturn(dayAfter);
+        when(dayAfter.getDayOfWeek()).thenReturn(3);
 
-        passivePhase.onDayEnd();
+        passiveCallPhase.onDayEnd();
 
-        double newReturned = liveData.getReturned();
-        double expectedPassiveReturn = newReturned - prevReturned;
-
-        assertEquals(expectedPassiveReturn, liveData.getPassiveReturn(), 0.001,
-                "Passive return should equal the increase in returned since phase start");
-        assertEquals(passiveReturnedBefore + expectedPassiveReturn, liveData.getPassiveReturned(), 0.001,
-                "PassiveReturned should be increased by the calculated passive return after onMonthEnd()");
+        verify(passive).setPreviouslyReturned(returnedAmount);
+        verify(liveData).setPassiveReturn(expectedPassiveReturn);
+        verify(liveData).addToPassiveReturned(expectedPassiveReturn);
     }
 
     @Test
-    void testCopyCreatesIndependentInstanceForPassiveCallPhase() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-        liveData.setReturned(300);
-        liveData.setCurrentReturn(50);
-        passivePhase.onPhaseStart();
-
-        PassiveCallPhase copyPhase = passivePhase.copy(dummySpec);
-
-        assertNotSame(passivePhase, copyPhase, "The copy should be a distinct instance");
-
-        assertEquals(passivePhase.getStartDate().getEpochDay(), copyPhase.getStartDate().getEpochDay(), "Start dates should be equal");
-        assertEquals(passivePhase.getDuration(), copyPhase.getDuration(), "Durations should be equal");
-        assertNotEquals(passivePhase.getPassive(), copyPhase.getPassive(), "Passive should not be equal");
-
-        assertEquals(passivePhase.getPassive().getPreviouslyReturned(), copyPhase.getPassive().getPreviouslyReturned(),
-                0.001, "Passive previouslyReturned should be equal in copy");
-
-        passivePhase.getPassive().setPreviouslyReturned(500);
-
-        assertNotEquals(passivePhase.getPassive().getPreviouslyReturned(), copyPhase.getPassive().getPreviouslyReturned(),
-                "Changes to the original passive should not affect the copy");
+    public void testSupportsEvent() {
+        assertTrue(passiveCallPhase.supportsEvent(EventType.MONTH_END), "Should support MONTH_END events");
+        assertTrue(passiveCallPhase.supportsEvent(EventType.DAY_END), "Should support DAY_END events");
+        assertTrue(passiveCallPhase.supportsEvent(EventType.YEAR_END), "Should support YEAR_END events");
     }
 
     @Test
-    void testOnMonthEnd_IntegrationOfAddReturnAndCalculatePassive() {
-        DummyLiveData liveData = dummySpec.getLiveData();
+    public void testCopy_ReturnsNewInstance() {
+        Passive passiveCopy = mock(Passive.class);
+        when(passive.copy()).thenReturn(passiveCopy);
+        ISpecification specCopy = mock(ISpecification.class);
 
-        liveData.setCapital(10000);
-        liveData.setReturned(300);
-        liveData.setCurrentReturn(0);
+        PassiveCallPhase copyPhase = passiveCallPhase.copy(specCopy);
 
-        passivePhase.onPhaseStart();
-        double initialPrevReturned = passivePhase.getPassive().getPreviouslyReturned();
-        assertEquals(300, initialPrevReturned, 0.001, "Initially, previouslyReturned should be 300");
-
-        passivePhase.onDayEnd();
-
-        double expectedReturn = (10000 * 0.10) / 252;
-        double expectedReturned = 300 + expectedReturn;
-        double expectedPassiveReturn = expectedReturned - 300;
-
-        assertEquals(expectedReturn, liveData.getCurrentReturn(), 0.001,
-                "Current return should be updated to the calculated expected return");
-        assertEquals(expectedReturned, liveData.getReturned(), 0.001,
-                "Returned should be updated with the calculated return");
-        assertEquals(expectedPassiveReturn, liveData.getPassiveReturn(), 0.001,
-                "Passive return should equal the increase in returned since phase start");
-        assertEquals(expectedPassiveReturn, liveData.getPassiveReturned(), 0.001,
-                "PassiveReturned should equal the calculated passive return after onMonthEnd()");
+        assertNotSame(passiveCallPhase, copyPhase, "copy() should return a new instance");
+        assertSame(specCopy, copyPhase.getSpecification(), "Specification should be replaced by the provided copy");
+        assertSame(startDate, copyPhase.getStartDate(), "Start date should be preserved");
+        assertEquals(duration, copyPhase.getDuration(), "Duration should be preserved");
+        assertSame(passiveCopy, copyPhase.getPassive(), "Passive should be the result of passive.copy()");
     }
 
     @Test
-    void testOnMonthEnd_ReturnCalculationAndPassiveReturn() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
+    public void testOnDayEnd_CallsCalculatePassive_EvenIfNonWeekday() {
+        IDate plusDate = mock(IDate.class);
+        when(startDate.plusDays(anyLong())).thenReturn(plusDate);
+        when(plusDate.getDayOfWeek()).thenReturn(6);
 
-        liveData.setReturned(300);
-        liveData.setCurrentReturn(50);
+        PassiveCallPhase spyPhase = spy(passiveCallPhase);
 
-        passivePhase.onPhaseStart();
-        double storedPreviouslyReturned = passivePhase.getPassive().getPreviouslyReturned();
-        assertEquals(300, storedPreviouslyReturned, 0.001, "Initially, previouslyReturned should be 300");
+        spyPhase.onDayEnd();
 
-        liveData.setReturned(liveData.getReturned() + 200);
-        liveData.addToCapital(200);
-
-        passivePhase.onDayEnd();
-
-        double expectedPassiveReturn = liveData.getReturned() - storedPreviouslyReturned;
-
-        assertEquals(expectedPassiveReturn, liveData.getPassiveReturn(), 0.001,
-                "Passive return should equal the difference between new returned and previouslyReturned");
+        verify(spyPhase).calculatePassive();
     }
 
     @Test
-    void testOnMonthEnd_NoChangeInReturnedResultsInZeroPassiveReturn() {
-        DummyLiveData liveData = (DummyLiveData) dummySpec.getLiveData();
-
-        liveData.setReturned(300);
-        liveData.setCurrentReturn(0);
-
-        passivePhase.onPhaseStart();
-        double storedPreviouslyReturned = passivePhase.getPassive().getPreviouslyReturned();
-        assertEquals(300, storedPreviouslyReturned, 0.001, "PreviouslyReturned should be 300 after onPhaseStart()");
-
-        passivePhase.onMonthEnd();
-
-        assertEquals(0, liveData.getPassiveReturn(), 0.001, "Passive return should be 0 if no change in returned value");
-        assertEquals(0, liveData.getPassiveReturned(), 0.001, "PassiveReturned should remain 0 if no change in returned value");
+    public void testSupportsEvent_UnsupportedEvent() {
+        assertFalse(passiveCallPhase.supportsEvent(EventType.WEEK_END),
+                "Should not support WEEK_END events if not implemented");
     }
 
+    @Test
+    public void testOnPhaseStart_ExtremeCurrentReturn() {
+        when(liveData.getReturned()).thenReturn(1000.0);
+        when(liveData.getCurrentReturn()).thenReturn(Double.NaN);
+
+        passiveCallPhase.onPhaseStart();
+
+        verify(liveData).setPassiveReturn(Double.NaN);
+        verify(liveData).addToPassiveReturned(Double.NaN);
+        verify(passive).setPreviouslyReturned(1000.0);
+    }
 }
