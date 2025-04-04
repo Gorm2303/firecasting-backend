@@ -32,8 +32,8 @@
 		<module>domain-math</module>
         <module>common-simulation-phase</module>
         <module>simulation-phase-factory</module>
-		<module>api</module>
-	</modules>
+        <module>simulation-statistics</module>
+    </modules>
 
 	<properties>
 		<java.version>23</java.version>

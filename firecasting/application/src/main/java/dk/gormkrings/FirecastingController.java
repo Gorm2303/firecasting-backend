@@ -6,40 +6,49 @@ import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.SimulationRequest;
-import dk.gormkrings.factory.IDateFactory;
-import dk.gormkrings.factory.IDepositPhaseFactory;
-import dk.gormkrings.factory.IPassivePhaseFactory;
-import dk.gormkrings.factory.IWithdrawPhaseFactory;
-import dk.gormkrings.factory.ISpecificationFactory;
+import dk.gormkrings.factory.*;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
-import dk.gormkrings.simulation.ISimulation;
+import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
+import dk.gormkrings.statistics.RobustSimulationAggregationService;
+import dk.gormkrings.statistics.YearlySummary;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.LinkedList;
 import java.util.List;
 
+@Slf4j
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/simulation")
 public class FirecastingController {
 
-    private final ISimulation simulation;
+    private final ISimulationFactory simulationFactory;
     private final IDateFactory dateFactory;
     private final IDepositPhaseFactory depositPhaseFactory;
     private final IPassivePhaseFactory passivePhaseFactory;
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
 
-    public FirecastingController(ISimulation simulation,
+    // Field to store the simulation results for later export.
+    private List<IResult> lastResults;
+
+    public FirecastingController(ISimulationFactory simulationFactory,
                                  IDateFactory dateFactory,
                                  IDepositPhaseFactory depositPhaseFactory,
                                  IPassivePhaseFactory passivePhaseFactory,
                                  IWithdrawPhaseFactory withdrawPhaseFactory,
                                  ISpecificationFactory specificationFactory) {
-        this.simulation = simulation;
+        this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
         this.passivePhaseFactory = passivePhaseFactory;
@@ -48,8 +57,8 @@ public class FirecastingController {
     }
 
     @PostMapping
-    public ResponseEntity<List<IResult>> runSimulation(@RequestBody SimulationRequest request) {
-        Formatter.debug = true;
+    public ResponseEntity<List<YearlySummary>> runSimulation(@RequestBody SimulationRequest request) {
+        Formatter.debug = false;
         var specification = specificationFactory.newSpecification(
                 request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage());
 
@@ -62,7 +71,6 @@ public class FirecastingController {
 
         for (PhaseRequest pr : request.getPhases()) {
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
-
             IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
                 case "DEPOSIT" -> {
                     IAction deposit = new Deposit(pr.getInitialDeposit(), pr.getMonthlyDeposit());
@@ -82,7 +90,49 @@ public class FirecastingController {
             currentDate = currentDate.plusMonths(pr.getDurationInMonths());
         }
 
-        List<IResult> results = simulation.run(1, phases);
-        return ResponseEntity.ok(results);
+        long startTime = System.currentTimeMillis();
+        lastResults = simulationFactory.createSimulation().run(1000, phases);
+        long simTime = System.currentTimeMillis();
+        log.info("Handling runs in {} ms", simTime - startTime);
+
+        startTime = System.currentTimeMillis();
+        RobustSimulationAggregationService aggregationService = new RobustSimulationAggregationService();
+        List<YearlySummary> stats = aggregationService.aggregateResults(lastResults);
+        long aggregationTime = System.currentTimeMillis();
+        log.info("Handling aggregating results in {} ms", aggregationTime - startTime);
+
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<StreamingResponseBody> exportResultsAsCsv() {
+        if (lastResults == null || lastResults.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        long simTime = System.currentTimeMillis();
+        // Use your ConcurrentCsvExporter to write the CSV file.
+        File file;
+        try {
+            file = ConcurrentCsvExporter.exportCsv(lastResults, "simulation-results");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(outputStream -> {
+                outputStream.write("Error exporting CSV".getBytes());
+            });
+        }
+        long exportTime = System.currentTimeMillis();
+        log.info("Handling exports in {} ms", exportTime - simTime);
+
+        // Read the generated CSV file and stream its contents.
+        StreamingResponseBody stream = out -> {
+            Files.copy(file.toPath(), out);
+            out.flush();
+        };
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(stream);
     }
 }

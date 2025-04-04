@@ -2,15 +2,14 @@ package dk.gormkrings.distribution;
 
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+@Component
 public class BrownianMotionDistribution implements IDistribution {
     private final double drift;
     private final double volatility;
     private final double dt; // time step
-
-    public BrownianMotionDistribution() {
-        this(0.07, 0.20, 1.0/252);
-    }
 
     /**
      * Constructs a BrownianMotionDistribution with the given drift, volatility, and time step.
@@ -19,7 +18,10 @@ public class BrownianMotionDistribution implements IDistribution {
      * @param volatility the volatility (standard deviation) for the stock
      * @param dt         the time step to simulate (for daily simulation, use 1/252)
      */
-    public BrownianMotionDistribution(double drift, double volatility, double dt) {
+    public BrownianMotionDistribution(
+            @Value("${distribution.brownian.drift:0.07}") double drift,
+            @Value("${distribution.brownian.volatility:0.20}") double volatility,
+            @Value("${distribution.brownian.dt:0.003968254}") double dt) {
         this.drift = drift;
         this.volatility = volatility;
         this.dt = dt;

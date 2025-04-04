@@ -8,7 +8,7 @@ class SimpleDailyReturnTest {
 
     @Test
     void testCalculateReturn() {
-        SimpleDailyReturn monthlyReturn = new SimpleDailyReturn(12);
+        SimpleDailyReturn monthlyReturn = new SimpleDailyReturn(0.12F);
         double amount = 1200;
         double expected = amount * 0.12 / 252;
         double result = monthlyReturn.calculateReturn(amount);

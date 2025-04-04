@@ -22,9 +22,12 @@ public interface ILiveData extends ILive {
     double getCapital();
     double getReturned();
     double getWithdraw();
+    double getWithdrawn();
     double getCurrentTax();
+    double getTax();
     double getCurrentReturn();
     double getInflation();
+    double getNet();
     long getStartTime();
     long getTotalDurationAlive();
     void setCurrentReturn(double returned);

@@ -7,6 +7,7 @@ import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.specification.ISpecification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.concurrent.Future;
 
 @Slf4j
 @Service
+@Scope("prototype")
 public class MonteCarloSimulation implements ISimulation {
 
     private final IEngine engine;

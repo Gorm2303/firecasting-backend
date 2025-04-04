@@ -13,7 +13,7 @@ import java.util.concurrent.Future;
 
 public class ConcurrentCsvExporter {
 
-    public static File exportCsv(List<IResult> resultsList, String finalFileName) {
+    public static File exportCsv(List<IResult> resultsList, String finalFileName) throws IOException {
         File csvFile = new File(finalFileName + ".csv");
 
         int numThreads = Runtime.getRuntime().availableProcessors();
@@ -47,11 +47,7 @@ public class ConcurrentCsvExporter {
             }
         }
 
-        try {
-            FileMerger.mergeAndCleanup(fileNames, csvFile.getAbsolutePath());
-        } catch (IOException e) {
-
-        }
+        FileMerger.mergeAndCleanup(fileNames, csvFile.getAbsolutePath());
         return csvFile;
     }
 }

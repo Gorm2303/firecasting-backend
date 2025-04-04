@@ -12,6 +12,7 @@ import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.List;
 @Setter
 @Getter
 @Service("scheduleEngine")
+@Scope("prototype")
 public class ScheduleEngine implements IEngine {
     private IResultFactory resultFactory;
     private ISnapshotFactory snapshotFactory;
@@ -35,7 +37,7 @@ public class ScheduleEngine implements IEngine {
         ISchedule schedule = scheduleFactory.getSchedule();
         IResult result = resultFactory.newResult();
         ICallPhase currentPhase = (ICallPhase) phaseCopies.removeFirst();
-        result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
+        boolean simStart = true;
 
         for (IScheduleEvent event : schedule.getEvents()) {
             switch (event.getType()) {
@@ -67,6 +69,10 @@ public class ScheduleEngine implements IEngine {
                     break;
                 case PHASE_START:
                     currentPhase.onPhaseStart();
+                    if (simStart) {
+                        result.addSnapshot(snapshotFactory.snapshot((ILiveData) currentPhase.getLiveData()));
+                        simStart = false;
+                    }
                     break;
                 case PHASE_END:
                     currentPhase.onPhaseEnd();

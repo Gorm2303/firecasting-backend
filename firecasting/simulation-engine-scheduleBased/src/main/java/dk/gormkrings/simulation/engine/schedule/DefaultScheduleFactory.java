@@ -9,12 +9,14 @@ import dk.gormkrings.factory.IDateFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
 import lombok.Getter;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@Scope("prototype")
 public class DefaultScheduleFactory implements IScheduleFactory {
     private int nextWeekStartEpoch;
     private int weekEndEpoch;

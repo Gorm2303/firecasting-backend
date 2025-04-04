@@ -87,8 +87,6 @@ public class ScheduleEngineAdditionalTest {
         when(schedule.getEvents()).thenReturn(Collections.emptyList());
         when(scheduleFactory.getSchedule()).thenReturn(schedule);
 
-        when(phase.getLiveData()).thenReturn(liveData);
-
         List<IPhase> phaseList = new LinkedList<>();
         phaseList.add(phase);
 
@@ -147,8 +145,6 @@ public class ScheduleEngineAdditionalTest {
 
         // Create a mock phase and its live data.
         ICallPhase phase = mock(ICallPhase.class);
-        ILiveData liveData = mock(ILiveData.class);
-        when(phase.getLiveData()).thenReturn(liveData);
 
         // Prepare a LinkedList with one phase.
         List<IPhase> phaseList = new LinkedList<>();

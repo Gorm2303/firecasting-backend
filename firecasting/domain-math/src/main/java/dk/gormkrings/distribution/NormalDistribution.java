@@ -2,15 +2,14 @@ package dk.gormkrings.distribution;
 
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+@Component
 public class NormalDistribution implements IDistribution {
     private final double mean;
     private final double standardDeviation;
     private final double dt; // time step
-
-    public NormalDistribution() {
-        this(0.07, 0.20, 1.0 / 252);
-    }
 
     /**
      * Constructs a NormalDistribution with the specified mean, standard deviation, and time step.
@@ -19,7 +18,10 @@ public class NormalDistribution implements IDistribution {
      * @param standardDeviation the standard deviation (annualized if dt is a fraction of a year)
      * @param dt                the time step (for daily simulation, use 1/252)
      */
-    public NormalDistribution(double mean, double standardDeviation, double dt) {
+    public NormalDistribution(
+            @Value("${distribution.normal.mean:0.07}") double mean,
+            @Value("${distribution.normal.standardDeviation:0.20}") double standardDeviation,
+            @Value("${distribution.normal.dt:0.003968254}") double dt) {
         this.mean = mean;
         this.standardDeviation = standardDeviation;
         this.dt = dt;
