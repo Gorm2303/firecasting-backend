@@ -11,27 +11,19 @@ public class YearlySummaryCalculator {
      * Outliers are excluded by filtering out values below the 5th and above the 95th percentiles.
      */
     public YearlySummary calculateYearlySummary(int year, List<Double> capitals, List<Boolean> negativeFlags) {
-        // Calculate the lower and upper bounds (5th and 95th percentiles).
-        double lowerBound = quantile(capitals, 0.05);
-        double upperBound = quantile(capitals, 0.95);
-        // Exclude outliers.
-        List<Double> filtered = capitals.stream()
-                .filter(v -> v >= lowerBound && v <= upperBound)
-                .collect(Collectors.toList());
-
-        double robustAvg = average(filtered);
-        double med = median(filtered);
-        double min = filtered.isEmpty() ? 0.0 : Collections.min(filtered);
-        double max = filtered.isEmpty() ? 0.0 : Collections.max(filtered);
-        double sd = stdDev(filtered, robustAvg);
-        double q5 = quantile(filtered, 0.05);
-        double q25 = quantile(filtered, 0.25);
-        double q75 = quantile(filtered, 0.75);
-        double q95 = quantile(filtered, 0.95);
+        double robustAvg = average(capitals);
+        double med = median(capitals);
+        double min = capitals.isEmpty() ? 0.0 : Collections.min(capitals);
+        double max = capitals.isEmpty() ? 0.0 : Collections.max(capitals);
+        double sd = stdDev(capitals, robustAvg);
+        double q5 = quantile(capitals, 0.05);
+        double q25 = quantile(capitals, 0.25);
+        double q75 = quantile(capitals, 0.75);
+        double q95 = quantile(capitals, 0.95);
 
         // VaR is the 5th percentile; CVaR is the average of values below that threshold.
         double var = q5;
-        List<Double> belowVaR = filtered.stream().filter(v -> v <= var).collect(Collectors.toList());
+        List<Double> belowVaR = capitals.stream().filter(v -> v <= var).collect(Collectors.toList());
         double cvar = belowVaR.isEmpty() ? 0.0 : average(belowVaR);
 
         double negativePercentage = negativeFlags.isEmpty() ? 0.0 :

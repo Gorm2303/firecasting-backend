@@ -11,7 +11,7 @@ import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
-import dk.gormkrings.statistics.RobustSimulationAggregationService;
+import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -96,7 +96,7 @@ public class FirecastingController {
         log.info("Handling runs in {} ms", simTime - startTime);
 
         startTime = System.currentTimeMillis();
-        RobustSimulationAggregationService aggregationService = new RobustSimulationAggregationService();
+        SimulationAggregationService aggregationService = new SimulationAggregationService();
         List<YearlySummary> stats = aggregationService.aggregateResults(lastResults);
         long aggregationTime = System.currentTimeMillis();
         log.info("Handling aggregating results in {} ms", aggregationTime - startTime);

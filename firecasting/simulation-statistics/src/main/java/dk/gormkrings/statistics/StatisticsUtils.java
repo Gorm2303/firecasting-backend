@@ -38,16 +38,4 @@ public class StatisticsUtils {
             return sorted.get(index);
         }
     }
-
-    public static double trimmedMean(List<Double> values, double trimFraction) {
-        if (values.isEmpty()) return 0.0;
-        List<Double> sorted = new ArrayList<>(values);
-        Collections.sort(sorted);
-        int trimCount = (int) (sorted.size() * trimFraction);
-        if (sorted.size() - 2 * trimCount <= 0) {
-            return average(sorted);
-        }
-        List<Double> trimmed = sorted.subList(trimCount, sorted.size() - trimCount);
-        return average(trimmed);
-    }
 }
