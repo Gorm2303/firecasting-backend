@@ -8,16 +8,16 @@ class SimpleDailyReturnTest {
 
     @Test
     void testCalculateReturn() {
-        SimpleDailyReturn monthlyReturn = new SimpleDailyReturn(0.12F);
+        SimpleDailyReturn monthlyReturn = new SimpleDailyReturn();
         double amount = 1200;
-        double expected = amount * 0.12 / 252;
+        double expected = amount * 0.07 / 252;
         double result = monthlyReturn.calculateReturn(amount);
         assertEquals(expected, result, 0.0001, "The calculated monthly return should be 12");
     }
 
     @Test
     void testCopy() {
-        SimpleDailyReturn original = new SimpleDailyReturn(12);
+        SimpleDailyReturn original = new SimpleDailyReturn();
         SimpleDailyReturn copy = original.copy();
         double amount = 1000;
         assertEquals(original.calculateReturn(amount), copy.calculateReturn(amount), 0.0001,

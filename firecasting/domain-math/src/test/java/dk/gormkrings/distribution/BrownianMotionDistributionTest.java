@@ -14,7 +14,7 @@ public class BrownianMotionDistributionTest {
         double drift = 1.0;
         double volatility = 2.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1,2,1);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(u1, u2);
 
@@ -30,7 +30,7 @@ public class BrownianMotionDistributionTest {
         double drift = 0.0;
         double volatility = 1.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(0,1,1);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.5);
         distribution.sample(rng);
@@ -43,7 +43,7 @@ public class BrownianMotionDistributionTest {
         double drift = 1.5;
         double volatility = 0.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1.5, 0, 1);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.3, 0.7);
 
@@ -56,7 +56,7 @@ public class BrownianMotionDistributionTest {
         double drift = 1.0;
         double volatility = 2.0;
 
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1, 2, 1);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
 
         double u1 = 1e-10;
@@ -75,7 +75,7 @@ public class BrownianMotionDistributionTest {
     public void testConsistencyWithDeterministicRNG() {
         double drift = 1.0;
         double volatility = 2.0;
-        BrownianMotionDistribution distribution = new BrownianMotionDistribution(1, 2, 1);
+        BrownianMotionDistribution distribution = new BrownianMotionDistribution();
 
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.25, 0.7, 0.3, 0.2, 0.8);

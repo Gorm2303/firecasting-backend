@@ -2,30 +2,25 @@ package dk.gormkrings.distribution;
 
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConfigurationProperties(prefix = "distribution.normal")
+@Setter
+@Getter
 public class NormalDistribution implements IDistribution {
-    private final double mean;
-    private final double standardDeviation;
-    private final double dt; // time step
-
     /**
      * Constructs a NormalDistribution with the specified mean, standard deviation, and time step.
-     *
-     * @param mean              the mean (annualized if dt is a fraction of a year)
-     * @param standardDeviation the standard deviation (annualized if dt is a fraction of a year)
-     * @param dt                the time step (for daily simulation, use 1/252)
+     * mean              the mean (annualized if dt is a fraction of a year)
+     * standardDeviation the standard deviation (annualized if dt is a fraction of a year)
+     * dt                the time step (for daily simulation, use 1/252)
      */
-    public NormalDistribution(
-            @Value("${distribution.normal.mean:0.07}") double mean,
-            @Value("${distribution.normal.standardDeviation:0.20}") double standardDeviation,
-            @Value("${distribution.normal.dt:0.003968254}") double dt) {
-        this.mean = mean;
-        this.standardDeviation = standardDeviation;
-        this.dt = dt;
-    }
+    private double mean;
+    private double standardDeviation;
+    private double dt; // time step
 
     @Override
     public double sample(IRandomNumberGenerator rng) {
@@ -39,6 +34,6 @@ public class NormalDistribution implements IDistribution {
 
     @Override
     public IDistribution copy() {
-        return new NormalDistribution(mean, standardDeviation, dt);
+        return new NormalDistribution();
     }
 }

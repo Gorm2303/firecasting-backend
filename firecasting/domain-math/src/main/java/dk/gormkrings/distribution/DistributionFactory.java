@@ -28,6 +28,9 @@ public class DistributionFactory implements IDistributionFactory {
         } else if ("tDistribution".equalsIgnoreCase(distribution)) {
             log.info("Creating new T Distribution");
             return context.getBean(TDistributionImpl.class);
+        } else if ("regimeBasedBrownian".equalsIgnoreCase(distribution)) {
+            log.info("Creating new regime-based Brownian Distribution");
+            return context.getBean(RegimeBasedDistribution.class);
         } else {
             log.info("Creating new Brownian Motion Distribution");
             return context.getBean(BrownianMotionDistribution.class);

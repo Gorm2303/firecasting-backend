@@ -1,16 +1,20 @@
 package dk.gormkrings.returns;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@Setter
+@Getter
+@ConfigurationProperties(prefix = "return")
 public class SimpleDailyReturn implements IReturner {
-    private final float averagePercentage;
+    private float averagePercentage;
 
-    public SimpleDailyReturn(@Value("${simpleYearlyReturn.averagePercentage:0.07}") float averagePercentage) {
-        this.averagePercentage = averagePercentage;
+    public SimpleDailyReturn() {
         log.debug("Initializing SimpleDailyReturn: {}", averagePercentage);
     }
 
@@ -20,6 +24,6 @@ public class SimpleDailyReturn implements IReturner {
     }
 
     public SimpleDailyReturn copy() {
-        return new SimpleDailyReturn(averagePercentage);
+        return new SimpleDailyReturn();
     }
 }
