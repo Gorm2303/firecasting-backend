@@ -3,9 +3,13 @@ package dk.gormkrings.distribution;
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
 import dk.gormkrings.regime.IRegimeProvider;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+
+@Slf4j
 @Component
 @Scope("prototype")
 public class RegimeBasedDistribution implements IDistribution {
@@ -21,6 +25,7 @@ public class RegimeBasedDistribution implements IDistribution {
     public RegimeBasedDistribution(IDistribution[] regimeDistributions, IRegimeProvider regimeProvider) {
         this.regimeDistributions = regimeDistributions;
         this.regimeProvider = regimeProvider;
+        log.info("Creating new Regime-Based Distribution: {}", Arrays.toString(regimeDistributions));
     }
 
     @Override
@@ -42,5 +47,13 @@ public class RegimeBasedDistribution implements IDistribution {
         }
         // For simplicity, we reuse the same regime provider instance.
         return new RegimeBasedDistribution(newRegimes, regimeProvider);
+    }
+
+    @Override
+    public String toString() {
+        return "RegimeBasedDistribution{" +
+                "regimeDistributions=" + Arrays.toString(regimeDistributions) +
+                ", regimeProvider=" + regimeProvider +
+                '}';
     }
 }

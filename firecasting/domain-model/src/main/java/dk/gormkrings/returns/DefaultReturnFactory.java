@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component("defaultReturnFactory")
 public class DefaultReturnFactory implements IReturnFactory {
-    @Value("${domain.returns.selected:simpleMonthlyReturn}")
+    @Value("${returner.selected:simpleMonthlyReturn}")
     private String returner;
 
     private final ApplicationContext context;

@@ -34,6 +34,19 @@ public class NormalDistribution implements IDistribution {
 
     @Override
     public IDistribution copy() {
-        return new NormalDistribution();
+        NormalDistribution copy = new NormalDistribution();
+        copy.setMean(mean);
+        copy.setStandardDeviation(standardDeviation);
+        copy.setDt(dt);
+        return copy;
+    }
+
+    @Override
+    public String toString() {
+        return "NormalDistribution{" +
+                "mean=" + mean +
+                ", standardDeviation=" + standardDeviation +
+                ", dt=" + dt +
+                '}';
     }
 }

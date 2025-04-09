@@ -10,9 +10,7 @@ import java.util.Random;
 @Component
 @ConfigurationProperties(prefix = "regime")
 public class SimpleRegimeProvider implements IRegimeProvider {
-    /**
-     * The current regime, can be set from properties.
-     */
+
     @Setter
     private int currentRegime = 0;
 

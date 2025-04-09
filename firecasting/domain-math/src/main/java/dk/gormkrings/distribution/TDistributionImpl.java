@@ -2,6 +2,7 @@ package dk.gormkrings.distribution;
 
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.math3.distribution.TDistribution;
@@ -19,6 +20,11 @@ public class TDistributionImpl implements IDistribution {
     private double nu;
     private double dt;
 
+    @PostConstruct
+    public void init() {
+        this.tDistribution = new TDistribution(nu);
+    }
+
     @Override
     public double sample(IRandomNumberGenerator rng) {
         double u = rng.nextDouble();
@@ -29,6 +35,23 @@ public class TDistributionImpl implements IDistribution {
 
     @Override
     public IDistribution copy() {
-        return new TDistributionImpl();
+        TDistributionImpl copy = new TDistributionImpl();
+        // Ensure properties are copied, then reinitialize the distribution on the copy
+        copy.mu = this.mu;
+        copy.sigma = this.sigma;
+        copy.nu = this.nu;
+        copy.dt = this.dt;
+        copy.tDistribution = new TDistribution(copy.nu);
+        return copy;
+    }
+
+    @Override
+    public String toString() {
+        return "TDistributionImpl{" +
+                ", mu=" + mu +
+                ", sigma=" + sigma +
+                ", nu=" + nu +
+                ", dt=" + dt +
+                '}';
     }
 }

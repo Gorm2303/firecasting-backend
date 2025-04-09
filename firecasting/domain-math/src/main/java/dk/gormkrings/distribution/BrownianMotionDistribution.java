@@ -32,6 +32,19 @@ public class BrownianMotionDistribution implements IDistribution {
 
     @Override
     public IDistribution copy() {
-        return new BrownianMotionDistribution();
+        BrownianMotionDistribution copy = new BrownianMotionDistribution();
+        copy.setDrift(drift);
+        copy.setVolatility(volatility);
+        copy.setDt(dt);
+        return copy;
+    }
+
+    @Override
+    public String toString() {
+        return "BrownianMotionDistribution{" +
+                "drift=" + drift +
+                ", volatility=" + volatility +
+                ", dt=" + dt +
+                '}';
     }
 }

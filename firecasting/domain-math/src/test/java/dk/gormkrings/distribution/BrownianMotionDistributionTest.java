@@ -15,6 +15,10 @@ public class BrownianMotionDistributionTest {
         double volatility = 2.0;
 
         BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        distribution.setDrift(drift);
+        distribution.setVolatility(volatility);
+        distribution.setDt(1);
+
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(u1, u2);
 
@@ -31,6 +35,7 @@ public class BrownianMotionDistributionTest {
         double volatility = 1.0;
 
         BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.5);
         distribution.sample(rng);
@@ -44,6 +49,10 @@ public class BrownianMotionDistributionTest {
         double volatility = 0.0;
 
         BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        distribution.setDrift(drift);
+        distribution.setVolatility(volatility);
+        distribution.setDt(1);
+
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.3, 0.7);
 
@@ -57,6 +66,10 @@ public class BrownianMotionDistributionTest {
         double volatility = 2.0;
 
         BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        distribution.setDrift(drift);
+        distribution.setVolatility(volatility);
+        distribution.setDt(1);
+
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
 
         double u1 = 1e-10;
@@ -76,6 +89,9 @@ public class BrownianMotionDistributionTest {
         double drift = 1.0;
         double volatility = 2.0;
         BrownianMotionDistribution distribution = new BrownianMotionDistribution();
+        distribution.setDrift(drift);
+        distribution.setVolatility(volatility);
+        distribution.setDt(1);
 
         IRandomNumberGenerator rng = mock(IRandomNumberGenerator.class);
         when(rng.nextDouble()).thenReturn(0.5, 0.25, 0.7, 0.3, 0.2, 0.8);

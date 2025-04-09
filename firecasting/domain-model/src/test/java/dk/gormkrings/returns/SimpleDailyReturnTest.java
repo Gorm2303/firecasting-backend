@@ -9,6 +9,7 @@ class SimpleDailyReturnTest {
     @Test
     void testCalculateReturn() {
         SimpleDailyReturn monthlyReturn = new SimpleDailyReturn();
+        monthlyReturn.setAveragePercentage(0.07F);
         double amount = 1200;
         double expected = amount * 0.07 / 252;
         double result = monthlyReturn.calculateReturn(amount);
@@ -18,6 +19,7 @@ class SimpleDailyReturnTest {
     @Test
     void testCopy() {
         SimpleDailyReturn original = new SimpleDailyReturn();
+        original.setAveragePercentage(0.07F);
         SimpleDailyReturn copy = original.copy();
         double amount = 1000;
         assertEquals(original.calculateReturn(amount), copy.calculateReturn(amount), 0.0001,

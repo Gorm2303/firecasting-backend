@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Setter
 @Getter
-@ConfigurationProperties(prefix = "return")
+@ConfigurationProperties(prefix = "returner")
 public class SimpleDailyReturn implements IReturner {
     private float averagePercentage;
 
@@ -24,6 +24,8 @@ public class SimpleDailyReturn implements IReturner {
     }
 
     public SimpleDailyReturn copy() {
-        return new SimpleDailyReturn();
+        SimpleDailyReturn copy = new SimpleDailyReturn();
+        copy.setAveragePercentage(averagePercentage);
+        return copy;
     }
 }

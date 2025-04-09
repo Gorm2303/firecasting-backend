@@ -13,7 +13,7 @@ public class DistributionFactory implements IDistributionFactory {
 
     private final ApplicationContext context;
 
-    @Value("${domain.distributionReturn.distribution:brownianMotionDistribution}")
+    @Value("${distribution.selected:brownianMotion}")
     private String distribution;
 
     public DistributionFactory(ApplicationContext context) {
@@ -22,14 +22,14 @@ public class DistributionFactory implements IDistributionFactory {
 
     @Override
     public IDistribution createDistribution() {
-        if ("normalDistribution".equalsIgnoreCase(distribution)) {
+        if ("normal".equalsIgnoreCase(distribution)) {
             log.info("Creating new Normal Distribution");
             return context.getBean(NormalDistribution.class);
         } else if ("tDistribution".equalsIgnoreCase(distribution)) {
             log.info("Creating new T Distribution");
             return context.getBean(TDistributionImpl.class);
-        } else if ("regimeBasedBrownian".equalsIgnoreCase(distribution)) {
-            log.info("Creating new regime-based Brownian Distribution");
+        } else if ("regimeBased".equalsIgnoreCase(distribution)) {
+            log.info("Creating new Regime-Based Distribution");
             return context.getBean(RegimeBasedDistribution.class);
         } else {
             log.info("Creating new Brownian Motion Distribution");
