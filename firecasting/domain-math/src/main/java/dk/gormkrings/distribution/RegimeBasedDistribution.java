@@ -15,6 +15,7 @@ import java.util.Arrays;
 public class RegimeBasedDistribution implements IDistribution {
     private final IDistribution[] regimeDistributions;
     private final IRegimeProvider regimeProvider;
+    private static boolean initialized = false;
 
     /**
      * Constructs a RegimeBasedDistribution.
@@ -25,7 +26,10 @@ public class RegimeBasedDistribution implements IDistribution {
     public RegimeBasedDistribution(IDistribution[] regimeDistributions, IRegimeProvider regimeProvider) {
         this.regimeDistributions = regimeDistributions;
         this.regimeProvider = regimeProvider;
-        log.info("Creating new Regime-Based Distribution: {}", Arrays.toString(regimeDistributions));
+        if (!initialized) {
+            log.info("Creating new Regime-Based Distribution: {}", Arrays.toString(regimeDistributions));
+            initialized = true;
+        }
     }
 
     @Override
@@ -46,7 +50,7 @@ public class RegimeBasedDistribution implements IDistribution {
             newRegimes[i] = regimeDistributions[i].copy();
         }
         // For simplicity, we reuse the same regime provider instance.
-        return new RegimeBasedDistribution(newRegimes, regimeProvider);
+        return new RegimeBasedDistribution(newRegimes, regimeProvider.copy());
     }
 
     @Override

@@ -5,13 +5,13 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import java.util.Random;
+import java.util.SplittableRandom;
 
+@Setter
 @Component
 @ConfigurationProperties(prefix = "regime")
 public class SimpleRegimeProvider implements IRegimeProvider {
 
-    @Setter
     private int currentRegime = 0;
 
     /**
@@ -20,14 +20,13 @@ public class SimpleRegimeProvider implements IRegimeProvider {
      * state 0: 90% chance to remain in 0, 10% to switch to 1
      * state 1: 15% chance to switch to 0, 85% to remain in 1
      */
-    @Setter
     @Getter
     private double[][] transitionMatrix = {
             {0.90, 0.10},
             {0.15, 0.85}
     };
-
-    private final Random random = new Random();
+    @Getter
+    private SplittableRandom random = new SplittableRandom();
 
     @Override
     public int getCurrentRegime() {
@@ -44,4 +43,15 @@ public class SimpleRegimeProvider implements IRegimeProvider {
         currentRegime = newRegime;
         return currentRegime;
     }
+
+    @Override
+    public IRegimeProvider copy() {
+        SimpleRegimeProvider copy = new SimpleRegimeProvider();
+        copy.currentRegime = currentRegime;
+        copy.transitionMatrix = transitionMatrix;
+        copy.random = random.split();
+        return copy;
+    }
+
+
 }

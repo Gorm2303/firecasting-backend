@@ -4,34 +4,29 @@ import dk.gormkrings.result.IResult;
 import dk.gormkrings.result.ISnapshot;
 import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.simulation.result.Snapshot;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
 import java.util.*;
 import java.util.stream.Collectors;
 import static dk.gormkrings.statistics.StatisticsUtils.*;
 
+@Component
+@ConfigurationProperties(prefix = "statistics")
+@Setter
+@Getter
 public class SimulationAggregationService {
+    private final YearlySummaryCalculator summaryCalculator = new YearlySummaryCalculator();
 
-    private YearlySummaryCalculator summaryCalculator = new YearlySummaryCalculator();
-
-    /**
-     * Filters the raw DataPoint list by excluding outlier datapoints.
-     * This method works on the datapoints grouped per year (e.g. year-end values).
-     * In this robust version, we exclude datapoints that lie below the 5th percentile or above the 95th percentile.
-     */
-    private List<DataPoint> filterDataPoints(List<DataPoint> rawDataPoints) {
-        List<Double> capitals = rawDataPoints.stream()
-                .map(dp -> dp.capital)
-                .collect(Collectors.toList());
-        double lowerBound = quantile(capitals, 0.05);
-        double upperBound = quantile(capitals, 0.95);
-        return rawDataPoints.stream()
-                .filter(dp -> dp.capital >= lowerBound && dp.capital <= upperBound)
-                .collect(Collectors.toList());
-    }
+    private double lowerThresholdPercentile = 0.05;
+    private double upperThresholdPercentile = 0.95;
 
     /**
      * Aggregates simulation results into yearly summaries.
      * Before grouping snapshots by year, entire simulation runs are removed if their final effective capital
-     * (i.e. the last snapshot's effective capital, with non‑deposit negatives set to 0) is among the bottom or top 5%.
+     * (i.e. the last snapshot's effective capital, with non‑deposit negatives set to 0) is among the bottom or top percentages.
      */
     public List<YearlySummary> aggregateResults(List<IResult> results) {
         // First, compute the final effective capital for each simulation run.
@@ -52,10 +47,10 @@ public class SimulationAggregationService {
             runFinalCapital.put(result, finalEffectiveCapital);
         }
 
-        // Compute thresholds (5th and 95th percentiles) over final effective capitals.
+        // Compute thresholds based on configurable quantiles.
         List<Double> finals = new ArrayList<>(runFinalCapital.values());
-        double lowerThreshold = quantile(finals, 0.05);
-        double upperThreshold = quantile(finals, 0.95);
+        double lowerThreshold = quantile(finals, lowerThresholdPercentile);
+        double upperThreshold = quantile(finals, upperThresholdPercentile);
 
         // Filter out entire simulation runs that are outliers.
         List<IResult> filteredResults = runFinalCapital.entrySet().stream()
@@ -65,7 +60,6 @@ public class SimulationAggregationService {
 
         // Group the snapshots from the filtered simulation runs by year.
         Map<Integer, List<DataPoint>> dataByYear = new HashMap<>();
-
         for (IResult result : filteredResults) {
             boolean runFailed = false;
             List<ISnapshot> snapshots = result.getSnapshots();
@@ -89,10 +83,8 @@ public class SimulationAggregationService {
         List<YearlySummary> summaries = new ArrayList<>();
         for (Integer year : dataByYear.keySet()) {
             List<DataPoint> rawDataPoints = dataByYear.get(year);
-            // Apply robust filtering on a per-year basis.
-            List<DataPoint> filteredData = filterDataPoints(rawDataPoints);
-            List<Double> capitals = filteredData.stream().map(dp -> dp.capital).collect(Collectors.toList());
-            List<Boolean> negatives = filteredData.stream().map(dp -> dp.negativeFlag).collect(Collectors.toList());
+            List<Double> capitals = rawDataPoints.stream().map(dp -> dp.capital).collect(Collectors.toList());
+            List<Boolean> negatives = rawDataPoints.stream().map(dp -> dp.negativeFlag).collect(Collectors.toList());
             YearlySummary summary = summaryCalculator.calculateYearlySummary(year, capitals, negatives);
             summaries.add(summary);
         }
@@ -120,6 +112,7 @@ public class SimulationAggregationService {
     private static class DataPoint {
         public final double capital;
         public final boolean negativeFlag;
+
         public DataPoint(double capital, boolean negativeFlag) {
             this.capital = capital;
             this.negativeFlag = negativeFlag;

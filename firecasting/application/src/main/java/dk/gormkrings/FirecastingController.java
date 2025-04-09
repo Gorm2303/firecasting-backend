@@ -14,6 +14,7 @@ import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,12 @@ public class FirecastingController {
     private final IPassivePhaseFactory passivePhaseFactory;
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
+    private final SimulationAggregationService aggregationService;
+
+    @Value("${firecast.debug}")
+    private boolean debug = false;
+    @Value("${firecast.runs}")
+    private int runs;
 
     // Field to store the simulation results for later export.
     private List<IResult> lastResults;
@@ -47,18 +54,20 @@ public class FirecastingController {
                                  IDepositPhaseFactory depositPhaseFactory,
                                  IPassivePhaseFactory passivePhaseFactory,
                                  IWithdrawPhaseFactory withdrawPhaseFactory,
-                                 ISpecificationFactory specificationFactory) {
+                                 ISpecificationFactory specificationFactory,
+                                 SimulationAggregationService aggregationService) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
         this.passivePhaseFactory = passivePhaseFactory;
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
+        this.aggregationService = aggregationService;
     }
 
     @PostMapping
     public ResponseEntity<List<YearlySummary>> runSimulation(@RequestBody SimulationRequest request) {
-        Formatter.debug = false;
+        Formatter.debug = debug;
         var specification = specificationFactory.newSpecification(
                 request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage());
 
@@ -91,12 +100,11 @@ public class FirecastingController {
         }
 
         long startTime = System.currentTimeMillis();
-        lastResults = simulationFactory.createSimulation().run(1000, phases);
+        lastResults = simulationFactory.createSimulation().run(runs, phases);
         long simTime = System.currentTimeMillis();
         log.info("Handling runs in {} ms", simTime - startTime);
 
         startTime = System.currentTimeMillis();
-        SimulationAggregationService aggregationService = new SimulationAggregationService();
         List<YearlySummary> stats = aggregationService.aggregateResults(lastResults);
         long aggregationTime = System.currentTimeMillis();
         log.info("Handling aggregating results in {} ms", aggregationTime - startTime);
