@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class YearlySummary {
+    private String phaseName;
     private int year;
     private double averageCapital;
     private double medianCapital;

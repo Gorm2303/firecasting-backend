@@ -10,7 +10,7 @@ public class YearlySummaryCalculator {
      * Calculates a YearlySummary based on a list of effective capital values for a given year.
      * Outliers are excluded by filtering out values below the 5th and above the 95th percentiles.
      */
-    public YearlySummary calculateYearlySummary(int year, List<Double> capitals, List<Boolean> negativeFlags) {
+    public YearlySummary calculateYearlySummary(String phaseName, int year, List<Double> capitals, List<Boolean> negativeFlags) {
         double robustAvg = average(capitals);
         double med = median(capitals);
         double min = capitals.isEmpty() ? 0.0 : Collections.min(capitals);
@@ -30,6 +30,7 @@ public class YearlySummaryCalculator {
                 negativeFlags.stream().filter(b -> b).count() * 100.0 / negativeFlags.size();
 
         YearlySummary summary = new YearlySummary();
+        summary.setPhaseName(phaseName);
         summary.setYear(year);
         summary.setAverageCapital(robustAvg);
         summary.setMedianCapital(med);
