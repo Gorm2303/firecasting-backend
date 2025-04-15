@@ -1,8 +1,8 @@
 package dk.gormkrings.phase.eventBased;
 
 import dk.gormkrings.action.IAction;
+import dk.gormkrings.action.IPassive;
 import dk.gormkrings.phase.IPassivePhase;
-import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
@@ -17,14 +17,14 @@ import org.springframework.context.ApplicationEvent;
 @Getter
 @Slf4j
 public class PassiveEventPhase extends SimulationEventPhase implements IPassivePhase {
-    private Passive passive;
+    private IPassive passive;
     @Setter
     private boolean firstTime = true;
 
     public PassiveEventPhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
         super(specification, startDate, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
-        this.passive = (Passive) passive;
+        this.passive = (IPassive) passive;
     }
 
     @Override

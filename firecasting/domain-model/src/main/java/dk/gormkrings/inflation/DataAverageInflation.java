@@ -14,7 +14,7 @@ public class DataAverageInflation implements IInflation {
         this("/dk/gormkrings/inflation/inflation.csv");
     }
 
-    private DataAverageInflation(double averagePercentage) {
+    public DataAverageInflation(double averagePercentage) {
         this.averagePercentage = averagePercentage;
     }
 
@@ -65,6 +65,6 @@ public class DataAverageInflation implements IInflation {
             log.error("Error reading CSV file", e);
         }
 
-        averagePercentage = count > 0 ? sum / count : 0;
+        averagePercentage = count > 0 ? (float) (sum / count) : 0;
     }
 }

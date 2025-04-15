@@ -1,7 +1,8 @@
 package dk.gormkrings.phase.eventBased;
 
+import dk.gormkrings.action.IAction;
+import dk.gormkrings.action.IDeposit;
 import dk.gormkrings.phase.IDepositPhase;
-import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
@@ -17,13 +18,13 @@ import org.springframework.context.ApplicationEvent;
 @Getter
 @Setter
 public class DepositEventPhase extends SimulationEventPhase implements IDepositPhase {
-    private Deposit deposit;
+    private IDeposit deposit;
     private boolean firstTime = true;
 
-    public DepositEventPhase(ISpecification specification, IDate startDate, long duration, Deposit deposit) {
+    public DepositEventPhase(ISpecification specification, IDate startDate, long duration, IAction deposit) {
         super(specification, startDate, duration, "Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
-        this.deposit = deposit;
+        this.deposit = (IDeposit) deposit;
     }
 
     @Override

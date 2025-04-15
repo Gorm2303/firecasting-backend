@@ -1,8 +1,8 @@
 package dk.gormkrings.phase.eventBased;
 
 import dk.gormkrings.action.IAction;
+import dk.gormkrings.action.IWithdraw;
 import dk.gormkrings.phase.IWithdrawPhase;
-import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
@@ -18,12 +18,12 @@ import org.springframework.context.ApplicationEvent;
 @Getter
 @Setter
 public class WithdrawEventPhase extends SimulationEventPhase implements IWithdrawPhase {
-    private Withdraw withdraw;
+    private IWithdraw withdraw;
 
     public WithdrawEventPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
-        this.withdraw = (Withdraw) withdraw;
+        this.withdraw = (IWithdraw) withdraw;
     }
 
     @Override
@@ -32,6 +32,7 @@ public class WithdrawEventPhase extends SimulationEventPhase implements IWithdra
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
             withdrawMoney();
+            addTax();
             addNetEarnings();
             if (Formatter.debug) log.debug(prettyString());
         }

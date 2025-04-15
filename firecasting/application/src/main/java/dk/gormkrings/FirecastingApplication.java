@@ -13,10 +13,12 @@ import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -30,6 +32,11 @@ public class FirecastingApplication implements CommandLineRunner {
     private final IPassivePhaseFactory passivePhaseFactory;
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
+
+    @Value("${settings.run-local}")
+    private boolean runLocal = false;
+    @Value("${settings.debug}")
+    private boolean debug = false;
 
     public FirecastingApplication(ISimulation simulation,
                                   IDateFactory dateFactory,
@@ -51,11 +58,13 @@ public class FirecastingApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-
+        Formatter.debug = debug;
+        if (runLocal) {
+            runLocal();
+        }
     }
-/*
-    @Override
-    public void run(String... args) {
+
+    public void runLocal() {
         Formatter.debug = true;
         List<IPhase> phases = new LinkedList<>();
         log.info("Application Started");
@@ -77,7 +86,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         IAction deposit = new Deposit(10000, 10000);
         IAction passive = new Passive();
-        IAction withdraw = new Withdraw(0, 0.04);
+        IAction withdraw = new Withdraw(0, 0.04, 0.5);
 
         IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositDays, deposit);
         phases.add(currentPhase);
@@ -89,14 +98,18 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
-        List<IResult> results = simulation.run(1, phases);
+        List<IResult> results = simulation.run(10000, phases);
         long simTime = System.currentTimeMillis();
-        ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
+        try {
+            ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         long exportTime = System.currentTimeMillis();
 
         log.info("Handling runs in {} ms", simTime - startTime);
         log.info("Handling exports in {} ms", exportTime - simTime);
         log.info("Elapsed time: {} seconds", ((double) (System.currentTimeMillis() - startTime)) / 1000);
         log.info("Application Ended");
-    } */
+    }
 }

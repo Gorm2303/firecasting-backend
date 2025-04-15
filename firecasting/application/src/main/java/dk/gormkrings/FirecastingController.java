@@ -41,9 +41,7 @@ public class FirecastingController {
     private final ISpecificationFactory specificationFactory;
     private final SimulationAggregationService aggregationService;
 
-    @Value("${firecast.debug}")
-    private boolean debug = false;
-    @Value("${firecast.runs}")
+    @Value("${settings.runs}")
     private int runs;
 
     // Field to store the simulation results for later export.
@@ -67,9 +65,8 @@ public class FirecastingController {
 
     @PostMapping
     public ResponseEntity<List<YearlySummary>> runSimulation(@RequestBody SimulationRequest request) {
-        Formatter.debug = debug;
         var specification = specificationFactory.newSpecification(
-                request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage());
+                request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage(), 2f);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),
@@ -90,7 +87,8 @@ public class FirecastingController {
                     yield passivePhaseFactory.createPassivePhase(specification, currentDate, days, passive);
                 }
                 case "WITHDRAW" -> {
-                    IAction withdraw = new Withdraw(0, pr.getWithdrawRate());
+                    double withdrawAmount = pr.getWithdrawAmount() != null ? pr.getWithdrawAmount() : 0;
+                    IAction withdraw = new Withdraw(withdrawAmount, pr.getWithdrawRate(), 0.5);
                     yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, days, withdraw);
                 }
                 default -> throw new IllegalArgumentException("Unknown phase type: " + pr.getPhaseType());
@@ -105,11 +103,11 @@ public class FirecastingController {
         log.info("Handling runs in {} ms", simTime - startTime);
 
         startTime = System.currentTimeMillis();
-        List<YearlySummary> stats = aggregationService.aggregateResults(lastResults);
+        List<YearlySummary> statistics = aggregationService.aggregateResults(lastResults);
         long aggregationTime = System.currentTimeMillis();
         log.info("Handling aggregating results in {} ms", aggregationTime - startTime);
 
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(statistics);
     }
 
     @GetMapping("/export")

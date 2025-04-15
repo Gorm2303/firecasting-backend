@@ -1,10 +1,10 @@
 package dk.gormkrings.phase;
 
-import dk.gormkrings.action.Deposit;
+import dk.gormkrings.action.IDeposit;
 import dk.gormkrings.data.ILiveData;
 
 public interface IDepositPhase extends ISimulationPhase {
-    Deposit getDeposit();
+    IDeposit getDeposit();
     ILiveData getLiveData();
 
     default void depositMoney() {

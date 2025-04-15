@@ -15,5 +15,7 @@ public class PhaseRequest {
     private Double monthlyDeposit;
     // Only for withdraw phases:
     private Double withdrawRate;
+    private Double withdrawAmount;
+    private Boolean dynamicWithdraw;
 }
 

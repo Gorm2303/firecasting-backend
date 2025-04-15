@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Getter
 @Setter
-public class Passive implements IAction {
+public class Passive implements IPassive {
     private double previouslyReturned = 0;
 
     public Passive() {

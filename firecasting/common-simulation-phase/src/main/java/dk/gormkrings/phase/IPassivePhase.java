@@ -1,10 +1,10 @@
 package dk.gormkrings.phase;
 
-import dk.gormkrings.action.Passive;
+import dk.gormkrings.action.IPassive;
 import dk.gormkrings.data.ILiveData;
 
 public interface IPassivePhase extends ISimulationPhase {
-    Passive getPassive();
+    IPassive getPassive();
     ILiveData getLiveData();
 
     default void calculatePassive() {

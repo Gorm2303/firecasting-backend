@@ -1,9 +1,9 @@
 package dk.gormkrings.phase.callBased;
 
+import dk.gormkrings.action.IWithdraw;
 import dk.gormkrings.event.EventType;
 import dk.gormkrings.phase.IWithdrawPhase;
 import dk.gormkrings.action.IAction;
-import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
@@ -15,18 +15,19 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Setter
 public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawPhase {
-    private Withdraw withdraw;
+    private IWithdraw withdraw;
 
     public WithdrawCallPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
         super(specification, startDate, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
-        this.withdraw = (Withdraw) withdraw;
+        this.withdraw = (IWithdraw) withdraw;
     }
 
     @Override
     public void onMonthEnd() {
         super.onMonthEnd();
         withdrawMoney();
+        addTax();
         addNetEarnings();
         if (Formatter.debug) log.debug(prettyString());
     }

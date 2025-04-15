@@ -10,7 +10,7 @@ public class DefaultInflationFactory implements IInflationFactory {
     }
 
     @Override
-    public IInflation createInflation(float inflationPercentage) {
-        return new DataAverageInflation();
+    public IInflation createInflation(double inflationPercentage) {
+        return new DataAverageInflation(inflationPercentage);
     }
 }

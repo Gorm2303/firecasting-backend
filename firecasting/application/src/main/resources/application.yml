@@ -5,9 +5,10 @@ spring:
     compose:
       enabled: false
 
-firecast:
+settings:
   debug: false
   runs: 10000
+  run-local: false
 
 simulation:
   engine:

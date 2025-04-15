@@ -1,13 +1,13 @@
 package dk.gormkrings.phase;
 
-import dk.gormkrings.action.Withdraw;
+import dk.gormkrings.action.IWithdraw;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.CapitalGainsTax;
 import dk.gormkrings.tax.NotionalGainsTax;
 
 public interface IWithdrawPhase extends ISimulationPhase{
-    Withdraw getWithdraw();
+    IWithdraw getWithdraw();
     ILiveData getLiveData();
     ISpecification getSpecification();
 
@@ -16,7 +16,6 @@ public interface IWithdrawPhase extends ISimulationPhase{
         getLiveData().setWithdraw(withdrawAmount);
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);
-        addTax();
     }
 
     default void addTax() {

@@ -6,6 +6,7 @@ import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.simulation.result.Snapshot;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 import static dk.gormkrings.statistics.StatisticsUtils.*;
 
+@Slf4j
 @Component
 @ConfigurationProperties(prefix = "statistics")
 @Setter
@@ -26,34 +28,42 @@ public class SimulationAggregationService {
 
     /**
      * Aggregates simulation results into yearly summaries.
-     * Entire simulation runs are first filtered out based on their final effective capital,
-     * then snapshots from the remaining runs are grouped by year.
+     * Steps:
+     *   1) Process each simulation run to compute final capital and collect snapshots (without marking snapshot failures).
+     *   2) Compute quantile thresholds over final effective capitals and filter out simulation runs that are outliers.
+     *   3) For the remaining runs, mark snapshots as failed only from the snapshot that first fails (and onward).
+     *   4) Group snapshots by year and build yearly summaries.
      */
     public List<YearlySummary> aggregateResults(List<IResult> results) {
-        // Process each simulation run once to calculate final capital and collect its datapoints.
+        // Step 1: Process each simulation run (no failure marking).
         List<SimulationRunData> simulationDataList = new ArrayList<>();
         for (IResult result : results) {
             simulationDataList.add(processRun(result));
         }
 
-        // Compute thresholds over final effective capitals.
+        // Step 2: Compute quantile thresholds over final effective capitals.
         List<Double> finals = simulationDataList.stream()
-                .map(runData -> runData.finalEffectiveCapital)
+                .map(runData -> runData.finalEffectiveCapital())
                 .collect(Collectors.toList());
         double lowerThreshold = quantile(finals, lowerThresholdPercentile);
         double upperThreshold = quantile(finals, upperThresholdPercentile);
 
-        // Filter simulation runs based on computed thresholds.
+        // Filter out simulation runs that fall outside the desired quantile thresholds.
         List<SimulationRunData> filteredSimulationData = simulationDataList.stream()
-                .filter(runData -> runData.finalEffectiveCapital >= lowerThreshold &&
-                        runData.finalEffectiveCapital <= upperThreshold)
+                .filter(runData -> runData.finalEffectiveCapital() >= lowerThreshold &&
+                        runData.finalEffectiveCapital() <= upperThreshold)
                 .toList();
 
-        // Group all DataPoints from the filtered simulation runs by year.
+        // Step 3: For each filtered run, mark snapshots as failed only from the first failing snapshot onward.
+        List<SimulationRunData> markedSimulationData = filteredSimulationData.stream()
+                .map(this::markFailures)
+                .collect(Collectors.toList());
+
+        // Step 4: Group all DataPoints (snapshots) from the marked simulation runs by year.
         Map<Integer, List<DataPoint>> dataByYear = new HashMap<>();
-        for (SimulationRunData runData : filteredSimulationData) {
-            for (DataPoint dp : runData.dataPoints) {
-                dataByYear.computeIfAbsent(dp.year, y -> new ArrayList<>()).add(dp);
+        for (SimulationRunData runData : markedSimulationData) {
+            for (DataPoint dp : runData.dataPoints()) {
+                dataByYear.computeIfAbsent(dp.year(), y -> new ArrayList<>()).add(dp);
             }
         }
 
@@ -61,19 +71,20 @@ public class SimulationAggregationService {
         List<YearlySummary> summaries = new ArrayList<>();
         for (Map.Entry<Integer, List<DataPoint>> entry : dataByYear.entrySet()) {
             int year = entry.getKey();
-            String phaseName = entry.getValue().get(year).phaseName();
+            // Assume that within the same year, snapshots share the same phaseName.
+            String phaseName = entry.getValue().get(0).phaseName();
             List<DataPoint> rawDataPoints = entry.getValue();
             List<Double> capitals = rawDataPoints.stream()
-                    .map(dp -> dp.capital)
+                    .map(dp -> dp.capital())
                     .collect(Collectors.toList());
             List<Boolean> failed = rawDataPoints.stream()
-                    .map(dp -> dp.runFailed)
+                    .map(dp -> dp.runFailed())
                     .collect(Collectors.toList());
             YearlySummary summary = summaryCalculator.calculateYearlySummary(phaseName, year, capitals, failed);
             summaries.add(summary);
         }
 
-        // Sort and compute year-to-year growth.
+        // Sort the yearly summaries and compute the year-to-year growth.
         summaries.sort(Comparator.comparingInt(YearlySummary::getYear));
         for (int i = 1; i < summaries.size(); i++) {
             YearlySummary previous = summaries.get(i - 1);
@@ -90,15 +101,11 @@ public class SimulationAggregationService {
     }
 
     /**
-     * Processes a simulation run (IResult) by iterating through its snapshots just once.
-     * The method computes the final effective capital and collects a list of DataPoints,
-     * where each DataPoint also stores its computed year.
-     *
-     * @param result the simulation run.
-     * @return a SimulationRunData containing the final effective capital and associated datapoints.
+     * Processes a simulation run (IResult) by iterating through its snapshots once.
+     * This method collects snapshots into DataPoints without marking any failure.
+     * The final effective capital is taken from the last snapshot.
      */
     private SimulationRunData processRun(IResult result) {
-        boolean runFailed = false;
         double finalEffectiveCapital = 0.0;
         List<DataPoint> dataPoints = new ArrayList<>();
         for (ISnapshot snap : result.getSnapshots()) {
@@ -107,31 +114,49 @@ public class SimulationAggregationService {
                     .plusDays(state.getTotalDurationAlive())
                     .getYear();
             double capital = state.getCapital();
-            // Once a snapshot fails, the run is marked as failed.
-            if (!"Deposit".equalsIgnoreCase(state.getPhaseName()) && capital <= 0) {
-                runFailed = true;
-            }
-            // Use the same flag to determine the effective capital:
-            double effectiveCapital = runFailed ? 0 : (capital < 0 ? 0 : capital);
-            // Use the accumulated runFailed flag as the negative flag.
-            dataPoints.add(new DataPoint(effectiveCapital, runFailed, year, state.getPhaseName()));
-            // The final effective capital is taken from the last snapshot.
-            finalEffectiveCapital = effectiveCapital;
+            // Initially, do not mark run failure; record snapshot as is.
+            dataPoints.add(new DataPoint(capital, false, year, state.getPhaseName()));
+            finalEffectiveCapital = capital;
         }
         return new SimulationRunData(finalEffectiveCapital, dataPoints);
     }
 
-
     /**
-         * Holds the computed final effective capital and associated datapoints for a simulation run.
-         */
-        private record SimulationRunData(double finalEffectiveCapital, List<DataPoint> dataPoints) {
+     * For a given simulation run, mark snapshots (on a snapshot level) as failed only from the first
+     * snapshot that fails (outside the "Deposit" phase with capital <= 0) and for all following snapshots.
+     * Snapshots before the failure event remain unchanged.
+     */
+    private SimulationRunData markFailures(SimulationRunData runData) {
+        boolean failureOccurred = false;
+        List<DataPoint> updatedDataPoints = new ArrayList<>();
+        for (DataPoint dp : runData.dataPoints()) {
+            if (!failureOccurred) {
+                // Check if this snapshot should trigger failure.
+                if (!"Deposit".equalsIgnoreCase(dp.phaseName()) && dp.capital() <= 0) {
+                    failureOccurred = true;
+                    // Mark this snapshot as failed.
+                    updatedDataPoints.add(new DataPoint(0, true, dp.year(), dp.phaseName()));
+                } else {
+                    updatedDataPoints.add(dp);
+                }
+            } else {
+                // Once failure has occurred, mark all subsequent snapshots as failed.
+                updatedDataPoints.add(new DataPoint(0, true, dp.year(), dp.phaseName()));
+            }
+        }
+        double updatedFinalCapital = updatedDataPoints.isEmpty() ? 0 :
+                updatedDataPoints.get(updatedDataPoints.size()-1).capital();
+        return new SimulationRunData(updatedFinalCapital, updatedDataPoints);
     }
 
     /**
-         * DataPoint holds a capital value, a negative flag, and the year it belongs to.
-         */
-        private record DataPoint(double capital, boolean runFailed, int year, String phaseName) {
-    }
+     * Holds the computed final effective capital and associated datapoints for a simulation run.
+     */
+    private record SimulationRunData(double finalEffectiveCapital, List<DataPoint> dataPoints) {}
 
+    /**
+     * DataPoint holds a capital value, a flag indicating if that snapshot (or its run, from that point onward)
+     * is marked as failed, the associated year, and the phase name.
+     */
+    private record DataPoint(double capital, boolean runFailed, int year, String phaseName) {}
 }

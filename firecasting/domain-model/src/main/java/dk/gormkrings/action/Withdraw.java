@@ -1,36 +1,38 @@
 package dk.gormkrings.action;
 
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class Withdraw implements IAction {
+public class Withdraw implements IWithdraw {
     private double monthlyAmount;
     @Setter
     private double monthlyPercent;
+    @Setter
+    private double dynamicAmountOfReturn;
+    @Getter
+    private final double dynamicPercentOfReturn;
 
-    public Withdraw(double monthlyAmount, double monthlyPercent) {
+    public Withdraw(double monthlyAmount, double monthlyPercent, double dynamicPercentOfReturn) {
         if (monthlyAmount < 0 || monthlyPercent < 0) throw new IllegalArgumentException("Withdraw constructor called with a negative value");
         this.monthlyAmount = monthlyAmount;
         this.monthlyPercent = monthlyPercent;
-        log.debug("Initializing withdraw: {} monthly, {} percent", monthlyAmount, monthlyPercent);
+        this.dynamicPercentOfReturn = dynamicPercentOfReturn;
+        log.debug("Initializing withdraw: {} monthly, {} percent, {} dynamic percent", monthlyAmount, monthlyPercent, dynamicPercentOfReturn);
     }
 
     public double getMonthlyAmount(double capital) {
-        if (monthlyAmount > 0) return monthlyAmount;
-        else if (monthlyPercent > 0) return (monthlyPercent * capital)/12;
-        else return 0;
+        return getMonthlyAmount(capital, 0);
     }
 
     public double getMonthlyAmount(double capital, double inflation) {
         if (monthlyAmount > 0) {
-            return monthlyAmount * (inflation / 100);
-        }
-        else if (monthlyPercent > 0) {
+            return monthlyAmount + (monthlyAmount * (inflation / 100) - monthlyAmount) + dynamicAmountOfReturn;
+        } else {
             monthlyAmount = (monthlyPercent * capital)/12;
-            return (monthlyPercent * capital)/12;
+            return getMonthlyAmount(capital, inflation);
         }
-        else return 0;
     }
 
     public void setMonthlyAmount(double monthlyAmount) {
@@ -41,7 +43,8 @@ public class Withdraw implements IAction {
     public Withdraw copy() {
         return new Withdraw(
                 this.monthlyAmount,
-                this.monthlyPercent
+                this.monthlyPercent,
+                this.dynamicPercentOfReturn
         );
     }
 }

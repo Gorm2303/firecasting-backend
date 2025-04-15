@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Slf4j
 @Setter
-public class Deposit implements IAction {
+public class Deposit implements IDeposit {
     private double initial;
     private double monthly;
 

@@ -1,7 +1,6 @@
 package dk.gormkrings.factory;
 
 import dk.gormkrings.action.IAction;
-import dk.gormkrings.action.Deposit;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.phase.callBased.DepositCallPhase;
@@ -21,7 +20,7 @@ public class DefaultDepositPhaseFactory implements IDepositPhaseFactory {
     public IPhase createDepositPhase(ISpecification specification, IDate startDate, long duration, IAction deposit) {
         if ("event".equalsIgnoreCase(depositPhaseType)) {
             log.info("Creating event-based deposit phase");
-            return new DepositEventPhase(specification, startDate, duration, (Deposit) deposit);
+            return new DepositEventPhase(specification, startDate, duration, deposit);
         } else {
             log.info("Creating call-based deposit phase");
             return new DepositCallPhase(specification, startDate, duration, deposit);
