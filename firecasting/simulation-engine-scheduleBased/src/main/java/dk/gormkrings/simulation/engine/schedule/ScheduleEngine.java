@@ -9,7 +9,7 @@ import dk.gormkrings.factory.IResultFactory;
 import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.context.annotation.Scope;
@@ -33,9 +33,9 @@ public class ScheduleEngine implements IEngine {
     }
 
     @Override
-    public IResult simulatePhases(List<IPhase> phaseCopies) {
+    public IRunResult simulatePhases(List<IPhase> phaseCopies) {
         ISchedule schedule = scheduleFactory.getSchedule();
-        IResult result = resultFactory.newResult();
+        IRunResult result = resultFactory.newResult();
         ICallPhase currentPhase = (ICallPhase) phaseCopies.removeFirst();
         boolean simStart = true;
 

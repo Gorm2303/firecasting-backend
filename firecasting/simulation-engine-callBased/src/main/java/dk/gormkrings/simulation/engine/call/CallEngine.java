@@ -8,7 +8,7 @@ import dk.gormkrings.factory.IResultFactory;
 import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -28,8 +28,8 @@ public class CallEngine implements IEngine {
         this.snapshotFactory = snapshotFactory;
     }
 
-    public IResult simulatePhases(List<IPhase> phaseCopies) {
-        IResult result = resultFactory.newResult();
+    public IRunResult simulatePhases(List<IPhase> phaseCopies) {
+        IRunResult result = resultFactory.newResult();
         result.addSnapshot(snapshotFactory.snapshot((ILiveData) phaseCopies.getFirst().getLiveData()));
         for (IPhase phase : phaseCopies) {
             result.addResult(simulatePhase((ICallPhase) phase));
@@ -37,9 +37,9 @@ public class CallEngine implements IEngine {
         return result;
     }
 
-    private IResult simulatePhase(ICallPhase phase) {
+    private IRunResult simulatePhase(ICallPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
-        IResult result = resultFactory.newResult();
+        IRunResult result = resultFactory.newResult();
         ILiveData data = (ILiveData) phase.getLiveData();
         IDate startDate = phase.getStartDate();
 

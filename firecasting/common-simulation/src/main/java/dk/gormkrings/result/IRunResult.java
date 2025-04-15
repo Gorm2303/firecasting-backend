@@ -4,8 +4,8 @@ import dk.gormkrings.data.IImmutableData;
 
 import java.util.List;
 
-public interface IResult extends IImmutableData {
+public interface IRunResult extends IImmutableData {
     void addSnapshot(ISnapshot snapshot);
     List<ISnapshot> getSnapshots();
-    void addResult(IResult result);
+    void addResult(IRunResult result);
 }

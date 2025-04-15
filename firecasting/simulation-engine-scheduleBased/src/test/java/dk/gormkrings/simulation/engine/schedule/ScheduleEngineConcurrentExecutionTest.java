@@ -7,7 +7,7 @@ import dk.gormkrings.factory.IResultFactory;
 import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,7 +35,7 @@ public class ScheduleEngineConcurrentExecutionTest {
 
         // Simulation Task 1: Each simulation creates its own mocks and then verifies
         // that only its own mocks were used.
-        Callable<IResult> simulationTask1 = () -> {
+        Callable<IRunResult> simulationTask1 = () -> {
             // Create mocks for simulation 1.
             IResultFactory resultFactory1 = mock(IResultFactory.class);
             // Snapshot factory is not used in our verifications below.
@@ -51,7 +51,7 @@ public class ScheduleEngineConcurrentExecutionTest {
             when(scheduleFactory1.getSchedule()).thenReturn(schedule1);
 
             // Create a mock result for simulation 1.
-            IResult result1 = mock(IResult.class);
+            IRunResult result1 = mock(IRunResult.class);
             when(resultFactory1.newResult()).thenReturn(result1);
 
             // Prepare a LinkedList with a single phase.
@@ -60,7 +60,7 @@ public class ScheduleEngineConcurrentExecutionTest {
 
             // Create the ScheduleEngine instance for simulation 1.
             ScheduleEngine engine1 = new ScheduleEngine(resultFactory1, snapshotFactory1, scheduleFactory1);
-            IResult res1 = engine1.simulatePhases(phaseList1);
+            IRunResult res1 = engine1.simulatePhases(phaseList1);
 
             // Verify that only simulation 1's mocks were used.
             verify(resultFactory1, times(1)).newResult();
@@ -77,7 +77,7 @@ public class ScheduleEngineConcurrentExecutionTest {
         };
 
         // Simulation Task 2: A separate simulation with its own mocks.
-        Callable<IResult> simulationTask2 = () -> {
+        Callable<IRunResult> simulationTask2 = () -> {
             // Create mocks for simulation 2.
             IResultFactory resultFactory2 = mock(IResultFactory.class);
             ISnapshotFactory snapshotFactory2 = mock(ISnapshotFactory.class);
@@ -92,7 +92,7 @@ public class ScheduleEngineConcurrentExecutionTest {
             when(scheduleFactory2.getSchedule()).thenReturn(schedule2);
 
             // Create a mock result for simulation 2.
-            IResult result2 = mock(IResult.class);
+            IRunResult result2 = mock(IRunResult.class);
             when(resultFactory2.newResult()).thenReturn(result2);
 
             // Prepare a LinkedList with a single phase.
@@ -101,7 +101,7 @@ public class ScheduleEngineConcurrentExecutionTest {
 
             // Create the ScheduleEngine instance for simulation 2.
             ScheduleEngine engine2 = new ScheduleEngine(resultFactory2, snapshotFactory2, scheduleFactory2);
-            IResult res2 = engine2.simulatePhases(phaseList2);
+            IRunResult res2 = engine2.simulatePhases(phaseList2);
 
             // Verify that only simulation 2's mocks were used.
             verify(resultFactory2, times(1)).newResult();
@@ -117,12 +117,12 @@ public class ScheduleEngineConcurrentExecutionTest {
         };
 
         // Submit both simulation tasks concurrently.
-        Future<IResult> future1 = executor.submit(simulationTask1);
-        Future<IResult> future2 = executor.submit(simulationTask2);
+        Future<IRunResult> future1 = executor.submit(simulationTask1);
+        Future<IRunResult> future2 = executor.submit(simulationTask2);
 
         // Wait for the tasks to complete.
-        IResult result1 = future1.get(5, TimeUnit.SECONDS);
-        IResult result2 = future2.get(5, TimeUnit.SECONDS);
+        IRunResult result1 = future1.get(5, TimeUnit.SECONDS);
+        IRunResult result2 = future2.get(5, TimeUnit.SECONDS);
 
         // Assert that both simulation results are non-null and different.
         assertNotNull(result1, "Simulation 1 should produce a non-null result");

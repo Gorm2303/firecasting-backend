@@ -2,7 +2,7 @@ package dk.gormkrings.simulation.monteCarlo;
 
 import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.specification.ISpecification;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Formatter;
 
 @Slf4j
 @Service
@@ -24,7 +25,7 @@ import java.util.concurrent.Future;
 public class MonteCarloSimulation implements ISimulation {
 
     private final IEngine engine;
-    private final List<IResult> results = new ArrayList<>();
+    private final List<IRunResult> results = new ArrayList<>();
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
 
     // Inject all IEngine beans as a map and select one based on a configuration property.
@@ -39,27 +40,36 @@ public class MonteCarloSimulation implements ISimulation {
         }
     }
 
-    public List<IResult> run(long runs, List<IPhase> phases) {
+    public List<IRunResult> run(long runs, List<IPhase> phases) {
         if (phases.isEmpty() || runs < 0) throw new IllegalArgumentException("No phases to run") ;
         results.clear();
         engine.init(phases);
 
-        List<Future<IResult>> futures = new ArrayList<>();
+        List<Future<IRunResult>> futures = new ArrayList<>();
 
+        long blockStartTime = System.currentTimeMillis();
         for (int i = 0; i < runs; i++) {
             List<IPhase> phaseCopies = new ArrayList<>();
             ISpecification specification = phases.getFirst().getSpecification().copy();
             for (IPhase phase : phases) {
                 phaseCopies.add(phase.copy(specification));
             }
-            Future<IResult> future = executorService.submit(() -> engine.simulatePhases(phaseCopies));
+            Future<IRunResult> future = executorService.submit(() -> engine.simulatePhases(phaseCopies));
             futures.add(future);
         }
-
-        for (Future<IResult> future : futures) {
+        for (Future<IRunResult> future : futures) {
             try {
-                IResult result = future.get();
+                IRunResult result = future.get();
                 results.add(result);
+                if (results.size() % 10000 == 0) {
+                    long blockEndTime = System.currentTimeMillis();
+                    long blockTimeMs = (blockEndTime - blockStartTime);
+                    log.info("Completed {}/{} runs in {} ms",
+                            String.format("%,d", results.size()),
+                            String.format("%,d", runs),
+                            String.format("%,d", blockTimeMs));
+                    blockStartTime = blockEndTime;
+                }
             } catch (InterruptedException | ExecutionException e) {
                 log.info("Some simulation runs failed: {} result(s), {} run(s)", results.size(), runs);
                 log.debug("Error during simulation run", e);

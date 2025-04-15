@@ -8,9 +8,8 @@ import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.SimulationRequest;
 import dk.gormkrings.factory.*;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
-import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +44,7 @@ public class FirecastingController {
     private int runs;
 
     // Field to store the simulation results for later export.
-    private List<IResult> lastResults;
+    private List<IRunResult> lastResults;
 
     public FirecastingController(ISimulationFactory simulationFactory,
                                  IDateFactory dateFactory,

@@ -2,7 +2,7 @@ package dk.gormkrings.simulation.monteCarlo;
 
 import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.specification.ISpecification;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -10,10 +10,7 @@ import org.mockito.stubbing.Answer;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,7 +41,7 @@ public class MonteCarloSimulationTest {
     @Test
     public void testRunReturnsCorrectNumberOfResults() throws Exception {
         IEngine mockEngine = mock(IEngine.class);
-        IResult dummyResult = mock(IResult.class);
+        IRunResult dummyResult = mock(IRunResult.class);
         when(mockEngine.simulatePhases(anyList())).thenReturn(dummyResult);
 
         IPhase mockPhase1 = mock(IPhase.class);
@@ -63,7 +60,7 @@ public class MonteCarloSimulationTest {
         MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
 
         int runs = 10;
-        List<IResult> results = simulation.run(runs, phases);
+        List<IRunResult> results = simulation.run(runs, phases);
         assertEquals(runs, results.size(), "The number of results should equal the number of runs.");
         verify(mockEngine, times(runs)).simulatePhases(anyList());
     }
@@ -71,7 +68,7 @@ public class MonteCarloSimulationTest {
     @Test
     public void testRunWithZeroRunsReturnsEmptyList() throws Exception {
         IEngine mockEngine = mock(IEngine.class);
-        IResult dummyResult = mock(IResult.class);
+        IRunResult dummyResult = mock(IRunResult.class);
         when(mockEngine.simulatePhases(anyList())).thenReturn(dummyResult);
 
         IPhase mockPhase1 = mock(IPhase.class);
@@ -89,7 +86,7 @@ public class MonteCarloSimulationTest {
         MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
 
         int runs = 0;
-        List<IResult> results = simulation.run(runs, phases);
+        List<IRunResult> results = simulation.run(runs, phases);
         assertTrue(results.isEmpty(), "The results list should be empty when no runs are executed.");
         verify(mockEngine, never()).simulatePhases(anyList());
     }
@@ -97,7 +94,7 @@ public class MonteCarloSimulationTest {
     @Test
     public void testEngineSimulationFailure() throws Exception {
         IEngine mockEngine = mock(IEngine.class);
-        IResult dummyResult = mock(IResult.class);
+        IRunResult dummyResult = mock(IRunResult.class);
 
         when(mockEngine.simulatePhases(anyList()))
                 .thenReturn(dummyResult)
@@ -117,7 +114,7 @@ public class MonteCarloSimulationTest {
         engines.put("testEngine", mockEngine);
         MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
 
-        List<IResult> results = simulation.run(2, phases);
+        List<IRunResult> results = simulation.run(2, phases);
         assertEquals(1, results.size(), "Only successful runs should be added to the results list.");
         verify(mockEngine, times(2)).simulatePhases(anyList());
     }
@@ -125,7 +122,7 @@ public class MonteCarloSimulationTest {
     @Test
     public void testPhaseCopyInvocation() throws Exception {
         IEngine mockEngine = mock(IEngine.class);
-        IResult dummyResult = mock(IResult.class);
+        IRunResult dummyResult = mock(IRunResult.class);
         when(mockEngine.simulatePhases(any())).thenReturn(dummyResult);
 
         IPhase phase1 = mock(IPhase.class);
@@ -159,7 +156,7 @@ public class MonteCarloSimulationTest {
     @Test
     public void testResultsResetBetweenRuns() throws Exception {
         IEngine mockEngine = mock(IEngine.class);
-        IResult dummyResult = mock(IResult.class);
+        IRunResult dummyResult = mock(IRunResult.class);
         when(mockEngine.simulatePhases(any())).thenReturn(dummyResult);
 
         IPhase phase1 = mock(IPhase.class);
@@ -178,11 +175,11 @@ public class MonteCarloSimulationTest {
 
         List<IPhase> phases = List.of(phase1, phase2);
         int firstRunCount = 2;
-        List<IResult> firstResults = simulation.run(firstRunCount, phases);
+        List<IRunResult> firstResults = simulation.run(firstRunCount, phases);
         assertEquals(firstRunCount, firstResults.size(), "First run should return 2 results.");
 
         int secondRunCount = 3;
-        List<IResult> secondResults = simulation.run(secondRunCount, phases);
+        List<IRunResult> secondResults = simulation.run(secondRunCount, phases);
         assertEquals(secondRunCount, secondResults.size(), "Second run should return 3 results only, not accumulated from first run.");
     }
 
@@ -209,7 +206,7 @@ public class MonteCarloSimulationTest {
     @Test
     public void testTaskSubmissionCount() throws Exception {
         IEngine mockEngine = mock(IEngine.class);
-        IResult dummyResult = mock(IResult.class);
+        IRunResult dummyResult = mock(IRunResult.class);
         when(mockEngine.simulatePhases(any())).thenReturn(dummyResult);
 
         IPhase phase1 = mock(IPhase.class);
@@ -244,7 +241,7 @@ public class MonteCarloSimulationTest {
         IEngine engine = mock(IEngine.class);
         IPhase phase = mock(IPhase.class);
         ISpecification specification = mock(ISpecification.class);
-        IResult result = mock(IResult.class);
+        IRunResult result = mock(IRunResult.class);
 
         when(phase.getSpecification()).thenReturn(specification);
         when(specification.copy()).thenReturn(specification);
@@ -258,7 +255,7 @@ public class MonteCarloSimulationTest {
 
         int runs = 100000;
         List<IPhase> phases = Collections.singletonList(phase);
-        List<IResult> results = simulation.run(runs, phases);
+        List<IRunResult> results = simulation.run(runs, phases);
         verify(engine, times(runs)).simulatePhases(anyList());
         assertEquals(runs, results.size());
     }
@@ -268,14 +265,14 @@ public class MonteCarloSimulationTest {
         IEngine engine = mock(IEngine.class);
         IPhase phase = mock(IPhase.class);
         ISpecification specification = mock(ISpecification.class);
-        IResult result = mock(IResult.class);
+        IRunResult result = mock(IRunResult.class);
 
         when(phase.getSpecification()).thenReturn(specification);
         when(specification.copy()).thenReturn(specification);
         when(phase.copy(specification)).thenReturn(phase);
         ConcurrentLinkedQueue<String> threadNames = new ConcurrentLinkedQueue<>();
 
-        when(engine.simulatePhases(anyList())).thenAnswer((Answer<IResult>) invocation -> {
+        when(engine.simulatePhases(anyList())).thenAnswer((Answer<IRunResult>) invocation -> {
             Thread.sleep(50);
             threadNames.add(Thread.currentThread().getName());
             return result;
@@ -287,7 +284,7 @@ public class MonteCarloSimulationTest {
         MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "scheduleEngine");
         int runs = 20;
         List<IPhase> phases = Collections.singletonList(phase);
-        List<IResult> results = simulation.run(runs, phases);
+        List<IRunResult> results = simulation.run(runs, phases);
         verify(engine, times(runs)).simulatePhases(anyList());
 
         assertEquals(runs, results.size(), "The results list should have one entry per simulation run.");
@@ -308,14 +305,14 @@ public class MonteCarloSimulationTest {
 
         int runs = 10000;
 
-        List<IResult> distinctResults = new ArrayList<>();
+        List<IRunResult> distinctResults = new ArrayList<>();
         for (int i = 0; i < runs; i++) {
-            distinctResults.add(mock(IResult.class, "result" + i));
+            distinctResults.add(mock(IRunResult.class, "result" + i));
         }
 
         AtomicInteger counter = new AtomicInteger(0);
         when(engine.simulatePhases(anyList()))
-                .thenAnswer((Answer<IResult>) invocation -> {
+                .thenAnswer((Answer<IRunResult>) invocation -> {
                     int index = counter.getAndIncrement();
                     return distinctResults.get(index);
                 });
@@ -326,7 +323,7 @@ public class MonteCarloSimulationTest {
         MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "callEngine");
 
         List<IPhase> phases = Collections.singletonList(phase);
-        List<IResult> results = simulation.run(runs, phases);
+        List<IRunResult> results = simulation.run(runs, phases);
         verify(engine, times(runs)).simulatePhases(anyList());
 
         assertEquals(runs, results.size(), "The results list size should match the number of runs.");

@@ -7,7 +7,7 @@ spring:
 
 settings:
   debug: false
-  runs: 10000
+  runs: 100000
   run-local: false
 
 simulation:
@@ -45,6 +45,6 @@ regime:
     - [0, 1, 0]
 
 statistics:
-  lower-threshold-percentile: 0.05
-  upper-threshold-percentile: 0.95
+  lower-threshold-percentile: 0
+  upper-threshold-percentile: 1
 

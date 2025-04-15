@@ -1,8 +1,7 @@
 package dk.gormkrings.simulation.util;
 
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.result.ISnapshot;
-import dk.gormkrings.simulation.result.Snapshot;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -12,7 +11,7 @@ import java.util.List;
 
 public class CsvExporter {
 
-    public static File exportResultsToCsv(List<IResult> results, String fileName) {
+    public static File exportResultsToCsv(List<IRunResult> results, String fileName) {
         File csvFile = new File(fileName);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvFile))) {
             String header = "phase, day, month, year, date, capital, deposited, passive, returned, return, withdrawn, withdraw, taxed, tax, inflation, nettotal, net" +
@@ -21,7 +20,7 @@ public class CsvExporter {
             writer.newLine();
 
             ISnapshot previousSnapshot = null;
-            for (IResult result : results) {
+            for (IRunResult result : results) {
                 for (ISnapshot snapshot : result.getSnapshots()) {
                     writer.write(snapshot.toCsvRow());
                     if (previousSnapshot != null) {

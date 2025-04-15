@@ -1,6 +1,6 @@
 package dk.gormkrings.simulation.result;
 
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.result.ISnapshot;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -14,10 +14,10 @@ import java.util.List;
 @Getter
 @Component
 @Scope("prototype")
-public class Result implements IResult {
+public class RunResult implements IRunResult {
     private final List<ISnapshot> snapshots;
 
-    public Result() {
+    public RunResult() {
         this.snapshots = new ArrayList<>();
     }
 
@@ -27,7 +27,7 @@ public class Result implements IResult {
     }
 
     @Override
-    public void addResult(IResult result) {
+    public void addResult(IRunResult result) {
         this.snapshots.addAll(result.getSnapshots());
     }
 }

@@ -1,6 +1,6 @@
 package dk.gormkrings.simulation.util;
 
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,7 +13,7 @@ import java.util.concurrent.Future;
 
 public class ConcurrentCsvExporter {
 
-    public static File exportCsv(List<IResult> resultsList, String finalFileName) throws IOException {
+    public static File exportCsv(List<IRunResult> resultsList, String finalFileName) throws IOException {
         File csvFile = new File(finalFileName + ".csv");
 
         int numThreads = Runtime.getRuntime().availableProcessors();
@@ -31,7 +31,7 @@ public class ConcurrentCsvExporter {
             int extra = (i < remaining ? 1 : 0);
             int endIndex = startIndex + partitionSize + extra;
             if (startIndex >= totalResults) break; // No more results to partition.
-            List<IResult> partition = resultsList.subList(startIndex, Math.min(endIndex, totalResults));
+            List<IRunResult> partition = resultsList.subList(startIndex, Math.min(endIndex, totalResults));
             String tmpFileName = finalFileName + "_part_" + (i + 1) + ".csv";
             fileNames.add(tmpFileName);
 

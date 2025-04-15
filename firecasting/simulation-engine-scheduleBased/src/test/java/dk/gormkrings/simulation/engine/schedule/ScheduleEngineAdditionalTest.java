@@ -4,12 +4,11 @@ import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.engine.schedule.ISchedule;
 import dk.gormkrings.engine.schedule.IScheduleEvent;
 import dk.gormkrings.engine.schedule.IScheduleFactory;
-import dk.gormkrings.event.EventType;
 import dk.gormkrings.factory.IResultFactory;
 import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -80,7 +79,7 @@ public class ScheduleEngineAdditionalTest {
 
     @Test
     public void testSimulatePhasesNoEvents() {
-        IResult result = mock(IResult.class);
+        IRunResult result = mock(IRunResult.class);
         when(resultFactory.newResult()).thenReturn(result);
 
         ISchedule schedule = mock(ISchedule.class);
@@ -92,7 +91,7 @@ public class ScheduleEngineAdditionalTest {
 
         ScheduleEngine engine = new ScheduleEngine(resultFactory, snapshotFactory, scheduleFactory);
 
-        IResult simulationResult = engine.simulatePhases(phaseList);
+        IRunResult simulationResult = engine.simulatePhases(phaseList);
 
         verify(resultFactory, times(1)).newResult();
         verify(scheduleFactory, times(1)).getSchedule();
@@ -128,7 +127,7 @@ public class ScheduleEngineAdditionalTest {
         IScheduleFactory scheduleFactory = mock(IScheduleFactory.class);
 
         // Create a mock result and stub resultFactory.
-        IResult result = mock(IResult.class);
+        IRunResult result = mock(IRunResult.class);
         when(resultFactory.newResult()).thenReturn(result);
 
         // Create a mock schedule that will return one event with an unexpected type.

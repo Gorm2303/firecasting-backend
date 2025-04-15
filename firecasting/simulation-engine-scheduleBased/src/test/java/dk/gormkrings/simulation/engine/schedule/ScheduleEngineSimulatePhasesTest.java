@@ -11,7 +11,7 @@ import dk.gormkrings.factory.IResultFactory;
 import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -119,7 +119,7 @@ public class ScheduleEngineSimulatePhasesTest {
         IScheduleFactory spyScheduleFactory = spy(scheduleFactory);
         doReturn(schedule).when(spyScheduleFactory).getSchedule();
 
-        IResult result = mock(IResult.class);
+        IRunResult result = mock(IRunResult.class);
         when(resultFactory.newResult()).thenReturn(result);
 
         List<IPhase> phaseList = new LinkedList<>();
@@ -127,7 +127,7 @@ public class ScheduleEngineSimulatePhasesTest {
 
         ScheduleEngine engine = new ScheduleEngine(resultFactory, snapshotFactory, spyScheduleFactory);
 
-        IResult simulationResult = engine.simulatePhases(phaseList);
+        IRunResult simulationResult = engine.simulatePhases(phaseList);
 
         verify(resultFactory, times(1)).newResult();
         verify(spyScheduleFactory, times(1)).getSchedule();
@@ -152,7 +152,7 @@ public class ScheduleEngineSimulatePhasesTest {
         IScheduleFactory scheduleFactory = mock(IScheduleFactory.class);
 
         // Create a mock result and stub resultFactory.
-        IResult result = mock(IResult.class);
+        IRunResult result = mock(IRunResult.class);
         when(resultFactory.newResult()).thenReturn(result);
 
         // Create a mock schedule.

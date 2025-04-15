@@ -1,7 +1,7 @@
 package dk.gormkrings.factory;
 
-import dk.gormkrings.result.IResult;
+import dk.gormkrings.result.IRunResult;
 
 public interface IResultFactory {
-    IResult newResult();
+    IRunResult newResult();
 }
