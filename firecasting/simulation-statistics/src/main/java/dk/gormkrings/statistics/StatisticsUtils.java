@@ -11,7 +11,7 @@ public class StatisticsUtils {
         if (sorted.isEmpty()) return 0.0;
         int n = sorted.size();
         return (n % 2 == 0)
-                ? (sorted.get(n / 2 - 1) + sorted.get(n / 2)) / 2.0
+                ? (sorted.get(n / 2 - 1))
                 : sorted.get(n / 2);
     }
 

@@ -7,8 +7,9 @@ spring:
 
 settings:
   debug: false
-  runs: 100000
+  runs: 1000000
   run-local: false
+  timeout: 6000000
 
 simulation:
   engine:

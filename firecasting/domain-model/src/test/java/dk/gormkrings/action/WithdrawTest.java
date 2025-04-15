@@ -21,7 +21,7 @@ class WithdrawTest {
 
     @Test
     void testGetMonthlyAmountDirect() {
-        Withdraw withdraw = new Withdraw(500, 0.1,0);
+        Withdraw withdraw = new Withdraw(500, 0,0);
         double capital = 100000;
         double monthly = withdraw.getMonthlyAmount(capital);
         assertEquals(500, monthly, "Should return the direct monthly amount when > 0");

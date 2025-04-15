@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 public class CsvExporter {
 
@@ -23,9 +24,7 @@ public class CsvExporter {
             for (IRunResult result : results) {
                 for (ISnapshot snapshot : result.getSnapshots()) {
                     writer.write(snapshot.toCsvRow());
-                    if (previousSnapshot != null) {
-                        writer.write(addYearlyValues(snapshot, previousSnapshot));
-                    }
+                    writer.write(addYearlyValues(snapshot, Objects.requireNonNullElse(previousSnapshot, snapshot)));
                     writer.newLine();
                     previousSnapshot = snapshot;
                 }

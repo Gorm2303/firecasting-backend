@@ -51,6 +51,8 @@ public class FirecastingController {
 
     @Value("${settings.runs}")
     private int runs;
+    @Value("${settings.timeout}")
+    private long timeout = 60000;
 
     // Field to store the simulation results for later export.
     private List<IRunResult> lastResults;
@@ -172,7 +174,7 @@ public class FirecastingController {
      */
     @GetMapping("/progress/{simulationId}")
     public SseEmitter getProgress(@PathVariable String simulationId) {
-        SseEmitter emitter = new SseEmitter();
+        SseEmitter emitter = new SseEmitter(timeout);
         // Put the emitter in the map, so that simulation progress updates can find it.
         emitters.put(simulationId, emitter);
 

@@ -28,7 +28,7 @@ public class Withdraw implements IWithdraw {
 
     public double getMonthlyAmount(double capital, double inflation) {
         if (monthlyAmount > 0) {
-            return monthlyAmount + (monthlyAmount * (inflation / 100) - monthlyAmount) + dynamicAmountOfReturn;
+            return monthlyAmount + (monthlyAmount * (inflation / 100)) + dynamicAmountOfReturn;
         } else {
             monthlyAmount = (monthlyPercent * capital)/12;
             return getMonthlyAmount(capital, inflation);
