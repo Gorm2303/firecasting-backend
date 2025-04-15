@@ -2,6 +2,7 @@ package dk.gormkrings.statistics;
 
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.result.ISnapshot;
+import dk.gormkrings.simulation.IProgressCallback;
 import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.simulation.result.Snapshot;
 import lombok.Getter;
@@ -34,7 +35,7 @@ public class SimulationAggregationService {
      *   3) For the remaining runs, mark snapshots as failed only from the snapshot that first fails (and onward).
      *   4) Group snapshots by year and build yearly summaries.
      */
-    public List<YearlySummary> aggregateResults(List<IRunResult> results) {
+    public List<YearlySummary> aggregateResults(List<IRunResult> results, IProgressCallback callback) {
         long startTime = System.currentTimeMillis();
         // Step 1: Process each simulation run.
         List<SimulationRunData> simulationDataList = new ArrayList<>();
@@ -73,7 +74,7 @@ public class SimulationAggregationService {
         startTime = System.currentTimeMillis();
         List<YearlySummary> summaries = new ArrayList<>();
 
-        buildYearlySummaries(dataByYear, summaries);
+        buildYearlySummaries(dataByYear, summaries, callback);
 
         long summaryBuildTime = System.currentTimeMillis();
         log.info("Built yearly summaries in {} ms", summaryBuildTime - startTime);
@@ -97,7 +98,7 @@ public class SimulationAggregationService {
         }
     }
 
-    private void buildYearlySummaries(Map<Integer, List<DataPoint>> dataByYear, List<YearlySummary> summaries) {
+    private void buildYearlySummaries(Map<Integer, List<DataPoint>> dataByYear, List<YearlySummary> summaries, IProgressCallback callback) {
         int counter = 0;
         for (Map.Entry<Integer, List<DataPoint>> entry : dataByYear.entrySet()) {
             counter++;
@@ -115,6 +116,10 @@ public class SimulationAggregationService {
             YearlySummary summary = summaryCalculator.calculateYearlySummary(phaseName, year, capitals, failed);
             long calculateSummary = System.currentTimeMillis();
             log.info("Calculate {}/{} yearly summaries in {} ms", counter, dataByYear.size(), calculateSummary - startTime);
+            String progressMessage = String.format("Calculate %,d/%,d yearly summaries in %,d ms",
+                    counter, dataByYear.size(), calculateSummary - startTime);
+            // Invoke the progress callback.
+            callback.update(progressMessage);
             summaries.add(summary);
         }
     }

@@ -3,8 +3,10 @@ package dk.gormkrings.simulation.monteCarlo;
 import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
+import dk.gormkrings.simulation.IProgressCallback;
 import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.updates.IProgressService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
@@ -41,7 +43,11 @@ public class MonteCarloSimulation implements ISimulation {
     }
 
     public List<IRunResult> run(long runs, List<IPhase> phases) {
-        if (phases.isEmpty() || runs < 0) throw new IllegalArgumentException("No phases to run") ;
+        return runWithProgress(runs, phases, null);
+    }
+
+    public List<IRunResult> runWithProgress(long runs, List<IPhase> phases, IProgressCallback callback) {
+        if (phases.isEmpty() || runs < 0) throw new IllegalArgumentException("No phases to run");
         results.clear();
         engine.init(phases);
 
@@ -68,6 +74,10 @@ public class MonteCarloSimulation implements ISimulation {
                             String.format("%,d", results.size()),
                             String.format("%,d", runs),
                             String.format("%,d", blockTimeMs));
+                    String progressMessage = String.format("Completed %,d/%,d runs in %,d ms",
+                            results.size(), runs, blockTimeMs);
+                    // Invoke the progress callback.
+                    callback.update(progressMessage);
                     blockStartTime = blockEndTime;
                 }
             } catch (InterruptedException | ExecutionException e) {
