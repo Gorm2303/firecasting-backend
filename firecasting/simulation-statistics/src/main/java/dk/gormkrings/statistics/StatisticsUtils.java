@@ -7,10 +7,8 @@ public class StatisticsUtils {
         return values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
     }
 
-    public static double median(List<Double> values) {
-        if (values.isEmpty()) return 0.0;
-        List<Double> sorted = new ArrayList<>(values);
-        Collections.sort(sorted);
+    public static double median(List<Double> sorted) {
+        if (sorted.isEmpty()) return 0.0;
         int n = sorted.size();
         return (n % 2 == 0)
                 ? (sorted.get(n / 2 - 1) + sorted.get(n / 2)) / 2.0
@@ -24,10 +22,8 @@ public class StatisticsUtils {
         return Math.sqrt(variance);
     }
 
-    public static double quantile(List<Double> values, double q) {
-        if (values.isEmpty()) return 0.0;
-        List<Double> sorted = new ArrayList<>(values);
-        Collections.sort(sorted);
+    public static double quantile(List<Double> sorted, double q) {
+        if (sorted.isEmpty()) return 0.0;
         int n = sorted.size();
         double pos = (n - 1) * q;
         int index = (int) Math.floor(pos);

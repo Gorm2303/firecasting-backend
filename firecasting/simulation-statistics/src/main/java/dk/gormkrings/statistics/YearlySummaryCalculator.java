@@ -11,15 +11,18 @@ public class YearlySummaryCalculator {
      * Outliers are excluded by filtering out values below the 5th and above the 95th percentiles.
      */
     public YearlySummary calculateYearlySummary(String phaseName, int year, List<Double> capitals, List<Boolean> negativeFlags) {
+        List<Double> sorted = new ArrayList<>(capitals);
+        Collections.sort(sorted);
         double robustAvg = average(capitals);
-        double med = median(capitals);
+        double med = median(sorted);
         double min = capitals.isEmpty() ? 0.0 : Collections.min(capitals);
         double max = capitals.isEmpty() ? 0.0 : Collections.max(capitals);
         double sd = stdDev(capitals, robustAvg);
-        double q5 = quantile(capitals, 0.05);
-        double q25 = quantile(capitals, 0.25);
-        double q75 = quantile(capitals, 0.75);
-        double q95 = quantile(capitals, 0.95);
+
+        double q5 = quantile(sorted, 0.05);
+        double q25 = quantile(sorted, 0.25);
+        double q75 = quantile(sorted, 0.75);
+        double q95 = quantile(sorted, 0.95);
 
         // VaR is the 5th percentile; CVaR is the average of values below that threshold.
         double var = q5;

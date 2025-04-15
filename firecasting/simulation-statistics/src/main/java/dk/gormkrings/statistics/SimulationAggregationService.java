@@ -48,9 +48,11 @@ public class SimulationAggregationService {
         // Step 2: Compute quantile thresholds over final effective capitals.
         List<Double> finals = simulationDataList.stream()
                 .map(SimulationRunData::finalEffectiveCapital)
-                .collect(Collectors.toList());
-        double lowerThreshold = quantile(finals, lowerThresholdPercentile);
-        double upperThreshold = quantile(finals, upperThresholdPercentile);
+                .toList();
+        List<Double> sorted = new ArrayList<>(finals);
+        Collections.sort(sorted);
+        double lowerThreshold = quantile(sorted, lowerThresholdPercentile);
+        double upperThreshold = quantile(sorted, upperThresholdPercentile);
 
         // Filter out simulation runs that fall outside the desired quantile thresholds.
         List<SimulationRunData> filteredSimulationData = simulationDataList.stream()
