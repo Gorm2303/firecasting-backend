@@ -100,6 +100,7 @@ public class SimulationAggregationService {
 
     private void buildYearlySummaries(Map<Integer, List<DataPoint>> dataByYear, List<YearlySummary> summaries, IProgressCallback callback) {
         int counter = 0;
+        long startTime = System.currentTimeMillis();
         for (Map.Entry<Integer, List<DataPoint>> entry : dataByYear.entrySet()) {
             counter++;
             int year = entry.getKey();
@@ -112,13 +113,12 @@ public class SimulationAggregationService {
                     .map(DataPoint::runFailed)
                     .collect(Collectors.toList());
 
-            long startTime = System.currentTimeMillis();
+            long yearStartTime = System.currentTimeMillis();
             YearlySummary summary = summaryCalculator.calculateYearlySummary(phaseName, year, capitals, failed);
-            long calculateSummary = System.currentTimeMillis();
-            log.info("Calculate {}/{} yearly summaries in {} ms", counter, dataByYear.size(), calculateSummary - startTime);
-            String progressMessage = String.format("Calculate %,d/%,d yearly summaries in %,d ms",
-                    counter, dataByYear.size(), calculateSummary - startTime);
-            // Invoke the progress callback.
+            String progressMessage = String.format("Calculate %,d/%,d yearly summaries in %,ds",
+                    counter, dataByYear.size(),
+                    (yearStartTime - startTime)/1000);
+            log.info(progressMessage);
             callback.update(progressMessage);
             summaries.add(summary);
         }

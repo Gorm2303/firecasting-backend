@@ -53,7 +53,7 @@ public class MonteCarloSimulation implements ISimulation {
 
         List<Future<IRunResult>> futures = new ArrayList<>();
 
-        long blockStartTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         for (int i = 0; i < runs; i++) {
             List<IPhase> phaseCopies = new ArrayList<>();
             ISpecification specification = phases.getFirst().getSpecification().copy();
@@ -67,18 +67,15 @@ public class MonteCarloSimulation implements ISimulation {
             try {
                 IRunResult result = future.get();
                 results.add(result);
-                if (results.size() % 10000 == 0) {
+                if (results.size() % 1000 == 0) {
                     long blockEndTime = System.currentTimeMillis();
-                    long blockTimeMs = (blockEndTime - blockStartTime);
-                    log.info("Completed {}/{} runs in {} ms",
-                            String.format("%,d", results.size()),
-                            String.format("%,d", runs),
-                            String.format("%,d", blockTimeMs));
-                    String progressMessage = String.format("Completed %,d/%,d runs in %,d ms",
-                            results.size(), runs, blockTimeMs);
+
+                    String progressMessage = String.format("Completed %,d/%,d runs in %,ds",
+                            results.size(), runs,
+                            (blockEndTime - startTime)/1000);
+                    log.info(progressMessage);
                     // Invoke the progress callback.
                     callback.update(progressMessage);
-                    blockStartTime = blockEndTime;
                 }
             } catch (InterruptedException | ExecutionException e) {
                 log.info("Some simulation runs failed: {} result(s), {} run(s)", results.size(), runs);
@@ -86,6 +83,7 @@ public class MonteCarloSimulation implements ISimulation {
             }
         }
 
+        log.info("Handled simulation runs in: {} ms", System.currentTimeMillis() - startTime);
         log.info("Completed simulation runs: {}/{} result(s)", results.size(), runs);
         return results;
     }
