@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 
 @Slf4j
-@Component
+@Component("regimeBased")
 @Scope("prototype")
 public class RegimeBasedDistribution implements IDistribution {
     private final IDistribution[] regimeDistributions;

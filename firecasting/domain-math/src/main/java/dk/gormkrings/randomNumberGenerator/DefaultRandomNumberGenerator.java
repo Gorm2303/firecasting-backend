@@ -1,9 +1,11 @@
 package dk.gormkrings.randomNumberGenerator;
 
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
+import org.springframework.stereotype.Component;
 
 import java.util.SplittableRandom;
 
+@Component
 public class DefaultRandomNumberGenerator implements IRandomNumberGenerator {
     private final SplittableRandom random;
 

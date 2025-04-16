@@ -20,8 +20,15 @@ simulation:
   taxRule: capital
 
 returner:
-  selected: distributionReturn
-  average-percentage: 0.07
+  selected: dataDrivenReturn
+  data-driven:
+    csv-file-path: "/dk/gormkrings/returns/Historical-Prices-DJIA.csv"
+    dt: 1
+  simple:
+    average-percentage: 0.07
+
+inflation:
+  csv-file-path: "/dk/gormkrings/inflation/inflation.csv"
 
 distribution:
   selected: regimeBased

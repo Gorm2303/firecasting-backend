@@ -7,7 +7,7 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("normal")
 @ConfigurationProperties(prefix = "distribution.normal")
 @Setter
 @Getter

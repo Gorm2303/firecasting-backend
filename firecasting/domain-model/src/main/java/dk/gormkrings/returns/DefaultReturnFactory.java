@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component("defaultReturnFactory")
 public class DefaultReturnFactory implements IReturnFactory {
-    @Value("${returner.selected:simpleMonthlyReturn}")
+    @Value("${returner.selected:simpleDailyReturn}")
     private String returner;
 
     private final ApplicationContext context;
@@ -20,13 +20,14 @@ public class DefaultReturnFactory implements IReturnFactory {
     }
 
     @Override
-    public IReturner createReturn(float returnPercentage) {
-        if ("distributionReturn".equalsIgnoreCase(returner)) {
-            log.info("Creating new Distribution Returner");
-            return context.getBean(DistributionReturn.class);
-        } else {
-            log.info("Creating new Simple Monthly Returner");
-            return context.getBean(SimpleDailyReturn.class, returnPercentage);
-        }
+    public IReturner createReturn() {
+        IReturner returnerClass = switch (returner) {
+            case "distributionReturn" -> context.getBean(DistributionReturn.class);
+            case "dataDrivenReturn" -> context.getBean(DataDrivenReturn.class);
+            default -> context.getBean(SimpleDailyReturn.class);
+        };
+
+        log.info("Creating new {} returner", returner.toUpperCase());
+        return returnerClass;
     }
 }

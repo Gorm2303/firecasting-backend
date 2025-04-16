@@ -9,7 +9,7 @@ import org.apache.commons.math3.distribution.TDistribution;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("tDistribution")
 @ConfigurationProperties(prefix = "distribution.t")
 @Setter
 @Getter
