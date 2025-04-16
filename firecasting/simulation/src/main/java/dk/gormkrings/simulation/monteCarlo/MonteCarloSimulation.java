@@ -6,7 +6,6 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.IProgressCallback;
 import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.updates.IProgressService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
@@ -19,7 +18,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.logging.Formatter;
 
 @Slf4j
 @Service
@@ -27,7 +25,7 @@ import java.util.logging.Formatter;
 public class MonteCarloSimulation implements ISimulation {
 
     private final IEngine engine;
-    private final List<IRunResult> results = new ArrayList<>();
+    private final List<IRunResult> allResults = new ArrayList<>();
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
 
     // Inject all IEngine beans as a map and select one based on a configuration property.
@@ -43,48 +41,51 @@ public class MonteCarloSimulation implements ISimulation {
     }
 
     public List<IRunResult> run(long runs, List<IPhase> phases) {
-        return runWithProgress(runs, phases, null);
+        return runWithProgress(runs, 1, phases, null);
     }
 
-    public List<IRunResult> runWithProgress(long runs, List<IPhase> phases, IProgressCallback callback) {
+    public List<IRunResult> runWithProgress(long runs, int batchSize, List<IPhase> phases, IProgressCallback callback) {
         if (phases.isEmpty() || runs < 0) throw new IllegalArgumentException("No phases to run");
-        results.clear();
+        allResults.clear();
         engine.init(phases);
 
-        List<Future<IRunResult>> futures = new ArrayList<>();
-
         long startTime = System.currentTimeMillis();
-        for (int i = 0; i < runs; i++) {
-            List<IPhase> phaseCopies = new ArrayList<>();
-            ISpecification specification = phases.getFirst().getSpecification().copy();
-            for (IPhase phase : phases) {
-                phaseCopies.add(phase.copy(specification));
-            }
-            Future<IRunResult> future = executorService.submit(() -> engine.simulatePhases(phaseCopies));
-            futures.add(future);
-        }
-        for (Future<IRunResult> future : futures) {
-            try {
-                IRunResult result = future.get();
-                results.add(result);
-                if (results.size() % 1000 == 0) {
-                    long blockEndTime = System.currentTimeMillis();
 
-                    String progressMessage = String.format("Completed %,d/%,d runs in %,ds",
-                            results.size(), runs,
-                            (blockEndTime - startTime)/1000);
-                    log.info(progressMessage);
-                    // Invoke the progress callback.
-                    callback.update(progressMessage);
+        for (int i = 0; i < runs; i += batchSize) {
+            List<Future<IRunResult>> futures = new ArrayList<>();
+            for (int j = 0; j < batchSize && (i + j) < runs; j++) {
+                List<IPhase> phaseCopies = new ArrayList<>();
+                ISpecification specification = phases.getFirst().getSpecification().copy();
+                for (IPhase phase : phases) {
+                    phaseCopies.add(phase.copy(specification));
                 }
-            } catch (InterruptedException | ExecutionException e) {
-                log.info("Some simulation runs failed: {} result(s), {} run(s)", results.size(), runs);
-                log.debug("Error during simulation run", e);
+                futures.add(executorService.submit(() -> engine.simulatePhases(phaseCopies)));
             }
+
+            // Collect results for this batch.
+            for (Future<IRunResult> future : futures) {
+                try {
+                    allResults.add(future.get());
+                    if (allResults.size() % 1000 == 0) {
+                        long blockEndTime = System.currentTimeMillis();
+
+                        String progressMessage = String.format("Completed %,d/%,d runs in %,ds",
+                                allResults.size(), runs,
+                                (blockEndTime - startTime) / 1000);
+                        log.info(progressMessage);
+                        // Invoke the progress callback.
+                        if (callback != null) callback.update(progressMessage);
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    log.info("Some simulation runs failed: {} result(s), {} run(s)", allResults.size(), runs);
+                    log.error("Error in batch simulation", e);
+                }
+            }
+
         }
 
         log.info("Handled simulation runs in: {} ms", System.currentTimeMillis() - startTime);
-        log.info("Completed simulation runs: {}/{} result(s)", results.size(), runs);
-        return results;
+        log.info("Completed simulation runs: {}/{} result(s)", allResults.size(), runs);
+        return allResults;
     }
 }

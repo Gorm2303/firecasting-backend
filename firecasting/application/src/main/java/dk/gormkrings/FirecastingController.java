@@ -51,6 +51,8 @@ public class FirecastingController {
 
     @Value("${settings.runs}")
     private int runs;
+    @Value("${settings.batch-size}")
+    private int batchSize;
     @Value("${settings.timeout}")
     private long timeout = 60000;
 
@@ -126,6 +128,7 @@ public class FirecastingController {
                 // Each time a block (e.g. 10,000 runs) is completed, the callback is invoked with a progress message.
                 List<IRunResult> simulationResults = simulationFactory.createSimulation().runWithProgress(
                         runs,
+                        batchSize,
                         phases,
                         progressMessage -> emitterSend(progressMessage, simulationId)
                 );

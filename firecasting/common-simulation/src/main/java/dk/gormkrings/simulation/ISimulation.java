@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface ISimulation {
     List<IRunResult> run(long instances, List<IPhase> phases);
-    List<IRunResult> runWithProgress(long runs, List<IPhase> phases, IProgressCallback callback);
+    List<IRunResult> runWithProgress(long runs, int batchSize, List<IPhase> phases, IProgressCallback callback);
 }
