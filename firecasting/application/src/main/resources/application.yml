@@ -12,6 +12,11 @@ settings:
   run-local: false
   timeout: 6000000
 
+trading:
+  days:
+    per:
+      year: 252
+
 simulation:
   engine:
     selected: scheduleEngine
@@ -23,7 +28,7 @@ returner:
   selected: dataDrivenReturn
   data-driven:
     csv-file-path: "/dk/gormkrings/returns/Historical-Prices-DJIA.csv"
-    dt: 1
+    dt: 0.003968254
   simple:
     average-percentage: 0.07
 

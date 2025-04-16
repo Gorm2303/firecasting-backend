@@ -38,8 +38,8 @@ public class HistoricalDataProcessor {
 
         // Compute log returns: log(price_t/price_{t-1})
         for (int i = 1; i < closingPrices.size(); i++) {
-            double today = closingPrices.get(i);
-            double yesterday = closingPrices.get(i - 1);
+            double today = closingPrices.get(i - 1);
+            double yesterday = closingPrices.get(i);
             double logReturn = Math.log(today / yesterday);
             logReturns.add(logReturn);
         }
