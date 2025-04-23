@@ -1,34 +1,50 @@
 package dk.gormkrings.action;
 
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Setter
-public class Withdraw implements Action {
+public class Withdraw implements IWithdraw {
     private double monthlyAmount;
-    private double percent;
+    @Setter
+    private double monthlyPercent;
+    @Setter
+    private double dynamicAmountOfReturn;
+    @Getter
+    private final double dynamicPercentOfReturn;
 
-    public Withdraw(double monthlyAmount, double percent) {
+    public Withdraw(double monthlyAmount, double monthlyPercent, double dynamicPercentOfReturn) {
+        if (monthlyAmount < 0 || monthlyPercent < 0) throw new IllegalArgumentException("Withdraw constructor called with a negative value");
         this.monthlyAmount = monthlyAmount;
-        this.percent = percent;
-        log.debug("Initializing withdraw: {} monthly, {} percent", monthlyAmount, percent);
+        this.monthlyPercent = monthlyPercent;
+        this.dynamicPercentOfReturn = dynamicPercentOfReturn;
+        log.debug("Initializing withdraw: {} monthly, {} percent, {} dynamic percent", monthlyAmount, monthlyPercent, dynamicPercentOfReturn);
     }
 
     public double getMonthlyAmount(double capital) {
-        if (monthlyAmount > 0) return monthlyAmount;
-        else if (percent > 0) return (percent * capital)/12;
-        else return 0;
+        return getMonthlyAmount(capital, 0);
     }
 
-    public double getYearlyAmount(double capital) {
-        return getMonthlyAmount(capital)*12;
+    public double getMonthlyAmount(double capital, double inflation) {
+        if (monthlyAmount > 0) {
+            return monthlyAmount + (monthlyAmount * (inflation / 100)) + dynamicAmountOfReturn;
+        } else {
+            monthlyAmount = (monthlyPercent * capital)/12;
+            return getMonthlyAmount(capital, inflation);
+        }
+    }
+
+    public void setMonthlyAmount(double monthlyAmount) {
+        if (monthlyAmount < 0) throw new IllegalArgumentException("MonthlyAmount setter called with a negative value");
+        this.monthlyAmount = monthlyAmount;
     }
 
     public Withdraw copy() {
         return new Withdraw(
                 this.monthlyAmount,
-                this.percent
+                this.monthlyPercent,
+                this.dynamicPercentOfReturn
         );
     }
 }

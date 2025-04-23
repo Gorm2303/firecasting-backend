@@ -1,20 +1,26 @@
 package dk.gormkrings.inflation;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.*;
 
 @Slf4j
 @Getter
-public class DataAverageInflation implements Inflation {
+@Component
+public class DataAverageInflation implements IInflation {
     private double averagePercentage;
 
+    @Value("${inflation.csv-file-path}")
+    private String csvFilePath;
+
     public DataAverageInflation() {
-        this("/dk/gormkrings/inflation/inflation.csv");
     }
 
-    private DataAverageInflation(double averagePercentage) {
+    public DataAverageInflation(double averagePercentage) {
         this.averagePercentage = averagePercentage;
     }
 
@@ -23,13 +29,18 @@ public class DataAverageInflation implements Inflation {
         log.debug("Initializing DataAverageInflation: {}", averagePercentage);
     }
 
+    @PostConstruct
+    public void init() {
+        setAverageInflation(csvFilePath);
+    }
+
     @Override
     public double calculatePercentage() {
         return averagePercentage;
     }
 
     @Override
-    public Inflation copy() {
+    public IInflation copy() {
         return new DataAverageInflation(this.averagePercentage);
     }
 
@@ -65,6 +76,6 @@ public class DataAverageInflation implements Inflation {
             log.error("Error reading CSV file", e);
         }
 
-        averagePercentage = count > 0 ? sum / count : 0;
+        averagePercentage = count > 0 ? (float) (sum / count) : 0;
     }
 }

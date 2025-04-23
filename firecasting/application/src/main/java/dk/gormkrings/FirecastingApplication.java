@@ -1,30 +1,24 @@
 package dk.gormkrings;
 
+import dk.gormkrings.action.IAction;
 import dk.gormkrings.action.Deposit;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.action.Withdraw;
-import dk.gormkrings.data.LiveData;
-import dk.gormkrings.inflation.Inflation;
-import dk.gormkrings.inflation.DataAverageInflation;
-import dk.gormkrings.returns.Return;
-import dk.gormkrings.returns.SimpleMonthlyReturn;
-import dk.gormkrings.simulation.phases.Phase;
-import dk.gormkrings.simulation.simulations.MonteCarloSimulation;
-import dk.gormkrings.simulation.simulations.ScheduleMCSimulation;
-import dk.gormkrings.simulation.simulations.Simulation;
-import dk.gormkrings.simulation.specification.Specification;
-import dk.gormkrings.simulation.data.Result;
-import dk.gormkrings.simulation.phases.callBased.PassiveCallPhase;
-import dk.gormkrings.simulation.phases.callBased.DepositCallPhase;
-import dk.gormkrings.simulation.phases.callBased.WithdrawCallPhase;
-import dk.gormkrings.taxes.*;
-import dk.gormkrings.util.Date;
-import dk.gormkrings.util.Util;
+import dk.gormkrings.data.IDate;
+import dk.gormkrings.factory.*;
+import dk.gormkrings.phase.IPhase;
+import dk.gormkrings.result.IRunResult;
+import dk.gormkrings.simulation.ISimulation;
+import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
+import dk.gormkrings.simulation.util.Formatter;
+import dk.gormkrings.specification.ISpecification;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,10 +26,30 @@ import java.util.List;
 @SpringBootApplication(scanBasePackages = "dk.gormkrings")
 public class FirecastingApplication implements CommandLineRunner {
 
-    private final Simulation simulation;
+    private final ISimulation simulation;
+    private final IDateFactory dateFactory;
+    private final IDepositPhaseFactory depositPhaseFactory;
+    private final IPassivePhaseFactory passivePhaseFactory;
+    private final IWithdrawPhaseFactory withdrawPhaseFactory;
+    private final ISpecificationFactory specificationFactory;
 
-    public FirecastingApplication(ScheduleMCSimulation simulation) {
+    @Value("${settings.run-local}")
+    private boolean runLocal = false;
+    @Value("${settings.debug}")
+    private boolean debug = false;
+
+    public FirecastingApplication(ISimulation simulation,
+                                  IDateFactory dateFactory,
+                                  IDepositPhaseFactory depositPhaseFactory,
+                                  IPassivePhaseFactory passivePhaseFactory,
+                                  IWithdrawPhaseFactory withdrawPhaseFactory,
+                                  ISpecificationFactory specificationFactory) {
         this.simulation = simulation;
+        this.dateFactory = dateFactory;
+        this.depositPhaseFactory = depositPhaseFactory;
+        this.passivePhaseFactory = passivePhaseFactory;
+        this.withdrawPhaseFactory = withdrawPhaseFactory;
+        this.specificationFactory = specificationFactory;
     }
 
     public static void main(String[] args) {
@@ -43,66 +57,59 @@ public class FirecastingApplication implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) {
-        Util.debug = true;
-        List<Phase> phases = new LinkedList<>();
-        log.info("Application Started");
+    public void run(String... args) throws Exception {
+        Formatter.debug = debug;
+        if (runLocal) {
+            runLocal();
+        }
+    }
 
-        LiveData liveData = new LiveData();
+    public void runLocal() {
+        Formatter.debug = true;
+        List<IPhase> phases = new LinkedList<>();
+        log.info("Application Started");
 
         int depositDurationInMonths = 20 * 12;
         int passiveDurationInMonths = 5 * 12;
         int withdrawDurationInMonths = 30 * 12;
 
-        Date depositStartDate = Date.of(2025,1,1);
-        Date passiveStartDate = depositStartDate.plusMonths(depositDurationInMonths);
-        Date withdrawStartDate = passiveStartDate.plusMonths(passiveDurationInMonths);
-        Date withdrawEndDate = withdrawStartDate.plusMonths(withdrawDurationInMonths);
+        IDate depositStartIDate = dateFactory.dateOf(2025, 1, 1);
+        IDate passiveStartIDate = depositStartIDate.plusMonths(depositDurationInMonths);
+        IDate withdrawStartIDate = passiveStartIDate.plusMonths(passiveDurationInMonths);
+        IDate withdrawEndIDate = withdrawStartIDate.plusMonths(withdrawDurationInMonths);
 
-        long depositDays = depositStartDate.daysUntil(passiveStartDate);
-        long passiveDays = passiveStartDate.daysUntil(withdrawStartDate);
-        long withdrawDays = withdrawStartDate.daysUntil(withdrawEndDate);
+        long depositDays = depositStartIDate.daysUntil(passiveStartIDate);
+        long passiveDays = passiveStartIDate.daysUntil(withdrawStartIDate);
+        long withdrawDays = withdrawStartIDate.daysUntil(withdrawEndIDate);
 
-        Specification specification = createSpecification(liveData);
+        ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), 42, 7);
 
-        Deposit deposit = new Deposit(10000, 5000);
-        Passive passive = new Passive();
-        Withdraw withdraw = new Withdraw(0, 0.04);
+        IAction deposit = new Deposit(10000, 10000);
+        IAction passive = new Passive();
+        IAction withdraw = new Withdraw(0, 0.04, 0.5);
 
-        Phase currentPhase = new DepositCallPhase(specification, depositStartDate, depositDays, deposit);
+        IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositDays, deposit);
         phases.add(currentPhase);
 
-        currentPhase = new PassiveCallPhase(specification, passiveStartDate, passiveDays, passive);
+        currentPhase = passivePhaseFactory.createPassivePhase(specification, passiveStartIDate, passiveDays, passive);
         phases.add(currentPhase);
 
-        currentPhase = new WithdrawCallPhase(specification, withdrawStartDate, withdrawDays, withdraw);
+        currentPhase = withdrawPhaseFactory.createWithdrawPhase(specification, withdrawStartIDate, withdrawDays, withdraw);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
+        List<IRunResult> results = simulation.run(10000, phases);
+        long simTime = System.currentTimeMillis();
+        try {
+            ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
+        } catch (IOException e) {
+            log.error("Failed to export simulation results to CSV", e);
+            long exportTime = System.currentTimeMillis();
 
-        List<Result> results = simulation.run(1, phases);
-        log.debug("These are the results");
-        if (Util.debug) {
-            for (Result result : results) {
-                log.debug("Result: ");
-                result.print();
-            }
+            log.info("Handling runs in {} ms", simTime - startTime);
+            log.info("Handling exports in {} ms", exportTime - simTime);
+            log.info("Elapsed time: {} seconds", ((double) (System.currentTimeMillis() - startTime)) / 1000);
+            log.info("Application Ended");
         }
-        long endTime = System.currentTimeMillis();
-        long elapsedTime = endTime - startTime;
-        log.info("Elapsed time: {} seconds", ((double) elapsedTime) / 1000);
-        log.info("Application Ended");
-    }
-
-    private static Specification createSpecification(LiveData liveData) {
-        CapitalGainsTax taxation = new CapitalGainsTax(42);
-        StockExemptionTax stockExemptionTax = null;
-        if (stockExemptionTax != null) taxation.setStockExemptionTax(stockExemptionTax);
-        TaxExemptionCard taxExemptionCard = null;
-        if (taxExemptionCard != null) taxation.setTaxExemptionCard(taxExemptionCard);
-
-        Return basicReturn = new SimpleMonthlyReturn(7);
-        Inflation inflation = new DataAverageInflation();
-        return new Specification(liveData, taxation, basicReturn, inflation);
     }
 }

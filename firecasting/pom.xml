@@ -15,23 +15,47 @@
 	<name>Firecasting</name>
 	<description>Simulation project for Spring Boot</description>
 	<modules>
-		<module>simulation-core</module>
-		<module>api</module>
-		<module>persistence</module>
 		<module>domain-model</module>
 		<module>application</module>
-		<module>common</module>
-	</modules>
+		<module>simulation</module>
+		<module>simulation-data</module>
+		<module>common-event</module>
+        <module>phase-eventBased</module>
+		<module>common-simulation</module>
+		<module>phase-callBased</module>
+		<module>simulation-engine-eventBased</module>
+		<module>simulation-engine-scheduleBased</module>
+		<module>simulation-engine-callBased</module>
+		<module>common-domain</module>
+		<module>common-math</module>
+		<module>domain-math</module>
+        <module>common-simulation-phase</module>
+        <module>simulation-phase-factory</module>
+        <module>simulation-statistics</module>
+    </modules>
 
 	<properties>
 		<java.version>23</java.version>
 		<spring-modulith.version>1.3.3</spring-modulith.version>
+
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.modulith</groupId>
 			<artifactId>spring-modulith-starter-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-suite-api</artifactId>
+			<version>1.11.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>4.11.0</version>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -98,8 +122,15 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+					<skip>true</skip>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M7</version>
+			</plugin>
+
 		</plugins>
 	</build>
 
