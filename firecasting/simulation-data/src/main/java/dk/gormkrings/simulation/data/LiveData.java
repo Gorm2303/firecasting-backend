@@ -92,6 +92,7 @@ public class LiveData implements ILiveData {
                 Formatter.getPrettyDate(this) +
                 Formatter.formatField("Capital", capital) +
                 Formatter.formatField("Deposited", deposited) +
+                Formatter.formatField("Deposit", deposit) +
                 Formatter.formatField("Passive", passiveReturned) +
                 Formatter.formatField("Returned", returned) +
                 Formatter.formatField("Return", currentReturn) +
@@ -172,6 +173,7 @@ public class LiveData implements ILiveData {
                 date + "," +
                 Formatter.numberToString(capital) + "," +
                 Formatter.numberToString(deposited) + "," +
+                Formatter.numberToString(deposit) + "," +
                 Formatter.numberToString(passiveReturned) + "," +
                 Formatter.numberToString(returned) + "," +
                 Formatter.numberToString(currentReturn) + "," +
@@ -201,6 +203,7 @@ public class LiveData implements ILiveData {
         map.put("date", date.toString());
         map.put("capital", capital);
         map.put("deposited", deposited);
+        map.put("deposit", deposit);
         map.put("passiveReturned", passiveReturned);
         map.put("returned", returned);
         map.put("currentReturn", currentReturn);

@@ -31,6 +31,13 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
     }
 
     @Override
+    public void onYearEnd() {
+        super.onYearEnd();
+        increaseDeposit();
+        log.debug(prettyString());
+    }
+
+    @Override
     public void onPhaseStart() {
         super.onPhaseStart();
         depositInitialDeposit();
@@ -38,7 +45,7 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
 
     @Override
     public boolean supportsEvent(EventType eventType) {
-        return super.supportsEvent(eventType) || eventType.equals(EventType.MONTH_END);
+        return super.supportsEvent(eventType) || eventType.equals(EventType.MONTH_END) || eventType.equals(EventType.YEAR_END);
     }
 
     @Override

@@ -13,6 +13,9 @@ public interface IWithdrawPhase extends ISimulationPhase{
 
     default void withdrawMoney() {
         double withdrawAmount = getWithdraw().getMonthlyAmount(getLiveData().getCapital(), getLiveData().getInflation());
+        withdrawAmount += getWithdraw().getDynamicAmountOfReturn();
+        if (withdrawAmount <= 0) withdrawAmount = 0;
+        if (withdrawAmount > getLiveData().getCapital()) withdrawAmount = getLiveData().getCapital();
         getLiveData().setWithdraw(withdrawAmount);
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);

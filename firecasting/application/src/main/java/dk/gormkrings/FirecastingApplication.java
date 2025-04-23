@@ -84,9 +84,9 @@ public class FirecastingApplication implements CommandLineRunner {
 
         ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), 42, 7);
 
-        IAction deposit = new Deposit(10000, 10000);
+        IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();
-        IAction withdraw = new Withdraw(0, 0.04, 0.5);
+        IAction withdraw = new Withdraw(0, 0.04, 0,0);
 
         IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositDays, deposit);
         phases.add(currentPhase);

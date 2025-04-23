@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawPhase {
     private IWithdraw withdraw;
+    private double totalReturnLastMonth;
 
     public WithdrawCallPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
         super(specification, startDate, duration, "Withdraw");
@@ -26,15 +27,41 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
     @Override
     public void onMonthEnd() {
         super.onMonthEnd();
+        setDynamicWithdraw();
         withdrawMoney();
         addTax();
         addNetEarnings();
         if (Formatter.debug) log.debug(prettyString());
     }
 
+    private void setDynamicWithdraw() {
+        double returnThisMonth = getLiveData().getReturned() - totalReturnLastMonth;
+        double monthlyAmount = withdraw.getMonthlyAmount(getLiveData().getCapital(), getLiveData().getInflation());
+        double proportion = returnThisMonth / monthlyAmount;
+        log.debug("Withdraw return: {}", returnThisMonth);
+        log.debug("Withdraw monthlyAmount: {}", monthlyAmount);
+        log.debug("Withdraw proportion: {}", proportion);
+
+        if (proportion > 1 + getWithdraw().getUpperVariationPercentage() / 100) {
+            withdraw.setDynamicAmountOfReturn((monthlyAmount) * withdraw.getUpperVariationPercentage() / 100);
+        } else if (proportion < 1 - withdraw.getLowerVariationPercentage() / 100) {
+            withdraw.setDynamicAmountOfReturn((monthlyAmount) * -withdraw.getLowerVariationPercentage() / 100);
+        } else {
+            withdraw.setDynamicAmountOfReturn((monthlyAmount) * proportion / 100);
+        }
+        log.debug("Withdraw dynamic amount: {}", withdraw.getDynamicAmountOfReturn());
+        totalReturnLastMonth = getLiveData().getReturned();
+    }
+
+    @Override
+    public void onPhaseStart() {
+        super.onPhaseStart();
+        totalReturnLastMonth = getLiveData().getReturned();
+    }
+
     @Override
     public boolean supportsEvent(EventType eventType) {
-        return super.supportsEvent(eventType) || eventType.equals(EventType.MONTH_END);
+        return eventType.equals(EventType.MONTH_END) || super.supportsEvent(eventType) || eventType.equals(EventType.PHASE_START);
     }
 
     @Override

@@ -103,7 +103,10 @@ public class FirecastingController {
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
             IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
                 case "DEPOSIT" -> {
-                    IAction deposit = new Deposit(pr.getInitialDeposit(), pr.getMonthlyDeposit());
+                    double initialDeposit = pr.getInitialDeposit() != null ? pr.getInitialDeposit() : 0;
+                    double monthlyDeposit = pr.getMonthlyDeposit() != null ? pr.getMonthlyDeposit() : 0;
+                    double yearlyIncreaseInPercent = pr.getYearlyIncreaseInPercentage() != null ? pr.getYearlyIncreaseInPercentage() : 0;
+                    IAction deposit = new Deposit(initialDeposit, monthlyDeposit, yearlyIncreaseInPercent);
                     yield depositPhaseFactory.createDepositPhase(specification, currentDate, days, deposit);
                 }
                 case "PASSIVE" -> {
@@ -111,8 +114,7 @@ public class FirecastingController {
                     yield passivePhaseFactory.createPassivePhase(specification, currentDate, days, passive);
                 }
                 case "WITHDRAW" -> {
-                    double withdrawAmount = pr.getWithdrawAmount() != null ? pr.getWithdrawAmount() : 0;
-                    IAction withdraw = new Withdraw(withdrawAmount, pr.getWithdrawRate(), 0.5);
+                    IAction withdraw = getAction(pr);
                     yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, days, withdraw);
                 }
                 default -> throw new IllegalArgumentException("Unknown phase type: " + pr.getPhaseType());
@@ -157,6 +159,14 @@ public class FirecastingController {
 
         // Return the simulation ID so the frontend can subscribe to progress.
         return ResponseEntity.ok(simulationId);
+    }
+
+    private static IAction getAction(PhaseRequest pr) {
+        double withdrawAmount = pr.getWithdrawAmount() != null ? pr.getWithdrawAmount() : 0;
+        double withdrawRate = pr.getWithdrawRate() != null ? pr.getWithdrawRate() : 0;
+        double lowerVariationRate = pr.getLowerVariationPercentage() != null ? pr.getLowerVariationPercentage() : 0;
+        double upperVariationRate = pr.getUpperVariationPercentage() != null ? pr.getUpperVariationPercentage() : 0;
+        return new Withdraw(withdrawAmount, withdrawRate, lowerVariationRate, upperVariationRate);
     }
 
     private void emitterSend(String progressMessage, String simulationId) {
