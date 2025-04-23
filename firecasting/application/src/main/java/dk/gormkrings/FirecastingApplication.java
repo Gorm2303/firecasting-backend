@@ -73,7 +73,7 @@ public class FirecastingApplication implements CommandLineRunner {
         int passiveDurationInMonths = 5 * 12;
         int withdrawDurationInMonths = 30 * 12;
 
-        IDate depositStartIDate = dateFactory.dateOf(2025,1,1);
+        IDate depositStartIDate = dateFactory.dateOf(2025, 1, 1);
         IDate passiveStartIDate = depositStartIDate.plusMonths(depositDurationInMonths);
         IDate withdrawStartIDate = passiveStartIDate.plusMonths(passiveDurationInMonths);
         IDate withdrawEndIDate = withdrawStartIDate.plusMonths(withdrawDurationInMonths);
@@ -104,11 +104,12 @@ public class FirecastingApplication implements CommandLineRunner {
             ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
         } catch (IOException e) {
             log.error("Failed to export simulation results to CSV", e);
-        long exportTime = System.currentTimeMillis();
+            long exportTime = System.currentTimeMillis();
 
-        log.info("Handling runs in {} ms", simTime - startTime);
-        log.info("Handling exports in {} ms", exportTime - simTime);
-        log.info("Elapsed time: {} seconds", ((double) (System.currentTimeMillis() - startTime)) / 1000);
-        log.info("Application Ended");
+            log.info("Handling runs in {} ms", simTime - startTime);
+            log.info("Handling exports in {} ms", exportTime - simTime);
+            log.info("Elapsed time: {} seconds", ((double) (System.currentTimeMillis() - startTime)) / 1000);
+            log.info("Application Ended");
+        }
     }
 }
