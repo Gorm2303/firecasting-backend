@@ -15,7 +15,6 @@
 	<name>Firecasting</name>
 	<description>Simulation project for Spring Boot</description>
 	<modules>
-		<module>persistence</module>
 		<module>domain-model</module>
 		<module>application</module>
 		<module>simulation</module>
@@ -123,6 +122,7 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+					<skip>true</skip>
 				</configuration>
 			</plugin>
 			<plugin>
