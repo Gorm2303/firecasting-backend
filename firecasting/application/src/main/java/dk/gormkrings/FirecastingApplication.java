@@ -103,8 +103,7 @@ public class FirecastingApplication implements CommandLineRunner {
         try {
             ConcurrentCsvExporter.exportCsv(results, "firecasting-results");
         } catch (IOException e) {
-            e.printStackTrace();
-        }
+            log.error("Failed to export simulation results to CSV", e);
         long exportTime = System.currentTimeMillis();
 
         log.info("Handling runs in {} ms", simTime - startTime);
