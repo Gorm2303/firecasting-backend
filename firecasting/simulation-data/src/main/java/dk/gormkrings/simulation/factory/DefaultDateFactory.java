@@ -15,4 +15,18 @@ public class DefaultDateFactory implements IDateFactory {
     public IDate dateOf(int year, int month, int day) {
         return new Date(year, month, day);
     }
+
+    @Override
+    public IDate dateOf(IDate startDateOrNull) {
+        if (startDateOrNull != null) {
+            return startDateOrNull;
+        }
+        java.time.LocalDate today = java.time.LocalDate.now();
+        return dateOf(
+                today.getYear(),
+                today.getMonthValue(),
+                today.getDayOfMonth()
+        );
+    }
+
 }
