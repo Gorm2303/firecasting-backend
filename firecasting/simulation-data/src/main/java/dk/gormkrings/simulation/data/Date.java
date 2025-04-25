@@ -33,11 +33,15 @@ public final class Date implements IDate {
         new Date(epochDay);
     }
 
-    // Add a Jackson-friendly constructor that accepts a date string.
+    // Jackson‐friendly constructor that accepts a date string (or empty → today)
     @JsonCreator
     public Date(@JsonProperty("date") String dateStr) {
-        LocalDate ld = LocalDate.parse(dateStr);
-        new Date(ld.getYear(), ld.getMonthValue(), ld.getDayOfMonth());
+        // If the client sent null or blank, we treat it as “no date” → use today
+        java.time.LocalDate ld = (dateStr != null && !dateStr.trim().isEmpty())
+                ? java.time.LocalDate.parse(dateStr)
+                : java.time.LocalDate.now();
+
+        // now compute epochDay exactly as in your year/month/day ctor
         int year = ld.getYear();
         int month = ld.getMonthValue();
         int day = ld.getDayOfMonth();

@@ -92,7 +92,10 @@ public class FirecastingController {
         var specification = specificationFactory.newSpecification(
                 request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage(), 2f);
 
-        var currentDate = dateFactory.dateOf(request.getStartDate());
+        var currentDate = dateFactory.dateOf(
+                request.getStartDate().getYear(),
+                request.getStartDate().getMonth(),
+                request.getStartDate().getDayOfMonth());
 
         List<IPhase> phases = new LinkedList<>();
 
