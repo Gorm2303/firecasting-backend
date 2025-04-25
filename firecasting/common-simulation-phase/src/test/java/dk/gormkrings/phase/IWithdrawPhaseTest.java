@@ -221,6 +221,10 @@ public class IWithdrawPhaseTest {
             public ITaxRule copy() {
                 return null;
             }
+
+            @Override
+            public void yearlyReset() {
+            }
         });
 
         withdrawPhase.addTax();
@@ -241,6 +245,11 @@ public class IWithdrawPhaseTest {
             public ITaxRule copy() {
                 return null;
             }
+
+            @Override
+            public void yearlyReset() {
+            }
+
         });
 
         withdrawPhase.addNetEarnings();

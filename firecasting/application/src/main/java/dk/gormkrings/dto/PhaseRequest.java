@@ -19,5 +19,8 @@ public class PhaseRequest {
     private Double withdrawAmount;
     private Double lowerVariationPercentage;
     private Double upperVariationPercentage;
+    // Tax options
+    private boolean taxExemptionCard;
+    private boolean stockExemptionTax;
 }
 

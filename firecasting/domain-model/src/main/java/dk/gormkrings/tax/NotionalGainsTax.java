@@ -30,6 +30,12 @@ public class NotionalGainsTax implements ITaxRule {
     }
 
     @Override
+    public void yearlyReset() {
+        stockExemptionTax.yearlyReset();
+        taxExemptionCard.yearlyReset();
+    }
+
+    @Override
     public NotionalGainsTax copy() {
         NotionalGainsTax notionalGainsTax = new NotionalGainsTax(
                 this.taxRate,

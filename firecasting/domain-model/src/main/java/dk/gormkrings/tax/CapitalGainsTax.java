@@ -20,7 +20,7 @@ public class CapitalGainsTax implements ITaxRule {
         this.taxRate = taxRate;
         this.stockExemptionTax = stockExemptionTax;
         this.taxExemptionCard = taxExemptionCard;
-        log.debug("Capital Gains Tax Rule Created: {}", taxRate);
+        log.debug("Capital Gains Tax Rule Created: {}, stock tax: {}, tax card: {}", taxRate, stockExemptionTax, taxExemptionCard);
     }
 
     @Override
@@ -29,11 +29,17 @@ public class CapitalGainsTax implements ITaxRule {
     }
 
     @Override
+    public void yearlyReset() {
+        stockExemptionTax.yearlyReset();
+        taxExemptionCard.yearlyReset();
+    }
+
+    @Override
     public CapitalGainsTax copy() {
         return new CapitalGainsTax(
                 this.taxRate,
-                this.stockExemptionTax,
-                this.taxExemptionCard
+                this.stockExemptionTax.copy(),
+                this.taxExemptionCard.copy()
                 );
     }
 }

@@ -22,7 +22,16 @@ simulation:
     selected: scheduleEngine
   phase:
     type: call
-  taxRule: capital
+
+tax:
+  rule: capital
+  exemption-card:
+   limit: 51600
+   increase: 1000
+  stock-exemption:
+    tax-rate: 27
+    limit: 67500
+    increase: 1000
 
 returner:
   selected: dataDrivenReturn
@@ -32,7 +41,7 @@ returner:
   simple:
     average-percentage: 0.07
   random:
-    seed: -1 # Negative values makes it stochastic
+    seed: 1 # Negative values makes it stochastic
 
 inflation:
   csv-file-path: "/dk/gormkrings/inflation/inflation.csv"

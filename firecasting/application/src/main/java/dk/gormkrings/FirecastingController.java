@@ -17,6 +17,7 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
+import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -47,6 +48,7 @@ public class FirecastingController {
     private final IPassivePhaseFactory passivePhaseFactory;
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
+    private final ITaxRuleFactory taxRuleFactory;
     private final SimulationAggregationService aggregationService;
 
     @Value("${settings.runs}")
@@ -68,6 +70,7 @@ public class FirecastingController {
                                  IPassivePhaseFactory passivePhaseFactory,
                                  IWithdrawPhaseFactory withdrawPhaseFactory,
                                  ISpecificationFactory specificationFactory,
+                                 ITaxRuleFactory taxRuleFactory,
                                  SimulationAggregationService aggregationService) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
@@ -75,6 +78,7 @@ public class FirecastingController {
         this.passivePhaseFactory = passivePhaseFactory;
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
+        this.taxRuleFactory = taxRuleFactory;
         this.aggregationService = aggregationService;
     }
 
@@ -88,9 +92,11 @@ public class FirecastingController {
         String simulationId = UUID.randomUUID().toString();
         log.info("Starting simulation with id: {}", simulationId);
 
+        var taxRule = taxRuleFactory.createTaxRule(request.getTaxRule(), request.getTaxPercentage());
+
         // Build the simulation specification.
         var specification = specificationFactory.newSpecification(
-                request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage(), 2f);
+                request.getEpochDay(), taxRule, request.getReturnPercentage(), 2f);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),
