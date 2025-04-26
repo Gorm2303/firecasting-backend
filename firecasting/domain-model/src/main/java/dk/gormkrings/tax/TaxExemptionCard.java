@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Component
 @Scope("prototype")
-public class TaxExemptionCard {
+public class TaxExemptionCard implements ITaxRule {
     private float currentExemption = 0;
     @Value("${tax.exemption-card.limit}")
     private float limit = 0;
@@ -18,17 +18,30 @@ public class TaxExemptionCard {
     public TaxExemptionCard() {
     }
 
-    public void yearlyLimitIncrease() {
-        limit += yearlyLimitIncrease;
+    @Override
+    public double calculateTax(double amount) {
+        if (currentExemption + amount < limit) {
+            currentExemption += (float) amount;
+            return 0;
+        } else if (limit - currentExemption > 0) {
+            float exemption = limit - currentExemption;
+            currentExemption += exemption;
+            return amount - exemption;
+        } else {
+            return amount;
+        }
+
     }
 
-    public void yearlyReset() {
-        currentExemption = 0;
+    @Override
+    public void yearlyUpdate() {
+        this.limit += this.yearlyLimitIncrease;
+        this.currentExemption = 0;
     }
 
     @Override
     public String toString() {
-        return "{" + limit + "}";
+        return "{" + currentExemption + "/" + limit + "}";
     }
 
     public TaxExemptionCard copy() {

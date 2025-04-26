@@ -1,7 +1,10 @@
 package dk.gormkrings.dto;
 
+import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -20,7 +23,6 @@ public class PhaseRequest {
     private Double lowerVariationPercentage;
     private Double upperVariationPercentage;
     // Tax options
-    private boolean taxExemptionCard;
-    private boolean stockExemptionTax;
+    private List<String> taxRules;
 }
 

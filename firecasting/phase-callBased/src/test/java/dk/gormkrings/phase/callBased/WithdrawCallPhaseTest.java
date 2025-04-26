@@ -14,6 +14,8 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -39,7 +41,7 @@ public class WithdrawCallPhaseTest {
     @BeforeEach
     public void setup() {
         lenient().when(specification.getLiveData()).thenReturn(liveData);
-        withdrawCallPhase = new WithdrawCallPhase(specification, startDate, duration, withdraw);
+        withdrawCallPhase = new WithdrawCallPhase(specification, startDate, new ArrayList<>(), duration, withdraw);
     }
 
     @Test
@@ -49,7 +51,7 @@ public class WithdrawCallPhaseTest {
         when(liveData.getInflation()).thenReturn(2.5);
         when(withdraw.getMonthlyAmount(1000.0, 2.5)).thenReturn(withdrawAmount);
         when(liveData.getWithdraw()).thenReturn(withdrawAmount);
-        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(withdrawCallPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
         when(capitalGainsTax.calculateTax(withdrawAmount)).thenReturn(20.0);
         when(liveData.getCurrentTax()).thenReturn(20.0);
 
@@ -89,7 +91,7 @@ public class WithdrawCallPhaseTest {
     @Test
     public void testAddNetEarnings_NotionalGainsTax() {
         double withdrawAmount = 100.0;
-        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
+        when(withdrawCallPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
         when(liveData.getWithdraw()).thenReturn(withdrawAmount);
 
         withdrawCallPhase.addNetEarnings();
@@ -104,7 +106,7 @@ public class WithdrawCallPhaseTest {
         when(liveData.getInflation()).thenReturn(2.5);
         when(withdraw.getMonthlyAmount(500.0, 2.5)).thenReturn(600.0);
         when(liveData.getWithdraw()).thenReturn(600.0);
-        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(withdrawCallPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
         when(capitalGainsTax.calculateTax(600.0)).thenReturn(60.0);
         when(liveData.getCurrentTax()).thenReturn(60.0);
 
@@ -126,7 +128,7 @@ public class WithdrawCallPhaseTest {
         when(liveData.getInflation()).thenReturn(2.5);
         when(withdraw.getMonthlyAmount(1000.0, 2.5)).thenReturn(withdrawAmount);
         when(liveData.getWithdraw()).thenReturn(withdrawAmount);
-        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(withdrawCallPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
         when(capitalGainsTax.calculateTax(withdrawAmount)).thenReturn(20.0);
         when(liveData.getCurrentTax()).thenReturn(20.0);
 

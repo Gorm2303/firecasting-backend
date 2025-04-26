@@ -12,6 +12,7 @@ import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -88,20 +89,22 @@ public class FirecastingApplication implements CommandLineRunner {
 
         ISpecification specification = specificationFactory.newSpecification(
                 depositStartIDate.getEpochDay(),
-                taxRuleFactory.createTaxRule("CAPITAL", 42),
                 7);
 
         IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();
         IAction withdraw = new Withdraw(0, 0.04, 0,0);
 
-        IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositDays, deposit);
+        List<ITaxRule> taxRules = new LinkedList<>();
+        taxRules.add(taxRuleFactory.createTaxRule("CAPITAL", 42));
+
+        IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, taxRules, depositDays, deposit);
         phases.add(currentPhase);
 
-        currentPhase = passivePhaseFactory.createPassivePhase(specification, passiveStartIDate, passiveDays, passive);
+        currentPhase = passivePhaseFactory.createPassivePhase(specification, passiveStartIDate, taxRules,passiveDays, passive);
         phases.add(currentPhase);
 
-        currentPhase = withdrawPhaseFactory.createWithdrawPhase(specification, withdrawStartIDate, withdrawDays, withdraw);
+        currentPhase = withdrawPhaseFactory.createWithdrawPhase(specification, withdrawStartIDate, taxRules, withdrawDays, withdraw);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();

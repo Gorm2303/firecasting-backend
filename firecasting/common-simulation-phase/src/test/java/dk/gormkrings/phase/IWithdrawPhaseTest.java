@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +42,11 @@ public class IWithdrawPhaseTest {
             @Override
             public ILiveData getLiveData() {
                 return liveData;
+            }
+
+            @Override
+            public List<ITaxRule> getTaxRules() {
+                return List.of(capitalGainsTax, notionalGainsTax);
             }
 
             @Override
@@ -79,7 +86,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddTax_CapitalGainsTax() {
-        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
         when(capitalGainsTax.calculateTax(100.0)).thenReturn(15.0);
 
@@ -91,7 +98,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_CapitalGainsTax() {
-        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
         when(liveData.getCurrentTax()).thenReturn(20.0);
 
@@ -103,7 +110,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_NotionalGainsTax() {
-        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
+        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
 
         withdrawPhase.addNetEarnings();
@@ -140,7 +147,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_CapitalGainsTax_ZeroNet() {
-        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
+        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
         when(liveData.getCurrentTax()).thenReturn(100.0);
 
@@ -211,7 +218,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddTax_UnknownTaxRule() {
-        when(specification.getTaxRule()).thenReturn(new ITaxRule() {
+        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(new ITaxRule() {
             @Override
             public double calculateTax(double amount) {
                 return 0;
@@ -223,7 +230,7 @@ public class IWithdrawPhaseTest {
             }
 
             @Override
-            public void yearlyReset() {
+            public void yearlyUpdate() {
             }
         });
 
@@ -235,7 +242,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_UnknownTaxRule() {
-        when(specification.getTaxRule()).thenReturn(new ITaxRule() {
+        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(new ITaxRule() {
             @Override
             public double calculateTax(double amount) {
                 return 0;
@@ -247,7 +254,7 @@ public class IWithdrawPhaseTest {
             }
 
             @Override
-            public void yearlyReset() {
+            public void yearlyUpdate() {
             }
 
         });

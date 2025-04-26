@@ -6,16 +6,14 @@ spring:
       enabled: false
 
 settings:
-  debug: false
-  runs: 1000
+  debug: true
+  runs: 1
   batch-size: 10000
   run-local: false
   timeout: 6000000
 
 trading:
-  days:
-    per:
-      year: 252
+  days-per-year: 252
 
 simulation:
   engine:
@@ -24,7 +22,6 @@ simulation:
     type: call
 
 tax:
-  rule: capital
   exemption-card:
    limit: 51600
    increase: 1000

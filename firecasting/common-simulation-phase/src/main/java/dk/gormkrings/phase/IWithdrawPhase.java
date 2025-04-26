@@ -3,10 +3,9 @@ package dk.gormkrings.phase;
 import dk.gormkrings.action.IWithdraw;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.CapitalGainsTax;
-import dk.gormkrings.tax.NotionalGainsTax;
+import dk.gormkrings.tax.*;
 
-public interface IWithdrawPhase extends ISimulationPhase{
+public interface IWithdrawPhase extends ISimulationPhase {
     IWithdraw getWithdraw();
     ILiveData getLiveData();
     ISpecification getSpecification();
@@ -19,25 +18,55 @@ public interface IWithdrawPhase extends ISimulationPhase{
         getLiveData().setWithdraw(withdrawAmount);
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);
+        System.out.println("Withdraw amount " + withdrawAmount);
     }
 
     default void addTax() {
-        if (getSpecification().getTaxRule() instanceof CapitalGainsTax capitalTax) {
-            double tax = capitalTax.calculateTax(getLiveData().getWithdraw());
-            getLiveData().setCurrentTax(tax);
-            getLiveData().addToTax(tax);
+        double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
+        double taxableWithdrawal = getLiveData().getWithdraw() * gainOfCapitalRate;
+        getLiveData().subtractFromDeposited((1 - gainOfCapitalRate) * getLiveData().getWithdraw());
+        System.out.println("Taxable withdrawal " + taxableWithdrawal + " gain of " + gainOfCapitalRate * 100 + "%");
+        double tax = 0;
+
+        for (ITaxRule rule : getTaxRules()) {
+            if (rule instanceof TaxExemptionCard taxExemptionCard) {
+                taxableWithdrawal = taxExemptionCard.calculateTax(taxableWithdrawal);
+                System.out.println("TaxExemptionCard: " + taxExemptionCard);
+
+            }
+        }
+
+        for (ITaxRule rule : getTaxRules()) {
+            if (rule instanceof StockExemptionTax stockExemptionTax) {
+                float currentExemption = stockExemptionTax.getCurrentExemption();
+                tax = stockExemptionTax.calculateTax(taxableWithdrawal);
+                taxableWithdrawal -= (stockExemptionTax.getCurrentExemption() - currentExemption);
+                System.out.println("StockExemptionTax: " + stockExemptionTax);
+            }
+        }
+
+        for (ITaxRule rule : getTaxRules()) {
+            if (rule instanceof CapitalGainsTax capitalTax) {
+                tax += capitalTax.calculateTax(taxableWithdrawal);
+                getLiveData().setCurrentTax(tax);
+                getLiveData().addToTax(tax);
+                System.out.println("CapitalGainsTax: " + tax);
+            }
         }
     }
 
     default void addNetEarnings() {
-        if (getSpecification().getTaxRule() instanceof CapitalGainsTax) {
-            double net = getLiveData().getWithdraw() - getLiveData().getCurrentTax();
-            getLiveData().addToNetEarnings(net);
-            getLiveData().setCurrentNet(net);
-        } else if (getSpecification().getTaxRule() instanceof NotionalGainsTax) {
-            double net = getLiveData().getWithdraw();
-            getLiveData().addToNetEarnings(net);
-            getLiveData().setCurrentNet(net);
+        for (ITaxRule rule : getTaxRules()) {
+            if (rule instanceof CapitalGainsTax) {
+                double net = getLiveData().getWithdraw() - getLiveData().getCurrentTax();
+                getLiveData().addToNetEarnings(net);
+                getLiveData().setCurrentNet(net);
+                System.out.println("NetEarnings: " + net);
+            } else if (rule instanceof NotionalGainsTax) {
+                double net = getLiveData().getWithdraw();
+                getLiveData().addToNetEarnings(net);
+                getLiveData().setCurrentNet(net);
+            }
         }
     }
 

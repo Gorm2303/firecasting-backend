@@ -25,8 +25,6 @@ class NotionalGainsTaxTest {
 
         assertEquals(original.getTaxRate(), copy.getTaxRate(), 0.0001, "Tax rates should match");
         assertEquals(original.getPreviousReturned(), copy.getPreviousReturned(), 0.0001, "Previous returned values should match");
-        assertEquals(original.getStockExemptionTax(), copy.getStockExemptionTax(), "Stock exemption tax should match");
-        assertEquals(original.getTaxExemptionCard(), copy.getTaxExemptionCard(), "Tax exemption card should match");
         assertNotSame(original, copy, "Copy should be a distinct instance");
     }
 }

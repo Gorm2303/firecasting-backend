@@ -8,11 +8,15 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Getter
@@ -20,8 +24,8 @@ import org.springframework.context.ApplicationEvent;
 public class WithdrawEventPhase extends SimulationEventPhase implements IWithdrawPhase {
     private IWithdraw withdraw;
 
-    public WithdrawEventPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
-        super(specification, startDate, duration, "Withdraw");
+    public WithdrawEventPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRules, long duration, IAction withdraw) {
+        super(specification, startDate, taxRules, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = (IWithdraw) withdraw;
     }
@@ -40,9 +44,14 @@ public class WithdrawEventPhase extends SimulationEventPhase implements IWithdra
 
     @Override
     public WithdrawEventPhase copy(ISpecification specificationCopy) {
+        List<ITaxRule> taxRulesCopy = new ArrayList<>();
+        for (ITaxRule taxRule : getTaxRules()) {
+            taxRulesCopy.add(taxRule.copy());
+        }
         return new WithdrawEventPhase(
                 specificationCopy,
                 getStartDate(),
+                taxRulesCopy,
                 getDuration(),
                 this.withdraw.copy()
         );

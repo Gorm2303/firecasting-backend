@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -33,7 +35,7 @@ public class PassiveCallPhaseTest {
     @BeforeEach
     public void setup() {
         lenient().when(specification.getLiveData()).thenReturn(liveData);
-        passiveCallPhase = new PassiveCallPhase(specification, startDate, duration, passive);
+        passiveCallPhase = new PassiveCallPhase(specification, startDate, new ArrayList<>(), duration, passive);
     }
 
     @Test

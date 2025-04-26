@@ -7,16 +7,20 @@ import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Getter
 public class PassiveCallPhase extends SimulationCallPhase implements IPassivePhase {
     private IPassive passive;
 
-    public PassiveCallPhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
-        super(specification, startDate, duration, "Passive");
+    public PassiveCallPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRules, long duration, IAction passive) {
+        super(specification, startDate, taxRules, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = (IPassive) passive;
     }
@@ -45,9 +49,14 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
 
     @Override
     public PassiveCallPhase copy(ISpecification specificationCopy) {
+        List<ITaxRule> taxRulesCopy = new ArrayList<>();
+        for (ITaxRule taxRule : getTaxRules()) {
+            taxRulesCopy.add(taxRule.copy());
+        }
         return new PassiveCallPhase(
                 specificationCopy,
                 getStartDate(),
+                taxRulesCopy,
                 getDuration(),
                 this.passive.copy()
         );

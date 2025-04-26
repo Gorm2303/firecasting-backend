@@ -17,6 +17,9 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
+import dk.gormkrings.tax.DefaultTaxRuleFactory;
+import dk.gormkrings.tax.ITaxRule;
+
 import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +33,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -48,8 +52,8 @@ public class FirecastingController {
     private final IPassivePhaseFactory passivePhaseFactory;
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
-    private final ITaxRuleFactory taxRuleFactory;
     private final SimulationAggregationService aggregationService;
+    private final DefaultTaxRuleFactory defaultTaxRuleFactory;
 
     @Value("${settings.runs}")
     private int runs;
@@ -70,16 +74,15 @@ public class FirecastingController {
                                  IPassivePhaseFactory passivePhaseFactory,
                                  IWithdrawPhaseFactory withdrawPhaseFactory,
                                  ISpecificationFactory specificationFactory,
-                                 ITaxRuleFactory taxRuleFactory,
-                                 SimulationAggregationService aggregationService) {
+                                 SimulationAggregationService aggregationService, DefaultTaxRuleFactory defaultTaxRuleFactory) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
         this.passivePhaseFactory = passivePhaseFactory;
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
-        this.taxRuleFactory = taxRuleFactory;
         this.aggregationService = aggregationService;
+        this.defaultTaxRuleFactory = defaultTaxRuleFactory;
     }
 
     /**
@@ -92,36 +95,44 @@ public class FirecastingController {
         String simulationId = UUID.randomUUID().toString();
         log.info("Starting simulation with id: {}", simulationId);
 
-        var taxRule = taxRuleFactory.createTaxRule(request.getTaxRule(), request.getTaxPercentage());
-
         // Build the simulation specification.
         var specification = specificationFactory.newSpecification(
-                request.getEpochDay(), taxRule, request.getReturnPercentage(), 2f);
+                request.getEpochDay(), request.getReturnPercentage(), 2f);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),
                 request.getStartDate().getMonth(),
                 request.getStartDate().getDayOfMonth());
 
+        String taxRule = request.getOverallTaxRule() != null ? request.getOverallTaxRule() : "CAPITAL";
+        ITaxRule overallTaxRule = defaultTaxRuleFactory.createTaxRule(taxRule, request.getTaxPercentage());
         List<IPhase> phases = new LinkedList<>();
 
         for (PhaseRequest pr : request.getPhases()) {
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
+            List<ITaxRule> taxRules = new ArrayList<>();
+            if (pr.getTaxRules() != null) {
+                for (String ruleName : pr.getTaxRules()) {
+                    taxRules.add(defaultTaxRuleFactory.create(ruleName));
+                }
+            }
+            taxRules.add(overallTaxRule);
+
             IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
                 case "DEPOSIT" -> {
                     double initialDeposit = pr.getInitialDeposit() != null ? pr.getInitialDeposit() : 0;
                     double monthlyDeposit = pr.getMonthlyDeposit() != null ? pr.getMonthlyDeposit() : 0;
                     double yearlyIncreaseInPercent = pr.getYearlyIncreaseInPercentage() != null ? pr.getYearlyIncreaseInPercentage() : 0;
                     IAction deposit = new Deposit(initialDeposit, monthlyDeposit, yearlyIncreaseInPercent);
-                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, days, deposit);
+                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, taxRules, days, deposit);
                 }
                 case "PASSIVE" -> {
                     IAction passive = new Passive();
-                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, days, passive);
+                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, taxRules,days, passive);
                 }
                 case "WITHDRAW" -> {
                     IAction withdraw = getAction(pr);
-                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, days, withdraw);
+                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, taxRules,days, withdraw);
                 }
                 default -> throw new IllegalArgumentException("Unknown phase type: " + pr.getPhaseType());
             };
