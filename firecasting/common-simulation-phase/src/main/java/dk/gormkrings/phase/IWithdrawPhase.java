@@ -71,7 +71,7 @@ public interface IWithdrawPhase extends ISimulationPhase {
         if (Double.isNaN(rate) || rate < 0.0) {
             rate = 0.0;
         } else if (rate >= 1.0) {
-            rate = 0.9999;  // prevent divide-by-zero or negative denom
+            rate = 0.9999;
         }
         return rate;
     }
