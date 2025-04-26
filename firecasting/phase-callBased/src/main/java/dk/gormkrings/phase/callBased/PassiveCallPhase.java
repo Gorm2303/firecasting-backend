@@ -11,6 +11,7 @@ import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -48,14 +49,14 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
 
     @Override
     public PassiveCallPhase copy(ISpecification specificationCopy) {
-        List<ITaxRule> taxRules = getTaxRules();
+        List<ITaxRule> copy = new ArrayList<>();
         for (ITaxRule rule : getTaxRules()) {
-            taxRules.add(rule.copy());
+            copy.add(rule.copy());
         }
         return new PassiveCallPhase(
                 specificationCopy,
                 getStartDate(),
-                taxRules,
+                copy,
                 getDuration(),
                 this.passive.copy()
         );

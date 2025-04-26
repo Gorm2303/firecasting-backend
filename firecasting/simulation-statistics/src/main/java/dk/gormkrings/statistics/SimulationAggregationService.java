@@ -41,25 +41,45 @@ public class SimulationAggregationService {
         List<SimulationRunData> simulationDataList = new ArrayList<>();
         for (IRunResult result : results) {
             simulationDataList.add(processRun(result));
+            if (result == results.getFirst()) {
+                log.debug("Aggregating and Processing run result: {}", result.getSnapshots());
+            }
         }
         long processTime = System.currentTimeMillis();
-        log.info("Process each simulation run in {} ms", processTime - startTime);
+        log.debug("Aggregating and Process each simulation run in {} ms", processTime - startTime);
 
         // Step 2: Compute quantile thresholds over final effective capitals.
         List<Double> finals = simulationDataList.stream()
                 .map(SimulationRunData::finalEffectiveCapital)
                 .toList();
+        if (finals.isEmpty()) {
+            log.warn("All simulation runs produced NaN or infinite final capital—no data to aggregate");
+            return Collections.emptyList();
+        }
+        int counter = 1;
+        for (SimulationRunData runData : simulationDataList) {
+            double cap = runData.finalEffectiveCapital();
+            if (Double.isNaN(cap) || Double.isInfinite(cap)) {
+                log.error("Run resulted in invalid capital: {}, counter: {}", cap, counter);
+                // optionally throw or skip right here
+                counter++;
+            }
+        }
+
         List<Double> sorted = new ArrayList<>(finals);
         Collections.sort(sorted);
+        log.debug("Aggregating and Sorted list of simulation run data: {}", sorted);
         double lowerThreshold = quantile(sorted, lowerThresholdPercentile);
         double upperThreshold = quantile(sorted, upperThresholdPercentile);
+        log.debug("Aggregating and Lower threshold percentile = {}", lowerThreshold);
+        log.debug("Aggregating and Upper threshold percentile = {}", upperThreshold);
 
         // Filter out simulation runs that fall outside the desired quantile thresholds.
         List<SimulationRunData> filteredSimulationData = simulationDataList.stream()
                 .filter(runData -> runData.finalEffectiveCapital() >= lowerThreshold &&
                         runData.finalEffectiveCapital() <= upperThreshold)
                 .toList();
-
+        log.debug("Filtered list of simulation run data: {}", filteredSimulationData);
         // Step 3: For each filtered run, mark snapshots as failed only from the first failing snapshot onward.
         List<SimulationRunData> markedSimulationData = filteredSimulationData.stream()
                 .map(this::markFailures)

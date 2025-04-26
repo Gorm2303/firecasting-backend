@@ -15,6 +15,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -44,14 +45,14 @@ public class DepositEventPhase extends SimulationEventPhase implements IDepositP
 
     @Override
     public DepositEventPhase copy(ISpecification specificationCopy) {
-        List<ITaxRule> taxRules = getTaxRules();
+        List<ITaxRule> copy = new ArrayList<>();
         for (ITaxRule rule : getTaxRules()) {
-            taxRules.add(rule.copy());
+            copy.add(rule.copy());
         }
         return new DepositEventPhase(
                 specificationCopy,
                 this.getStartDate(),
-                taxRules,
+                copy,
                 getDuration(),
                 this.deposit.copy()
         );

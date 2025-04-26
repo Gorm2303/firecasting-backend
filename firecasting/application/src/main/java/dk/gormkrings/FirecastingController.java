@@ -157,6 +157,11 @@ public class FirecastingController {
                         progressMessage -> emitterSend(progressMessage, simulationId)
                 );
 
+                log.debug("SimulationResults count = {}", simulationResults.size());
+                if (!simulationResults.isEmpty()) {
+                    log.debug("  first result: {}", simulationResults.get(0));
+                }
+
                 // Save results for potential export.
                 lastResults = simulationResults;
 
@@ -164,6 +169,10 @@ public class FirecastingController {
                 List<YearlySummary> summaries = aggregationService.aggregateResults(
                         simulationResults,
                         progressMessage -> emitterSend(progressMessage, simulationId));
+
+                log.debug("Summaries count = {}", summaries.size());
+                log.debug("Summaries = {}", summaries);
+
                 // Send the final aggregated statistics to the SSE emitter.
                 SseEmitter emitter = emitters.get(simulationId);
                 if (emitter != null) {
@@ -207,9 +216,13 @@ public class FirecastingController {
      * GET endpoint to subscribe to simulation progress updates.
      * The frontend calls this using the simulation ID returned from /start.
      */
-    @GetMapping("/progress/{simulationId}")
+    @GetMapping(
+            path     = "/progress/{simulationId}",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
     public SseEmitter getProgress(@PathVariable String simulationId) {
-        SseEmitter emitter = new SseEmitter(timeout);
+        SseEmitter emitter = new SseEmitter(0L);
+
         // Put the emitter in the map, so that simulation progress updates can find it.
         emitters.put(simulationId, emitter);
 
