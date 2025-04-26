@@ -30,4 +30,9 @@ public class CapitalGainsTax implements ITaxRule {
                 this.taxRate
                 );
     }
+
+    @Override
+    public void yearlyUpdate() {
+
+    }
 }

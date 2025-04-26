@@ -17,7 +17,7 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
-import dk.gormkrings.tax.DefaultTaxRuleFactory;
+import dk.gormkrings.tax.DefaultPreTaxRuleFactory;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -32,11 +32,10 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 @Slf4j
 @RestController
@@ -52,6 +51,7 @@ public class FirecastingController {
     private final ISpecificationFactory specificationFactory;
     private final SimulationAggregationService aggregationService;
     private final ITaxRuleFactory defaultTaxRuleFactory;
+    private final DefaultPreTaxRuleFactory defaultPreTaxRuleFactory;
 
     @Value("${settings.runs}")
     private int runs;
@@ -73,7 +73,7 @@ public class FirecastingController {
                                  IWithdrawPhaseFactory withdrawPhaseFactory,
                                  ISpecificationFactory specificationFactory,
                                  SimulationAggregationService aggregationService,
-                                 ITaxRuleFactory defaultTaxRuleFactory) {
+                                 ITaxRuleFactory defaultTaxRuleFactory, DefaultPreTaxRuleFactory defaultPreTaxRuleFactory) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
@@ -82,6 +82,7 @@ public class FirecastingController {
         this.specificationFactory = specificationFactory;
         this.aggregationService = aggregationService;
         this.defaultTaxRuleFactory = defaultTaxRuleFactory;
+        this.defaultPreTaxRuleFactory = defaultPreTaxRuleFactory;
     }
 
     /**
@@ -111,8 +112,16 @@ public class FirecastingController {
                 request.getStartDate().getDayOfMonth());
 
         List<IPhase> phases = new LinkedList<>();
+        List<ITaxRule> taxRules = new LinkedList<>();
 
         for (PhaseRequest pr : request.getPhases()) {
+            for (String tax : pr.getTaxRules()) {
+                if (tax.equalsIgnoreCase("stockexemption")) {
+                    taxRules.add(defaultPreTaxRuleFactory.createStockRule());
+                } else {
+                    taxRules.add(defaultPreTaxRuleFactory.createExemptionRule());
+                }
+            }
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
             IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
                 case "DEPOSIT" -> {
@@ -120,15 +129,15 @@ public class FirecastingController {
                     double monthlyDeposit = pr.getMonthlyDeposit() != null ? pr.getMonthlyDeposit() : 0;
                     double yearlyIncreaseInPercent = pr.getYearlyIncreaseInPercentage() != null ? pr.getYearlyIncreaseInPercentage() : 0;
                     IAction deposit = new Deposit(initialDeposit, monthlyDeposit, yearlyIncreaseInPercent);
-                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, days, deposit);
+                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, taxRules, days, deposit);
                 }
                 case "PASSIVE" -> {
                     IAction passive = new Passive();
-                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, days, passive);
+                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, taxRules, days, passive);
                 }
                 case "WITHDRAW" -> {
                     IAction withdraw = getAction(pr);
-                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, days, withdraw);
+                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, taxRules, days, withdraw);
                 }
                 default -> throw new IllegalArgumentException("Unknown phase type: " + pr.getPhaseType());
             };

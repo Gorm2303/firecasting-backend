@@ -33,4 +33,9 @@ public class NotionalGainsTax implements ITaxRule {
         notionalGainsTax.setPreviousReturned(this.previousReturned);
         return notionalGainsTax;
     }
+
+    @Override
+    public void yearlyUpdate() {
+
+    }
 }

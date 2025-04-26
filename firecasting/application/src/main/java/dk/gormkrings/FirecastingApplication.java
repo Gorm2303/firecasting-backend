@@ -12,7 +12,7 @@ import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.DefaultTaxRuleFactory;
+import dk.gormkrings.tax.DefaultPreTaxRuleFactory;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +36,7 @@ public class FirecastingApplication implements CommandLineRunner {
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
     private final ITaxRuleFactory defaultTaxRuleFactory;
+    private final DefaultPreTaxRuleFactory defaultPreTaxRuleFactory;
 
     @Value("${settings.run-local}")
     private boolean runLocal = false;
@@ -48,7 +49,7 @@ public class FirecastingApplication implements CommandLineRunner {
                                   IPassivePhaseFactory passivePhaseFactory,
                                   IWithdrawPhaseFactory withdrawPhaseFactory,
                                   ISpecificationFactory specificationFactory,
-                                  ITaxRuleFactory defaultTaxRuleFactory) {
+                                  ITaxRuleFactory defaultTaxRuleFactory, DefaultPreTaxRuleFactory defaultPreTaxRuleFactory) {
         this.simulation = simulation;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
@@ -56,6 +57,7 @@ public class FirecastingApplication implements CommandLineRunner {
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
         this.defaultTaxRuleFactory = defaultTaxRuleFactory;
+        this.defaultPreTaxRuleFactory = defaultPreTaxRuleFactory;
     }
 
     public static void main(String[] args) {
@@ -95,14 +97,17 @@ public class FirecastingApplication implements CommandLineRunner {
         IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();
         IAction withdraw = new Withdraw(0, 0.04, 0,0);
+        List<ITaxRule> depositTaxRules = new LinkedList<>(List.of(defaultPreTaxRuleFactory.createExemptionRule(), defaultPreTaxRuleFactory.createStockRule()));
+        List<ITaxRule> passiveTaxRules = new LinkedList<>(List.of(defaultPreTaxRuleFactory.createExemptionRule(), defaultPreTaxRuleFactory.createStockRule()));
+        List<ITaxRule> withdrawTaxRules = new LinkedList<>(List.of(defaultPreTaxRuleFactory.createExemptionRule(), defaultPreTaxRuleFactory.createStockRule()));
 
-        IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositDays, deposit);
+        IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositTaxRules, depositDays, deposit);
         phases.add(currentPhase);
 
-        currentPhase = passivePhaseFactory.createPassivePhase(specification, passiveStartIDate, passiveDays, passive);
+        currentPhase = passivePhaseFactory.createPassivePhase(specification, passiveStartIDate, passiveTaxRules, passiveDays, passive);
         phases.add(currentPhase);
 
-        currentPhase = withdrawPhaseFactory.createWithdrawPhase(specification, withdrawStartIDate, withdrawDays, withdraw);
+        currentPhase = withdrawPhaseFactory.createWithdrawPhase(specification, withdrawStartIDate, withdrawTaxRules, withdrawDays, withdraw);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();

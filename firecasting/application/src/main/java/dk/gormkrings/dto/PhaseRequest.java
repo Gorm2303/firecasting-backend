@@ -19,5 +19,6 @@ public class PhaseRequest {
     private Double withdrawAmount;
     private Double lowerVariationPercentage;
     private Double upperVariationPercentage;
+    private String[] taxRules;
 }
 
