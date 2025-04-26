@@ -19,11 +19,11 @@ public interface IWithdrawPhase extends ISimulationPhase {
         getLiveData().setWithdraw(withdrawAmount);
 
         double estimateTaxRate = estimateTaxRate(withdrawAmount);
-        double reEstimateTaxRate = estimateTaxRate(withdrawAmount / (1 - estimateTaxRate));
-        double lastEstimateTaxRate = estimateTaxRate(withdrawAmount / (1 - reEstimateTaxRate));
-        System.out.println("Estimated Tax Adjusted: " + lastEstimateTaxRate + ", Estimated new withdrawal: " + withdrawAmount/(1 - lastEstimateTaxRate));
+        withdrawAmount = withdrawAmount / (1 - estimateTaxRate);
+        getLiveData().setWithdraw(withdrawAmount);
+        System.out.println("Estimated Tax Adjusted: " + estimateTaxRate + ", Estimated new withdrawal: " + withdrawAmount/(1 - estimateTaxRate));
 
-        getLiveData().setWithdraw(withdrawAmount / (1 - lastEstimateTaxRate));
+        getLiveData().setWithdraw(withdrawAmount);
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);
 
