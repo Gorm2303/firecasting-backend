@@ -23,10 +23,10 @@ public class DefaultWithdrawPhaseFactory implements IWithdrawPhaseFactory {
     public IPhase createWithdrawPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRules, long duration, IAction withdraw) {
         if ("event".equalsIgnoreCase(withdrawPhaseType)) {
             log.info("Creating event-based withdraw phase");
-            return new WithdrawEventPhase(specification, startDate, duration, withdraw);
+            return new WithdrawEventPhase(specification, startDate,taxRules, duration, withdraw);
         } else {
             log.info("Creating call-based withdraw phase");
-            return new WithdrawCallPhase(specification, startDate, duration, withdraw);
+            return new WithdrawCallPhase(specification, startDate, taxRules, duration, withdraw);
         }
     }
 }

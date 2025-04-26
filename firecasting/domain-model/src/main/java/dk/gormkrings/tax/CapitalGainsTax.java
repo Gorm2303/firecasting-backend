@@ -24,6 +24,10 @@ public class CapitalGainsTax implements ITaxRule {
         return amount * taxRate / 100;
     }
 
+    public double estimateTax(double amount) {
+        return amount * taxRate / 100;
+    }
+
     @Override
     public CapitalGainsTax copy() {
         return new CapitalGainsTax(

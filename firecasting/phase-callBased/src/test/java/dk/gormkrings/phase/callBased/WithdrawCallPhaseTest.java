@@ -6,6 +6,7 @@ import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.EventType;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.CapitalGainsTax;
+import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.NotionalGainsTax;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -39,7 +42,7 @@ public class WithdrawCallPhaseTest {
     @BeforeEach
     public void setup() {
         lenient().when(specification.getLiveData()).thenReturn(liveData);
-        withdrawCallPhase = new WithdrawCallPhase(specification, startDate, duration, withdraw);
+        withdrawCallPhase = new WithdrawCallPhase(specification, startDate,  List.of(capitalGainsTax, notionalGainsTax), duration, withdraw);
     }
 
     @Test

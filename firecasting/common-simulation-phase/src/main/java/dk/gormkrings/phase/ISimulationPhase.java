@@ -3,11 +3,15 @@ package dk.gormkrings.phase;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.NotionalGainsTax;
+
+import java.util.List;
 
 public interface ISimulationPhase {
     ISpecification getSpecification();
     ILiveData getLiveData();
+    List<ITaxRule> getTaxRules();
 
     default void addReturn() {
         double r = getSpecification().getReturner().calculateReturn(getLiveData().getCapital());

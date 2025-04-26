@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +42,11 @@ public class IWithdrawPhaseTest {
             @Override
             public ILiveData getLiveData() {
                 return liveData;
+            }
+
+            @Override
+            public List<ITaxRule> getTaxRules() {
+                return List.of(capitalGainsTax, notionalGainsTax);
             }
 
             @Override

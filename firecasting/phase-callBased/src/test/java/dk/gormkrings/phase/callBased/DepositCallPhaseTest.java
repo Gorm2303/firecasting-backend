@@ -6,12 +6,15 @@ import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.EventType;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.simulation.util.Formatter;
+import dk.gormkrings.tax.ITaxRule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -34,7 +37,7 @@ public class DepositCallPhaseTest {
     @BeforeEach
     public void setup() {
         lenient().when(specification.getLiveData()).thenReturn(liveData);
-        depositCallPhase = new DepositCallPhase(specification, startDate, duration, deposit);
+        depositCallPhase = new DepositCallPhase(specification, startDate, List.of(mock(ITaxRule.class)), duration, deposit);
     }
 
     @Test

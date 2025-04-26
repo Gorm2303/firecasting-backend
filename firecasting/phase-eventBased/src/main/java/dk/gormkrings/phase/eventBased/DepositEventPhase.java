@@ -8,11 +8,14 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
+
+import java.util.List;
 
 @Slf4j
 @Getter
@@ -21,8 +24,8 @@ public class DepositEventPhase extends SimulationEventPhase implements IDepositP
     private IDeposit deposit;
     private boolean firstTime = true;
 
-    public DepositEventPhase(ISpecification specification, IDate startDate, long duration, IAction deposit) {
-        super(specification, startDate, duration, "Deposit");
+    public DepositEventPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRules, long duration, IAction deposit) {
+        super(specification, startDate, taxRules, duration, "Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = (IDeposit) deposit;
     }
@@ -41,9 +44,14 @@ public class DepositEventPhase extends SimulationEventPhase implements IDepositP
 
     @Override
     public DepositEventPhase copy(ISpecification specificationCopy) {
+        List<ITaxRule> taxRules = getTaxRules();
+        for (ITaxRule rule : getTaxRules()) {
+            taxRules.add(rule.copy());
+        }
         return new DepositEventPhase(
                 specificationCopy,
                 this.getStartDate(),
+                taxRules,
                 getDuration(),
                 this.deposit.copy()
         );

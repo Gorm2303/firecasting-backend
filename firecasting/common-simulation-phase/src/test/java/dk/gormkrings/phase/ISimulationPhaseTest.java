@@ -9,6 +9,8 @@ import dk.gormkrings.tax.NotionalGainsTax;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.mockito.Mockito.*;
 
 public class ISimulationPhaseTest {
@@ -30,6 +32,11 @@ public class ISimulationPhaseTest {
             @Override
             public ILiveData getLiveData() {
                 return liveData;
+            }
+
+            @Override
+            public List<ITaxRule> getTaxRules() {
+                return List.of(taxRule);
             }
         };
     }

@@ -118,6 +118,10 @@ public class LiveData implements ILiveData {
         this.deposited += deposit;
     }
 
+    public void subtractFromDeposited(double deposit) {
+        this.deposited -= deposit;
+    }
+
     public void addToReturned(double returned) {
         this.returned += returned;
     }
