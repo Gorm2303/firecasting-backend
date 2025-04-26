@@ -17,7 +17,7 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
-import dk.gormkrings.tax.DefaultPreTaxRuleFactory;
+import dk.gormkrings.tax.IPreTaxRuleFactory;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,6 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.stream.Stream;
 
 @Slf4j
 @RestController
@@ -50,8 +49,8 @@ public class FirecastingController {
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
     private final SimulationAggregationService aggregationService;
-    private final ITaxRuleFactory defaultTaxRuleFactory;
-    private final DefaultPreTaxRuleFactory defaultPreTaxRuleFactory;
+    private final ITaxRuleFactory taxRuleFactory;
+    private final IPreTaxRuleFactory preTaxRuleFactory;
 
     @Value("${settings.runs}")
     private int runs;
@@ -73,7 +72,8 @@ public class FirecastingController {
                                  IWithdrawPhaseFactory withdrawPhaseFactory,
                                  ISpecificationFactory specificationFactory,
                                  SimulationAggregationService aggregationService,
-                                 ITaxRuleFactory defaultTaxRuleFactory, DefaultPreTaxRuleFactory defaultPreTaxRuleFactory) {
+                                 ITaxRuleFactory taxRuleFactory,
+                                 IPreTaxRuleFactory PreTaxRuleFactory) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
@@ -81,8 +81,8 @@ public class FirecastingController {
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
         this.aggregationService = aggregationService;
-        this.defaultTaxRuleFactory = defaultTaxRuleFactory;
-        this.defaultPreTaxRuleFactory = defaultPreTaxRuleFactory;
+        this.taxRuleFactory = taxRuleFactory;
+        this.preTaxRuleFactory = PreTaxRuleFactory;
     }
 
     /**
@@ -98,9 +98,9 @@ public class FirecastingController {
         float taxPercentage = request.getTaxPercentage();
         ITaxRule overAllTaxRule = request.getOverallTaxRule() != null ?
                 request.getOverallTaxRule().equalsIgnoreCase("capital") ?
-                    defaultTaxRuleFactory.createCapitalTax(taxPercentage) :
-                    defaultTaxRuleFactory.createNotionalTax(taxPercentage) :
-                defaultTaxRuleFactory.createCapitalTax(taxPercentage);
+                    taxRuleFactory.createCapitalTax(taxPercentage) :
+                    taxRuleFactory.createNotionalTax(taxPercentage) :
+                taxRuleFactory.createCapitalTax(taxPercentage);
 
         // Build the simulation specification.
         var specification = specificationFactory.newSpecification(
@@ -117,9 +117,9 @@ public class FirecastingController {
         for (PhaseRequest pr : request.getPhases()) {
             for (String tax : pr.getTaxRules()) {
                 if (tax.equalsIgnoreCase("stockexemption")) {
-                    taxRules.add(defaultPreTaxRuleFactory.createStockRule());
+                    taxRules.add(preTaxRuleFactory.createStockRule());
                 } else {
-                    taxRules.add(defaultPreTaxRuleFactory.createExemptionRule());
+                    taxRules.add(preTaxRuleFactory.createExemptionRule());
                 }
             }
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));

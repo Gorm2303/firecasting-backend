@@ -23,6 +23,15 @@ simulation:
   phase:
     type: call
 
+tax:
+  exemption-card:
+    limit: 51600
+    increase: 1000
+  stock-exemption:
+    tax-rate: 27
+    limit: 67500
+    increase: 1000
+
 returner:
   selected: dataDrivenReturn
   data-driven:
