@@ -33,7 +33,9 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public boolean supportsEvent(EventType eventType) {
-        return eventType.equals(EventType.DAY_END) || eventType.equals(EventType.YEAR_END);
+        return eventType.equals(EventType.DAY_END)
+                || eventType.equals(EventType.YEAR_START)
+                || eventType.equals(EventType.YEAR_END);
     }
 
     @Override
@@ -68,7 +70,9 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onYearStart() {
-
+        for (ITaxRule rule : getTaxRules()) {
+            rule.yearlyUpdate();
+        }
     }
 
     @Override

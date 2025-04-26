@@ -111,6 +111,8 @@ public class FirecastingController {
                 request.getStartDate().getMonth(),
                 request.getStartDate().getDayOfMonth());
 
+        String taxRule = request.getOverallTaxRule() != null ? request.getOverallTaxRule() : "CAPITAL";
+        ITaxRule overallTaxRule = defaultTaxRuleFactory.createTaxRule(taxRule, request.getTaxPercentage());
         List<IPhase> phases = new LinkedList<>();
         List<ITaxRule> taxRules = new LinkedList<>();
 
@@ -123,6 +125,14 @@ public class FirecastingController {
                 }
             }
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
+            List<ITaxRule> taxRules = new ArrayList<>();
+            if (pr.getTaxRules() != null) {
+                for (String ruleName : pr.getTaxRules()) {
+                    taxRules.add(defaultTaxRuleFactory.create(ruleName));
+                }
+            }
+            taxRules.add(overallTaxRule);
+
             IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
                 case "DEPOSIT" -> {
                     double initialDeposit = pr.getInitialDeposit() != null ? pr.getInitialDeposit() : 0;

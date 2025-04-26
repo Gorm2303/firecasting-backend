@@ -54,7 +54,6 @@ public class DepositEventPhase extends SimulationEventPhase implements IDepositP
                 this.getStartDate(),
                 copy,
                 getDuration(),
-                this.deposit.copy()
-        );
+                this.deposit.copy());
     }
 }

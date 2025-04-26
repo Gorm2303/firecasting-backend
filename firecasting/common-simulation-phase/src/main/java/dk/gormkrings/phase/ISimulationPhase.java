@@ -21,16 +21,18 @@ public interface ISimulationPhase {
     }
 
     default void addTax() {
-        if (getSpecification().getTaxRule() instanceof NotionalGainsTax notionalTax) {
-            double tax = notionalTax.calculateTax(getLiveData().getReturned() - notionalTax.getPreviousReturned());
-            getLiveData().setCurrentTax(tax);
-            if (tax <= 0) return;
+        for (ITaxRule rule : getTaxRules()) {
+            if (rule instanceof NotionalGainsTax notionalTax) {
+                double tax = notionalTax.calculateTax(getLiveData().getReturned() - notionalTax.getPreviousReturned());
+                getLiveData().setCurrentTax(tax);
+                if (tax <= 0) return;
 
-            getLiveData().subtractFromCapital(tax);
-            getLiveData().subtractFromReturned(tax);
-            getLiveData().addToTax(tax);
-            notionalTax.setPreviousReturned(getLiveData().getReturned());
+                getLiveData().subtractFromCapital(tax);
+                getLiveData().subtractFromReturned(tax);
+                getLiveData().addToTax(tax);
+                notionalTax.setPreviousReturned(getLiveData().getReturned());
 
+            }
         }
     }
 

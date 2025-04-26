@@ -13,9 +13,7 @@ settings:
   timeout: 600000
 
 trading:
-  days:
-    per:
-      year: 252
+  days-per-year: 252
 
 simulation:
   engine:

@@ -8,7 +8,6 @@ import dk.gormkrings.tax.ITaxRule;
 public interface ISpecification {
     ISpecification copy();
     ILive getLiveData();
-    ITaxRule getTaxRule();
     IReturner getReturner();
     IInflation getInflation();
 }

@@ -16,7 +16,7 @@ public class DistributionFitter implements IDistributionFitter {
     private final DistributionFactory factory;
 
     // Inject the number of trading days per year from your properties (e.g., trading.days.per.year=252)
-    @Value("${trading.days.per.year}")
+    @Value("${trading.days-per-year}")
     private int tradingDaysPerYear;
 
     public DistributionFitter(DistributionFactory distributionFactory) {

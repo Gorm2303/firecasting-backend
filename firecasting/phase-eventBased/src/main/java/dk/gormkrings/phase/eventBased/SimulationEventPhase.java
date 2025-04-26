@@ -32,6 +32,7 @@ public abstract class SimulationEventPhase implements IEventPhase, ISimulationPh
         this.duration = duration;
         this.taxRules = taxRules;
         this.specification = specification;
+        this.taxRules = taxRules;
         this.name = name;
     }
 
