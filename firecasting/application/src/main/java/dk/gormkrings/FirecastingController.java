@@ -17,6 +17,9 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
+import dk.gormkrings.tax.DefaultTaxRuleFactory;
+import dk.gormkrings.tax.ITaxRule;
+import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +51,7 @@ public class FirecastingController {
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
     private final SimulationAggregationService aggregationService;
+    private final ITaxRuleFactory defaultTaxRuleFactory;
 
     @Value("${settings.runs}")
     private int runs;
@@ -68,7 +72,8 @@ public class FirecastingController {
                                  IPassivePhaseFactory passivePhaseFactory,
                                  IWithdrawPhaseFactory withdrawPhaseFactory,
                                  ISpecificationFactory specificationFactory,
-                                 SimulationAggregationService aggregationService) {
+                                 SimulationAggregationService aggregationService,
+                                 ITaxRuleFactory defaultTaxRuleFactory) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
@@ -76,6 +81,7 @@ public class FirecastingController {
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
         this.aggregationService = aggregationService;
+        this.defaultTaxRuleFactory = defaultTaxRuleFactory;
     }
 
     /**
@@ -86,11 +92,18 @@ public class FirecastingController {
     public ResponseEntity<String> startSimulation(@RequestBody SimulationRequest request) {
         // Generate a unique simulation ID.
         String simulationId = UUID.randomUUID().toString();
-        log.info("Starting simulation with id: {}", simulationId);
+        log.info("Starting simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
+
+        float taxPercentage = request.getTaxPercentage();
+        ITaxRule overAllTaxRule = request.getOverallTaxRule() != null ?
+                request.getOverallTaxRule().equalsIgnoreCase("capital") ?
+                    defaultTaxRuleFactory.createCapitalTax(taxPercentage) :
+                    defaultTaxRuleFactory.createNotionalTax(taxPercentage) :
+                defaultTaxRuleFactory.createCapitalTax(taxPercentage);
 
         // Build the simulation specification.
         var specification = specificationFactory.newSpecification(
-                request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage(), 2f);
+                request.getEpochDay(), overAllTaxRule, request.getReturnPercentage(), 2f);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),

@@ -1,5 +1,6 @@
 package dk.gormkrings.tax;
 
 public interface ITaxRuleFactory {
-    ITaxRule createTaxRule(double taxRate);
+    ITaxRule createCapitalTax(double taxRate);
+    ITaxRule createNotionalTax(double taxRate);
 }

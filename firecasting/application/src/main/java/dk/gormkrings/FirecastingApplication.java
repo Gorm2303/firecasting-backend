@@ -12,6 +12,9 @@ import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.DefaultTaxRuleFactory;
+import dk.gormkrings.tax.ITaxRule;
+import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -32,6 +35,7 @@ public class FirecastingApplication implements CommandLineRunner {
     private final IPassivePhaseFactory passivePhaseFactory;
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
+    private final ITaxRuleFactory defaultTaxRuleFactory;
 
     @Value("${settings.run-local}")
     private boolean runLocal = false;
@@ -43,13 +47,15 @@ public class FirecastingApplication implements CommandLineRunner {
                                   IDepositPhaseFactory depositPhaseFactory,
                                   IPassivePhaseFactory passivePhaseFactory,
                                   IWithdrawPhaseFactory withdrawPhaseFactory,
-                                  ISpecificationFactory specificationFactory) {
+                                  ISpecificationFactory specificationFactory,
+                                  ITaxRuleFactory defaultTaxRuleFactory) {
         this.simulation = simulation;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
         this.passivePhaseFactory = passivePhaseFactory;
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
+        this.defaultTaxRuleFactory = defaultTaxRuleFactory;
     }
 
     public static void main(String[] args) {
@@ -82,7 +88,9 @@ public class FirecastingApplication implements CommandLineRunner {
         long passiveDays = passiveStartIDate.daysUntil(withdrawStartIDate);
         long withdrawDays = withdrawStartIDate.daysUntil(withdrawEndIDate);
 
-        ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), 42, 7);
+        ITaxRule taxRule = defaultTaxRuleFactory.createCapitalTax(42);
+
+        ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), taxRule, 7);
 
         IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();

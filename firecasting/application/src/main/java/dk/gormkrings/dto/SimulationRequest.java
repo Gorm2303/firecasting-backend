@@ -14,6 +14,7 @@ public class SimulationRequest {
     private List<PhaseRequest> phases;
 
     // Specification parameters
+    private String overallTaxRule;
     private float taxPercentage;
     private float returnPercentage;
 
