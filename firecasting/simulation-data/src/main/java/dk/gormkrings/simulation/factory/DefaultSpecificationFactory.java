@@ -4,7 +4,6 @@ import dk.gormkrings.inflation.IInflationFactory;
 import dk.gormkrings.returns.IReturnFactory;
 import dk.gormkrings.factory.ISpecificationFactory;
 import dk.gormkrings.tax.ITaxRule;
-import dk.gormkrings.tax.ITaxRuleFactory;
 import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.specification.ISpecification;
 import org.springframework.stereotype.Component;

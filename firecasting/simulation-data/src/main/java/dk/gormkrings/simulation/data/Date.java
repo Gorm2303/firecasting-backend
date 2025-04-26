@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import dk.gormkrings.data.IDate;
 import lombok.Getter;
 
-import java.time.LocalDate;
-
 @Getter
 public final class Date implements IDate {
     // Number of days since the epoch (1900-01-01)
