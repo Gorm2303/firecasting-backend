@@ -1,6 +1,7 @@
 package dk.gormkrings.tax;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Scope("prototype")
 public class TaxExemptionCard implements ITaxRule {
+    @Setter
     private float currentExemption = 0;
     @Value("${tax.exemption-card.limit}")
     private float limit = 0;
@@ -20,17 +22,18 @@ public class TaxExemptionCard implements ITaxRule {
 
     @Override
     public double calculateTax(double amount) {
-        if (currentExemption + amount < limit) {
-            currentExemption += (float) amount;
+        if (currentExemption >= limit) {
             return 0;
-        } else if (limit - currentExemption > 0) {
-            float exemption = limit - currentExemption;
-            currentExemption += exemption;
-            return amount - exemption;
-        } else {
-            return amount;
         }
 
+        double exemptLeft = limit - currentExemption;
+        if (amount <= exemptLeft) {
+            currentExemption += (float) amount;
+            return amount;
+        } else {
+            currentExemption += (float) exemptLeft;
+            return exemptLeft;
+        }
     }
 
     @Override
