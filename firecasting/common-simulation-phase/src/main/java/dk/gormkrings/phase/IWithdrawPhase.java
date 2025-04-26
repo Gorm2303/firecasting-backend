@@ -34,8 +34,15 @@ public interface IWithdrawPhase extends ISimulationPhase {
             return 0.0;
         }
         double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
-        double taxableWithdrawal = withdraw * gainOfCapitalRate;
         double tax = 0;
+        if (getLiveData().getCapital() > 0) {
+            // Clamp into [0…1]
+            if (gainOfCapitalRate < 0) gainOfCapitalRate = 0.0;
+            if (gainOfCapitalRate > 1) gainOfCapitalRate = 1.0;
+        }
+        double taxableWithdrawal = withdraw * gainOfCapitalRate;
+
+
 
         for (ITaxRule rule : getTaxRules()) {
             if (rule instanceof TaxExemptionCard taxExemptionCard) {
@@ -79,6 +86,11 @@ public interface IWithdrawPhase extends ISimulationPhase {
     @Override
     default void addTax() {
         double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
+        if (getLiveData().getCapital() > 0) {
+            // Clamp into [0…1]
+            if (gainOfCapitalRate < 0) gainOfCapitalRate = 0.0;
+            if (gainOfCapitalRate > 1) gainOfCapitalRate = 1.0;
+        }
         double taxableWithdrawal = getLiveData().getWithdraw() * gainOfCapitalRate;
         double tax = 0;
 
