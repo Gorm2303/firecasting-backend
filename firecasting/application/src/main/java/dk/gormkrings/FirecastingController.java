@@ -104,19 +104,19 @@ public class FirecastingController {
 
         // Build the simulation specification.
         var specification = specificationFactory.newSpecification(
-                request.getEpochDay(), overAllTaxRule, request.getReturnPercentage(), 2f);
+                request.getEpochDay(), request.getReturnPercentage(), 2f);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),
                 request.getStartDate().getMonth(),
                 request.getStartDate().getDayOfMonth());
 
-        String taxRule = request.getOverallTaxRule() != null ? request.getOverallTaxRule() : "CAPITAL";
-        ITaxRule overallTaxRule = defaultTaxRuleFactory.createTaxRule(taxRule, request.getTaxPercentage());
         List<IPhase> phases = new LinkedList<>();
-        List<ITaxRule> taxRules = new LinkedList<>();
 
         for (PhaseRequest pr : request.getPhases()) {
+            List<ITaxRule> taxRules = new LinkedList<>();
+            taxRules.addFirst(overAllTaxRule);
+
             for (String tax : pr.getTaxRules()) {
                 if (tax.equalsIgnoreCase("stockexemption")) {
                     taxRules.add(preTaxRuleFactory.createStockRule());
@@ -125,13 +125,6 @@ public class FirecastingController {
                 }
             }
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
-            List<ITaxRule> taxRules = new ArrayList<>();
-            if (pr.getTaxRules() != null) {
-                for (String ruleName : pr.getTaxRules()) {
-                    taxRules.add(defaultTaxRuleFactory.create(ruleName));
-                }
-            }
-            taxRules.add(overallTaxRule);
 
             IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
                 case "DEPOSIT" -> {

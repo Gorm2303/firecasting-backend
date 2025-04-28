@@ -30,10 +30,11 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
 
     @Override
     public void onMonthEnd() {
+        if (getLiveData().getCapital() <= 0.0001) return;
         super.onMonthEnd();
         setDynamicWithdraw();
         withdrawMoney();
-        addTax();
+        addCapitalTax();
         addNetEarnings();
         if (Formatter.debug) log.debug(prettyString());
     }
@@ -41,10 +42,8 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
     private void setDynamicWithdraw() {
         double returnThisMonth = getLiveData().getReturned() - totalReturnLastMonth;
         double monthlyAmount = withdraw.getMonthlyAmount(getLiveData().getCapital(), getLiveData().getInflation());
+        if (monthlyAmount < 0.0) return;
         double proportion = returnThisMonth / monthlyAmount;
-        log.debug("Withdraw return: {}", returnThisMonth);
-        log.debug("Withdraw monthlyAmount: {}", monthlyAmount);
-        log.debug("Withdraw proportion: {}", proportion);
 
         if (proportion > 1 + getWithdraw().getUpperVariationPercentage() / 100) {
             withdraw.setDynamicAmountOfReturn((monthlyAmount) * withdraw.getUpperVariationPercentage() / 100);
@@ -53,7 +52,6 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
         } else {
             withdraw.setDynamicAmountOfReturn((monthlyAmount) * proportion / 100);
         }
-        log.debug("Withdraw dynamic amount: {}", withdraw.getDynamicAmountOfReturn());
         totalReturnLastMonth = getLiveData().getReturned();
     }
 

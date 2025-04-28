@@ -45,8 +45,8 @@ public class IPassivePhaseTest {
             }
 
             @Override
-            public void addTax() {
-                IPassivePhase.super.addTax();
+            public void addNotionalTax() {
+                IPassivePhase.super.addNotionalTax();
             }
 
             @Override

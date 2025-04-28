@@ -7,7 +7,7 @@ spring:
 
 settings:
   debug: false
-  runs: 10
+  runs: 10000
   batch-size: 10000
   run-local: false
   timeout: 600000

@@ -45,6 +45,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onDayEnd() {
+        if (getLiveData().getCapital() <= 0) return;
         if (startDate.plusDays(specification.getLiveData().getSessionDuration()).getDayOfWeek() < 5) addReturn();
     }
 
@@ -77,7 +78,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onYearEnd() {
-        addTax();
+        addNotionalTax();
         addInflation();
     }
 

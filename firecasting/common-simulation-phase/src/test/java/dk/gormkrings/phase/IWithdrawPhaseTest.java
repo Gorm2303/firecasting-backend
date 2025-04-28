@@ -60,8 +60,8 @@ public class IWithdrawPhaseTest {
             }
 
             @Override
-            public void addTax() {
-                IWithdrawPhase.super.addTax();
+            public void addCapitalTax() {
+                IWithdrawPhase.super.addCapitalTax();
             }
 
             @Override
@@ -90,7 +90,7 @@ public class IWithdrawPhaseTest {
         when(liveData.getWithdraw()).thenReturn(100.0);
         when(capitalGainsTax.calculateTax(100.0)).thenReturn(15.0);
 
-        withdrawPhase.addTax();
+        withdrawPhase.addCapitalTax();
 
         verify(liveData).setCurrentTax(15.0);
         verify(liveData).addToTax(15.0);
@@ -234,7 +234,7 @@ public class IWithdrawPhaseTest {
             }
         });
 
-        withdrawPhase.addTax();
+        withdrawPhase.addCapitalTax();
 
         verify(liveData, never()).setCurrentTax(anyDouble());
         verify(liveData, never()).addToTax(anyDouble());

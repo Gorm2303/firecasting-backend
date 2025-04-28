@@ -58,7 +58,7 @@ public class ISimulationPhaseTest {
     public void testAddTax_NonNotionalGainsTax_UsingMock() {
         when(simulationPhase.getTaxRules().getFirst()).thenReturn(taxRule);
 
-        simulationPhase.addTax();
+        simulationPhase.addNotionalTax();
 
         verify(liveData, never()).setCurrentTax(anyDouble());
         verify(liveData, never()).subtractFromCapital(anyDouble());
@@ -74,7 +74,7 @@ public class ISimulationPhaseTest {
         when(notionalGainsTax.getPreviousReturned()).thenReturn(100.0);
         when(notionalGainsTax.calculateTax(0.0)).thenReturn(0.0);
 
-        simulationPhase.addTax();
+        simulationPhase.addNotionalTax();
 
         verify(liveData).setCurrentTax(0.0);
         verify(liveData, never()).subtractFromCapital(anyDouble());
@@ -91,7 +91,7 @@ public class ISimulationPhaseTest {
         when(notionalGainsTax.getPreviousReturned()).thenReturn(100.0);
         when(notionalGainsTax.calculateTax(20.0)).thenReturn(20.0);
 
-        simulationPhase.addTax();
+        simulationPhase.addNotionalTax();
 
         verify(liveData).setCurrentTax(20.0);
         verify(liveData).subtractFromCapital(20.0);
@@ -130,7 +130,7 @@ public class ISimulationPhaseTest {
         when(notionalGainsTax.getPreviousReturned()).thenReturn(120.0);
         when(notionalGainsTax.calculateTax(-20.0)).thenReturn(-20.0);
 
-        simulationPhase.addTax();
+        simulationPhase.addNotionalTax();
 
         verify(liveData).setCurrentTax(-20.0);
         verify(liveData, never()).subtractFromCapital(anyDouble());
@@ -181,7 +181,7 @@ public class ISimulationPhaseTest {
         when(notionalGainsTax.getPreviousReturned()).thenReturn(0.0);
         when(notionalGainsTax.calculateTax(0.0)).thenReturn(0.0);
 
-        simulationPhase.addTax();
+        simulationPhase.addNotionalTax();
 
         verify(liveData).setCurrentTax(0.0);
         verify(liveData, never()).subtractFromCapital(anyDouble());
@@ -215,7 +215,7 @@ public class ISimulationPhaseTest {
         when(notionalGainsTax.getPreviousReturned()).thenReturn(5e8); // 500 million difference => 500 million
         when(notionalGainsTax.calculateTax(5e8)).thenReturn(5e7); // 50 million tax
 
-        simulationPhase.addTax();
+        simulationPhase.addNotionalTax();
 
         verify(liveData).setCurrentTax(5e7);
         verify(liveData).subtractFromCapital(5e7);

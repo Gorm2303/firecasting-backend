@@ -45,8 +45,8 @@ public class IDepositPhaseTest {
             }
 
             @Override
-            public void addTax() {
-                IDepositPhase.super.addTax();
+            public void addNotionalTax() {
+                IDepositPhase.super.addNotionalTax();
             }
 
             @Override

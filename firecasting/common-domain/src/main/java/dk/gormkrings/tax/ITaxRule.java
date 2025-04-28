@@ -4,6 +4,5 @@ public interface ITaxRule {
     double calculateTax(double amount);
     void yearlyUpdate();
     ITaxRule copy();
-    void yearlyUpdate();
 
 }

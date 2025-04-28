@@ -36,7 +36,7 @@ public class WithdrawEventPhase extends SimulationEventPhase implements IWithdra
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
             withdrawMoney();
-            addTax();
+            addCapitalTax();
             addNetEarnings();
             if (Formatter.debug) log.debug(prettyString());
         }

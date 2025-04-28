@@ -43,7 +43,7 @@ public abstract class SimulationEventPhase implements IEventPhase, ISimulationPh
             addReturn();
         } else if (event instanceof YearEvent yearEvent &&
                 yearEvent.getType() == Type.END) {
-            addTax();
+            addNotionalTax();
             addInflation();
         }
     }

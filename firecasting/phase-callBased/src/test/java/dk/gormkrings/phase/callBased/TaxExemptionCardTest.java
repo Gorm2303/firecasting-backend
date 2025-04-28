@@ -25,7 +25,7 @@ class TaxExemptionCardTest {
                 .makePhaseWithRules(startingCapital, deposited, withdrawal, card);
 
         // WHEN
-        double rate = phase.estimateTaxRate(withdrawal);
+        double rate = phase.estimateCapitalTaxRate(withdrawal);
 
         // THEN
         // 1) All of the €2 000 exemption should apply first:
@@ -56,7 +56,7 @@ class TaxExemptionCardTest {
         IWithdrawPhase phase = WithdrawPhaseTestHelper
                 .makePhaseWithRules(startingCapital, deposited, withdrawal, stockRule, capitalRule);
 
-        phase.addTax();   // actually apply addTax()
+        phase.addCapitalTax();   // actually apply addTax()
 
         // The taxable part is (withdrawal * gainPct) – 5 000,
         // and tax = 25 % of that remainder.

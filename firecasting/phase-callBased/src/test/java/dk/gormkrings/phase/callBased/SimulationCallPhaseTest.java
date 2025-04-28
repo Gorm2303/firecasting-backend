@@ -82,7 +82,7 @@ public class SimulationCallPhaseTest {
         });
 
         phase.onYearEnd();
-        verify(phase).addTax();
+        verify(phase).addNotionalTax();
         verify(phase).addInflation();
     }
 

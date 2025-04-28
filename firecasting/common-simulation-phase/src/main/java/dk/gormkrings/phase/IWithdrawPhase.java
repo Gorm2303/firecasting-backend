@@ -11,90 +11,41 @@ public interface IWithdrawPhase extends ISimulationPhase {
     ISpecification getSpecification();
 
     default void withdrawMoney() {
-        double withdrawAmount = getWithdraw().getMonthlyAmount(getLiveData().getCapital(), getLiveData().getInflation());
+        double capital = getLiveData().getCapital();
+        if (capital < 0.0001) return;
+        double withdrawAmount = getWithdraw().getMonthlyAmount(capital, getLiveData().getInflation());
         withdrawAmount += getWithdraw().getDynamicAmountOfReturn();
-        if (withdrawAmount <= 0) withdrawAmount = 0;
-        if (withdrawAmount > getLiveData().getCapital()) withdrawAmount = getLiveData().getCapital();
-
+        if (withdrawAmount < 0.0001) withdrawAmount = 0;
+        if (withdrawAmount > capital) withdrawAmount = capital;
         getLiveData().setWithdraw(withdrawAmount);
 
-        double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
-        getLiveData().subtractFromDeposited((1 - gainOfCapitalRate) * getLiveData().getWithdraw());
+        double depositOfCapitalRate = (getLiveData().getDeposited() / capital);
+        getLiveData().subtractFromDeposited((depositOfCapitalRate) * withdrawAmount);
 
-        double estimateTaxRate = estimateTaxRate(withdrawAmount);
-        withdrawAmount = withdrawAmount / (1 - estimateTaxRate);
-        getLiveData().setWithdraw(withdrawAmount);
+        for (ITaxRule rule : getTaxRules()) {
+            if (rule instanceof CapitalGainsTax) {
+                double estimateTaxRate = estimateCapitalTaxRate(withdrawAmount);
+                withdrawAmount = withdrawAmount / (1 - estimateTaxRate);
+                getLiveData().setWithdraw(withdrawAmount);
+                break;
+            }
+        }
 
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);
-
-        double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
-        getLiveData().subtractFromDeposited((1 - gainOfCapitalRate) * getLiveData().getWithdraw());
-        System.out.println("Withdraw amount " + withdrawAmount);
     }
 
-    default double estimateTaxRate(double withdraw) {
-        double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
-        double taxableWithdrawal = withdraw * gainOfCapitalRate;
-        System.out.println("Taxable withdrawal " + taxableWithdrawal + " gain of " + gainOfCapitalRate * 100 + "%");
-        double tax = 0;
-
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof TaxExemptionCard taxExemptionCard) {
-                float previousExemption = taxExemptionCard.getCurrentExemption();
-                taxExemptionCard.calculateTax(taxableWithdrawal);
-                taxableWithdrawal -= (taxExemptionCard.getCurrentExemption() - previousExemption);
-                taxExemptionCard.setCurrentExemption(previousExemption);
-                if (taxableWithdrawal < 0.1) taxableWithdrawal  = 0.0;
-                System.out.println("Estimate TaxExemptionCard: " + taxExemptionCard);
-                System.out.println("Estimate Card - Added tax " + tax);
-                System.out.println("Estimate Card - Taxble Withdrawal " + taxableWithdrawal);
-                break;
-            }
-        }
-
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof StockExemptionTax stockExemptionTax) {
-                float previousExemption = stockExemptionTax.getCurrentExemption();
-                tax += stockExemptionTax.calculateTax(taxableWithdrawal);
-                taxableWithdrawal -= (stockExemptionTax.getCurrentExemption() - previousExemption);
-                stockExemptionTax.setCurrentExemption(previousExemption);
-                if (tax < 0.1) tax  = 0.0;
-                if (taxableWithdrawal < 0.1) taxableWithdrawal  = 0.0;
-                System.out.println("Estimate StockExemptionTax: " + stockExemptionTax);
-                System.out.println("Estimate Stock - Added tax " + tax);
-                System.out.println("Estimate Stock - Taxble Withdrawal " + taxableWithdrawal);
-                break;
-            }
-        }
-
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof CapitalGainsTax capitalTax) {
-                tax += capitalTax.estimateTax(taxableWithdrawal);
-                System.out.println("Estimate CapitalGainsTax: " + tax);
-                System.out.println("Estimate Capital - Added tax " + tax);
-                System.out.println("Estimate Capital - Taxble Withdrawal " + taxableWithdrawal);
-                break;
-            }
-        }
-        System.out.println("Tax: " + tax + ", Old Withdraw: " + withdraw);
-        return tax / withdraw;
-    }
-
-    default double estimateTaxRate(double withdraw) {
+    default double estimateCapitalTaxRate(double withdraw) {
         if (withdraw <= 0.0) {
             return 0.0;
         }
         double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
         double tax = 0;
         if (getLiveData().getCapital() > 0) {
-            // Clamp into [0…1]
             if (gainOfCapitalRate < 0) gainOfCapitalRate = 0.0;
             if (gainOfCapitalRate > 1) gainOfCapitalRate = 1.0;
         }
         double taxableWithdrawal = withdraw * gainOfCapitalRate;
-
-
 
         for (ITaxRule rule : getTaxRules()) {
             if (rule instanceof TaxExemptionCard taxExemptionCard) {
@@ -102,7 +53,7 @@ public interface IWithdrawPhase extends ISimulationPhase {
                 taxExemptionCard.calculateTax(taxableWithdrawal);
                 taxableWithdrawal -= (taxExemptionCard.getCurrentExemption() - previousExemption);
                 taxExemptionCard.setCurrentExemption(previousExemption);
-                if (taxableWithdrawal < 0.1) taxableWithdrawal  = 0.0;
+                if (taxableWithdrawal < 0.0001) taxableWithdrawal  = 0.0;
                 break;
             }
         }
@@ -113,8 +64,8 @@ public interface IWithdrawPhase extends ISimulationPhase {
                 tax += stockExemptionTax.calculateTax(taxableWithdrawal);
                 taxableWithdrawal -= (stockExemptionTax.getCurrentExemption() - previousExemption);
                 stockExemptionTax.setCurrentExemption(previousExemption);
-                if (tax < 0.1) tax  = 0.0;
-                if (taxableWithdrawal < 0.1) taxableWithdrawal  = 0.0;
+                if (tax < 0.0001) tax  = 0.0;
+                if (taxableWithdrawal < 0.0001) taxableWithdrawal  = 0.0;
                 break;
             }
         }
@@ -126,7 +77,6 @@ public interface IWithdrawPhase extends ISimulationPhase {
             }
         }
         double rate = tax / withdraw;
-        // Clamp to [0, 1)
         if (Double.isNaN(rate) || rate < 0.0) {
             rate = 0.0;
         } else if (rate >= 1.0) {
@@ -135,37 +85,25 @@ public interface IWithdrawPhase extends ISimulationPhase {
         return rate;
     }
 
-    @Override
-    default void addTax() {
+    default void addCapitalTax() {
         double gainOfCapitalRate = 1 - (getLiveData().getDeposited() / getLiveData().getCapital());
         if (getLiveData().getCapital() > 0) {
-            // Clamp into [0…1]
             if (gainOfCapitalRate < 0) gainOfCapitalRate = 0.0;
             if (gainOfCapitalRate > 1) gainOfCapitalRate = 1.0;
         }
         double taxableWithdrawal = getLiveData().getWithdraw() * gainOfCapitalRate;
+        if (taxableWithdrawal < 0.0001) taxableWithdrawal = 0.0;
         double tax = 0;
 
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof TaxExemptionCard taxExemptionCard) {
-                float previousExemption = taxExemptionCard.getCurrentExemption();
-                taxExemptionCard.calculateTax(taxableWithdrawal);
-                taxableWithdrawal -= (taxExemptionCard.getCurrentExemption() - previousExemption);
-                if (taxableWithdrawal < 0.1) taxableWithdrawal  = 0.0;
-                break;
-            }
-        }
+        // Adjust the amount of taxable withdrawal
+        taxableWithdrawal = taxExemptionCardToTaxableAmount(taxableWithdrawal);
 
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof StockExemptionTax stockExemptionTax) {
-                float previousExemption = stockExemptionTax.getCurrentExemption();
-                tax += stockExemptionTax.calculateTax(taxableWithdrawal);
-                taxableWithdrawal -= (stockExemptionTax.getCurrentExemption() - previousExemption);
-                if (tax < 0.1) tax  = 0.0;
-                if (taxableWithdrawal < 0.1) taxableWithdrawal  = 0.0;
-                break;
-            }
-        }
+        // Apply lower tax rate
+        tax = stockTaxExemptionToTax(tax, taxableWithdrawal);
+
+        // Adjust the amount of taxable withdrawal
+        taxableWithdrawal = stockTaxExemptionToTaxableAmount(taxableWithdrawal);
+
 
         for (ITaxRule rule : getTaxRules()) {
             if (rule instanceof CapitalGainsTax capitalTax) {
@@ -175,42 +113,15 @@ public interface IWithdrawPhase extends ISimulationPhase {
                 break;
             }
         }
-
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof StockExemptionTax stockExemptionTax) {
-                float previousExemption = stockExemptionTax.getCurrentExemption();
-                tax += stockExemptionTax.calculateTax(taxableWithdrawal);
-                taxableWithdrawal -= (stockExemptionTax.getCurrentExemption() - previousExemption);
-                if (tax < 0.1) tax  = 0.0;
-                if (taxableWithdrawal < 0.1) taxableWithdrawal  = 0.0;
-                System.out.println("Calculation StockExemptionTax: " + stockExemptionTax);
-                System.out.println("Calculation Stock - Added tax " + tax);
-                System.out.println("Calculation Stock - Taxble Withdrawal " + taxableWithdrawal);
-                break;
-            }
-        }
-
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof CapitalGainsTax capitalTax) {
-                tax += capitalTax.calculateTax(taxableWithdrawal);
-                getLiveData().setCurrentTax(tax);
-                getLiveData().addToTax(tax);
-                System.out.println("Calculation CapitalGainsTax: " + tax);
-                System.out.println("Calculation Capital - Added tax " + tax);
-                System.out.println("Calculation Capital - Taxble Withdrawal " + taxableWithdrawal);
-                break;
-            }
-        }
-        System.out.println("Tax: " + tax + ", New Withdraw: " + getLiveData().getWithdraw());
     }
 
     default void addNetEarnings() {
         for (ITaxRule rule : getTaxRules()) {
             if (rule instanceof CapitalGainsTax) {
                 double net = getLiveData().getWithdraw() - getLiveData().getCurrentTax();
+                if (net < 0.0001) net = 0.0;
                 getLiveData().addToNetEarnings(net);
                 getLiveData().setCurrentNet(net);
-                System.out.println("NetEarnings: " + net);
             } else if (rule instanceof NotionalGainsTax) {
                 double net = getLiveData().getWithdraw();
                 getLiveData().addToNetEarnings(net);

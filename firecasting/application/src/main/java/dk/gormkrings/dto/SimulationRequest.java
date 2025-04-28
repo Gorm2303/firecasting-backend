@@ -18,9 +18,6 @@ public class SimulationRequest {
     private float taxPercentage;
     private float returnPercentage;
 
-    // Tax Options
-    private String overallTaxRule;
-
     public int getEpochDay() {
         return startDate.getEpochDay();
     }

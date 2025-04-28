@@ -26,10 +26,6 @@ public class NotionalGainsTax implements ITaxRule {
     }
 
     @Override
-    public void yearlyUpdate() {
-    }
-
-    @Override
     public NotionalGainsTax copy() {
         NotionalGainsTax notionalGainsTax = new NotionalGainsTax(
                 this.taxRate

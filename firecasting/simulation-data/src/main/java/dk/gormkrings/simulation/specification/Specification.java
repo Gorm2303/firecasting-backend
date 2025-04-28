@@ -4,7 +4,10 @@ import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.simulation.data.LiveData;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
+
+import java.util.List;
 
 @Getter
 public class Specification implements ISpecification {
