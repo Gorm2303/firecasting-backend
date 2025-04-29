@@ -12,6 +12,8 @@ public class Withdraw implements IWithdraw {
     @Setter
     @Getter
     private double dynamicAmountOfReturn;
+    @Getter
+    private boolean percentageWithdraw = false;
     private final double lowerThreshold;
     private final double upperThreshold;
 
@@ -43,6 +45,7 @@ public class Withdraw implements IWithdraw {
     public double getMonthlyAmount(double capital, double inflation) {
         if (monthlyAmount <= 0) {
             monthlyAmount = (yearlyPercentage/100 * capital)/12;
+            percentageWithdraw = true;
         }
         return monthlyAmount + (monthlyAmount * (inflation / 100));
 

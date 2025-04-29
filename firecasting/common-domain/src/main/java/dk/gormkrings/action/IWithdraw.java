@@ -6,4 +6,5 @@ public interface IWithdraw extends IAction {
     double getLowerVariationPercentage();
     double getUpperVariationPercentage();
     void setDynamicAmountOfReturn(double dynamicAmountOfReturn);
+    boolean isPercentageWithdraw();
 }

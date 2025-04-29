@@ -23,28 +23,25 @@ public interface ISimulationPhase {
     }
 
     default void addNotionalTax() {
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof NotionalGainsTax notionalTax) {
-                double taxableAmount = getLiveData().getReturned() - notionalTax.getPreviousReturned();
-                double tax = 0;
-                if (taxableAmount > 0) {
-                    // Adjust the amount of taxable withdrawal
-                    taxableAmount = taxExemptionCardToTaxableAmount(taxableAmount);
-                    // Apply lower tax rate
-                    tax += stockTaxExemptionToTax(tax, taxableAmount);
-                    // Adjust the amount of taxable withdrawal
-                    taxableAmount = stockTaxExemptionToTaxableAmount(taxableAmount);
+        if (getSpecification().getTaxRule() instanceof NotionalGainsTax notionalTax) {
+            double taxableAmount = getLiveData().getReturned() - notionalTax.getPreviousReturned();
+            double tax = 0;
+            if (taxableAmount > 0) {
+                // Adjust the amount of taxable withdrawal
+                taxableAmount = taxExemptionCardToTaxableAmount(taxableAmount);
+                // Apply lower tax rate
+                tax += stockTaxExemptionToTax(tax, taxableAmount);
+                // Adjust the amount of taxable withdrawal
+                taxableAmount = stockTaxExemptionToTaxableAmount(taxableAmount);
 
-                    tax += notionalTax.calculateTax(taxableAmount);
-                    if (tax < 0.0001) tax = 0;
-                    getLiveData().setCurrentTax(tax);
-                    getLiveData().subtractFromCapital(tax);
-                    getLiveData().subtractFromReturned(tax);
-                    getLiveData().addToTax(tax);
-                }
-                notionalTax.setPreviousReturned(getLiveData().getReturned());
-                break;
+                tax += notionalTax.calculateTax(taxableAmount);
+                if (tax < 0.0001) tax = 0;
+                getLiveData().setCurrentTax(tax);
+                getLiveData().subtractFromCapital(tax);
+                getLiveData().subtractFromReturned(tax);
+                getLiveData().addToTax(tax);
             }
+            notionalTax.setPreviousReturned(getLiveData().getReturned());
         }
     }
 

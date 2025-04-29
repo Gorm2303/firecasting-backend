@@ -10,4 +10,5 @@ public interface ISpecification {
     ILive getLiveData();
     IReturner getReturner();
     IInflation getInflation();
+    ITaxRule getTaxRule();
 }

@@ -92,7 +92,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
         ITaxRule taxRule = defaultTaxRuleFactory.createCapitalTax(42);
 
-        ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), 7);
+        ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), taxRule, 7);
 
         IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();

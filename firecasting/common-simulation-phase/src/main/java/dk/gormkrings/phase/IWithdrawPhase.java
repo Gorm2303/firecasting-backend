@@ -22,20 +22,17 @@ public interface IWithdrawPhase extends ISimulationPhase {
         double depositOfCapitalRate = (getLiveData().getDeposited() / capital);
         getLiveData().subtractFromDeposited((depositOfCapitalRate) * withdrawAmount);
 
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof CapitalGainsTax) {
-                double estimateTaxRate = estimateCapitalTaxRate(withdrawAmount);
-                withdrawAmount = withdrawAmount / (1 - estimateTaxRate);
-                getLiveData().setWithdraw(withdrawAmount);
-                break;
-            }
+        if (getSpecification().getTaxRule() instanceof CapitalGainsTax capitalGainsTax && !getWithdraw().isPercentageWithdraw()) {
+            double estimateTaxRate = estimateCapitalTaxRate(withdrawAmount, capitalGainsTax);
+            withdrawAmount = withdrawAmount / (1 - estimateTaxRate);
+            getLiveData().setWithdraw(withdrawAmount);
         }
 
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);
     }
 
-    default double estimateCapitalTaxRate(double withdraw) {
+    default double estimateCapitalTaxRate(double withdraw, CapitalGainsTax capitalGainsTax) {
         if (withdraw <= 0.0) {
             return 0.0;
         }
@@ -70,12 +67,8 @@ public interface IWithdrawPhase extends ISimulationPhase {
             }
         }
 
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof CapitalGainsTax capitalTax) {
-                tax += capitalTax.estimateTax(taxableWithdrawal);
-                break;
-            }
-        }
+        tax += capitalGainsTax.estimateTax(taxableWithdrawal);
+
         double rate = tax / withdraw;
         if (Double.isNaN(rate) || rate < 0.0) {
             rate = 0.0;
@@ -105,28 +98,27 @@ public interface IWithdrawPhase extends ISimulationPhase {
         taxableWithdrawal = stockTaxExemptionToTaxableAmount(taxableWithdrawal);
 
 
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof CapitalGainsTax capitalTax) {
-                tax += capitalTax.calculateTax(taxableWithdrawal);
-                getLiveData().setCurrentTax(tax);
-                getLiveData().addToTax(tax);
-                break;
-            }
+        if (getSpecification().getTaxRule() instanceof CapitalGainsTax capitalTax) {
+            tax += capitalTax.calculateTax(taxableWithdrawal);
+            getLiveData().setCurrentTax(tax);
+            getLiveData().addToTax(tax);
+
         }
     }
 
     default void addNetEarnings() {
-        for (ITaxRule rule : getTaxRules()) {
-            if (rule instanceof CapitalGainsTax) {
-                double net = getLiveData().getWithdraw() - getLiveData().getCurrentTax();
-                if (net < 0.0001) net = 0.0;
-                getLiveData().addToNetEarnings(net);
-                getLiveData().setCurrentNet(net);
-            } else if (rule instanceof NotionalGainsTax) {
-                double net = getLiveData().getWithdraw();
-                getLiveData().addToNetEarnings(net);
-                getLiveData().setCurrentNet(net);
-            }
+        ITaxRule taxRule = getSpecification().getTaxRule();
+
+        if (taxRule instanceof CapitalGainsTax) {
+            double net = getLiveData().getWithdraw() - getLiveData().getCurrentTax();
+            if (net < 0.0001) net = 0.0;
+            getLiveData().addToNetEarnings(net);
+            getLiveData().setCurrentNet(net);
+
+        } else if (taxRule instanceof NotionalGainsTax) {
+            double net = getLiveData().getWithdraw();
+            getLiveData().addToNetEarnings(net);
+            getLiveData().setCurrentNet(net);
         }
     }
 

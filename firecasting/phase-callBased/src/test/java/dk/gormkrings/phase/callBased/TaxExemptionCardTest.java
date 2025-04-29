@@ -25,7 +25,7 @@ class TaxExemptionCardTest {
                 .makePhaseWithRules(startingCapital, deposited, withdrawal, card);
 
         // WHEN
-        double rate = phase.estimateCapitalTaxRate(withdrawal);
+        double rate = phase.estimateCapitalTaxRate(withdrawal, new CapitalGainsTax(42));
 
         // THEN
         // 1) All of the €2 000 exemption should apply first:

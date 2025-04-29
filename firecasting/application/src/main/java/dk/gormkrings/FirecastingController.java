@@ -104,7 +104,7 @@ public class FirecastingController {
 
         // Build the simulation specification.
         var specification = specificationFactory.newSpecification(
-                request.getEpochDay(), request.getReturnPercentage(), 2f);
+                request.getEpochDay(), overAllTaxRule, 2F);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),
@@ -115,7 +115,6 @@ public class FirecastingController {
 
         for (PhaseRequest pr : request.getPhases()) {
             List<ITaxRule> taxRules = new LinkedList<>();
-            taxRules.addFirst(overAllTaxRule);
 
             for (String tax : pr.getTaxRules()) {
                 if (tax.equalsIgnoreCase("stockexemption")) {
