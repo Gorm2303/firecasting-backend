@@ -10,19 +10,19 @@ import org.springframework.stereotype.Component;
 @Component
 @Setter
 @Getter
-public class DefaultPreTaxRuleFactory implements IPreTaxRuleFactory {
+public class DefaultTaxExemptionFactory implements ITaxExemptionFactory {
     ApplicationContext context;
 
-    public DefaultPreTaxRuleFactory(ApplicationContext context) {
+    public DefaultTaxExemptionFactory(ApplicationContext context) {
         this.context = context;
     }
 
-    public ITaxRule createExemptionRule() {
+    public ITaxExemption createExemptionRule() {
         log.info("Creating Tax Exemption Card rule");
         return context.getBean(TaxExemptionCard.class);
     }
 
-    public ITaxRule createStockRule() {
+    public ITaxExemption createStockRule() {
         log.info("Creating Stock Exemption rule");
         return context.getBean(StockExemptionTax.class);
     }

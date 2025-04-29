@@ -4,6 +4,7 @@ import dk.gormkrings.action.IWithdraw;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.phase.IWithdrawPhase;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 
 import java.util.Arrays;
@@ -16,7 +17,7 @@ public class WithdrawPhaseTestHelper {
             double startingCapital,
             double deposited,
             double monthlyWithdrawal,
-            ITaxRule... rules
+            ITaxExemption... rules
     ) {
         // Fake ILiveData that holds capital, deposited, etc.
         ILiveData liveData = mock(ILiveData.class);
@@ -27,7 +28,7 @@ public class WithdrawPhaseTestHelper {
             public IWithdraw getWithdraw()       { return withdraw; }
             public ILiveData getLiveData()       { return liveData; }
             public ISpecification getSpecification() { return spec; }
-            public List<ITaxRule> getTaxRules()  { return Arrays.asList(rules); }
+            public List<ITaxExemption> getTaxExemptions()  { return Arrays.asList(rules); }
             // no‐ops for onMonthEnd/onPhaseStart/etc.
         };
     }

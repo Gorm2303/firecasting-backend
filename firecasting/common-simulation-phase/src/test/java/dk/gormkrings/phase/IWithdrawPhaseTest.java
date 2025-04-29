@@ -3,9 +3,7 @@ package dk.gormkrings.phase;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.CapitalGainsTax;
-import dk.gormkrings.tax.ITaxRule;
-import dk.gormkrings.tax.NotionalGainsTax;
+import dk.gormkrings.tax.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,8 +43,8 @@ public class IWithdrawPhaseTest {
             }
 
             @Override
-            public List<ITaxRule> getTaxRules() {
-                return List.of(capitalGainsTax, notionalGainsTax);
+            public List<ITaxExemption> getTaxExemptions() {
+                return List.of();
             }
 
             @Override
@@ -86,7 +84,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddTax_CapitalGainsTax() {
-        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
+        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
         when(capitalGainsTax.calculateTax(100.0)).thenReturn(15.0);
 
@@ -98,7 +96,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_CapitalGainsTax() {
-        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
+        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
         when(liveData.getCurrentTax()).thenReturn(20.0);
 
@@ -110,7 +108,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_NotionalGainsTax() {
-        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
+        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
 
         withdrawPhase.addNetEarnings();
@@ -147,7 +145,7 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_CapitalGainsTax_ZeroNet() {
-        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(capitalGainsTax);
+        when(specification.getTaxRule()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
         when(liveData.getCurrentTax()).thenReturn(100.0);
 
@@ -218,19 +216,20 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddTax_UnknownTaxRule() {
-        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(new ITaxRule() {
+        when(withdrawPhase.getTaxExemptions().getFirst()).thenReturn(new ITaxExemption() {
             @Override
             public double calculateTax(double amount) {
                 return 0;
             }
 
             @Override
-            public ITaxRule copy() {
+            public ITaxExemption copy() {
                 return null;
             }
 
             @Override
             public void yearlyUpdate() {
+
             }
         });
 
@@ -242,14 +241,14 @@ public class IWithdrawPhaseTest {
 
     @Test
     public void testAddNetEarnings_UnknownTaxRule() {
-        when(withdrawPhase.getTaxRules().getFirst()).thenReturn(new ITaxRule() {
+        when(withdrawPhase.getTaxExemptions().getFirst()).thenReturn(new ITaxExemption() {
             @Override
             public double calculateTax(double amount) {
                 return 0;
             }
 
             @Override
-            public ITaxRule copy() {
+            public ITaxExemption copy() {
                 return null;
             }
 

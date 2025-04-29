@@ -3,17 +3,14 @@ package dk.gormkrings.phase;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.ITaxRule;
-import dk.gormkrings.tax.NotionalGainsTax;
-import dk.gormkrings.tax.StockExemptionTax;
-import dk.gormkrings.tax.TaxExemptionCard;
+import dk.gormkrings.tax.*;
 
 import java.util.List;
 
 public interface ISimulationPhase {
     ISpecification getSpecification();
     ILiveData getLiveData();
-    List<ITaxRule> getTaxRules();
+    List<ITaxExemption> getTaxExemptions();
 
     default void addReturn() {
         double r = getSpecification().getReturner().calculateReturn(getLiveData().getCapital());
@@ -46,7 +43,7 @@ public interface ISimulationPhase {
     }
 
     default double taxExemptionCardToTaxableAmount(double taxableAmount) {
-        for (ITaxRule rule : getTaxRules()) {
+        for (ITaxExemption rule : getTaxExemptions()) {
             if (rule instanceof TaxExemptionCard taxExemptionCard) {
                 double newTaxableAmount = taxableAmount;
                 float previousExemption = taxExemptionCard.getCurrentExemption();
@@ -60,7 +57,7 @@ public interface ISimulationPhase {
     }
 
     default double stockTaxExemptionToTax(double tax, double taxableWithdrawal) {
-        for (ITaxRule rule : getTaxRules()) {
+        for (ITaxExemption rule : getTaxExemptions()) {
             if (rule instanceof StockExemptionTax stockExemptionTax) {
                 double newTax = tax;
                 float previousExemption = stockExemptionTax.getCurrentExemption();
@@ -74,7 +71,7 @@ public interface ISimulationPhase {
     }
 
     default double stockTaxExemptionToTaxableAmount(double taxableAmount) {
-        for (ITaxRule rule : getTaxRules()) {
+        for (ITaxExemption rule : getTaxExemptions()) {
             if (rule instanceof StockExemptionTax stockExemptionTax) {
                 double newTaxableAmount = taxableAmount;
                 float previousExemption = stockExemptionTax.getCurrentExemption();

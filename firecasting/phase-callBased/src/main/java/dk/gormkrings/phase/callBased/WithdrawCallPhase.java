@@ -7,7 +7,7 @@ import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.ITaxRule;
+import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +22,8 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
     private IWithdraw withdraw;
     private double totalReturnLastMonth;
 
-    public WithdrawCallPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRules, long duration, IAction withdraw) {
-        super(specification, startDate, taxRules, duration, "Withdraw");
+    public WithdrawCallPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction withdraw) {
+        super(specification, startDate, taxExemptions, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = (IWithdraw) withdraw;
     }
@@ -68,8 +68,8 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
 
     @Override
     public WithdrawCallPhase copy(ISpecification specificationCopy) {
-        List<ITaxRule> copy = new ArrayList<>();
-        for (ITaxRule rule : getTaxRules()) {
+        List<ITaxExemption> copy = new ArrayList<>();
+        for (ITaxExemption rule : getTaxExemptions()) {
             copy.add(rule.copy());
         }
         return new WithdrawCallPhase(

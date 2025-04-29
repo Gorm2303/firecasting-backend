@@ -7,7 +7,7 @@ import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.ITaxRule;
+import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +21,8 @@ import java.util.List;
 public class DepositCallPhase extends SimulationCallPhase implements IDepositPhase {
     private IDeposit deposit;
 
-    public DepositCallPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRules, long duration, IAction deposit) {
-        super(specification, startDate, taxRules, duration, "Deposit");
+    public DepositCallPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction deposit) {
+        super(specification, startDate, taxExemptions, duration, "Deposit");
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = (IDeposit) deposit;
     }
@@ -54,8 +54,8 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
 
     @Override
     public DepositCallPhase copy(ISpecification specificationCopy) {
-        List<ITaxRule> copy = new ArrayList<>();
-        for (ITaxRule rule : getTaxRules()) {
+        List<ITaxExemption> copy = new ArrayList<>();
+        for (ITaxExemption rule : getTaxExemptions()) {
             copy.add(rule.copy());
         }
         return new DepositCallPhase(

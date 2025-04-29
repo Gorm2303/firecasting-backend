@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Setter
 @Component
 @Scope("prototype")
-public class StockExemptionTax implements ITaxRule {
+public class StockExemptionTax implements ITaxExemption {
     private float currentExemption = 0;
     @Value("${tax.stock-exemption.tax-rate}")
     private float taxRate;

@@ -44,7 +44,7 @@ public interface IWithdrawPhase extends ISimulationPhase {
         }
         double taxableWithdrawal = withdraw * gainOfCapitalRate;
 
-        for (ITaxRule rule : getTaxRules()) {
+        for (ITaxExemption rule : getTaxExemptions()) {
             if (rule instanceof TaxExemptionCard taxExemptionCard) {
                 float previousExemption = taxExemptionCard.getCurrentExemption();
                 taxExemptionCard.calculateTax(taxableWithdrawal);
@@ -55,7 +55,7 @@ public interface IWithdrawPhase extends ISimulationPhase {
             }
         }
 
-        for (ITaxRule rule : getTaxRules()) {
+        for (ITaxExemption rule : getTaxExemptions()) {
             if (rule instanceof StockExemptionTax stockExemptionTax) {
                 float previousExemption = stockExemptionTax.getCurrentExemption();
                 tax += stockExemptionTax.calculateTax(taxableWithdrawal);

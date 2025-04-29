@@ -8,7 +8,7 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.ITaxRule;
+import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -25,8 +25,8 @@ public class PassiveEventPhase extends SimulationEventPhase implements IPassiveP
     @Setter
     private boolean firstTime = true;
 
-    public PassiveEventPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRule, long duration, IAction passive) {
-        super(specification, startDate, taxRule, duration, "Passive");
+    public PassiveEventPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction passive) {
+        super(specification, startDate, taxExemptions, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = (IPassive) passive;
     }
@@ -43,8 +43,8 @@ public class PassiveEventPhase extends SimulationEventPhase implements IPassiveP
 
     @Override
     public PassiveEventPhase copy(ISpecification specificationCopy) {
-        List<ITaxRule> copy = new ArrayList<>();
-        for (ITaxRule rule : getTaxRules()) {
+        List<ITaxExemption> copy = new ArrayList<>();
+        for (ITaxExemption rule : getTaxExemptions()) {
             copy.add(rule.copy());
         }
         return new PassiveEventPhase(

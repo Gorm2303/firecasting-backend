@@ -12,7 +12,8 @@ import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.DefaultPreTaxRuleFactory;
+import dk.gormkrings.tax.DefaultTaxExemptionFactory;
+import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class FirecastingApplication implements CommandLineRunner {
     private final IWithdrawPhaseFactory withdrawPhaseFactory;
     private final ISpecificationFactory specificationFactory;
     private final ITaxRuleFactory defaultTaxRuleFactory;
-    private final DefaultPreTaxRuleFactory defaultPreTaxRuleFactory;
+    private final DefaultTaxExemptionFactory defaultTaxExemptionFactory;
 
     @Value("${settings.run-local}")
     private boolean runLocal = false;
@@ -49,7 +50,7 @@ public class FirecastingApplication implements CommandLineRunner {
                                   IPassivePhaseFactory passivePhaseFactory,
                                   IWithdrawPhaseFactory withdrawPhaseFactory,
                                   ISpecificationFactory specificationFactory,
-                                  ITaxRuleFactory defaultTaxRuleFactory, DefaultPreTaxRuleFactory defaultPreTaxRuleFactory) {
+                                  ITaxRuleFactory defaultTaxRuleFactory, DefaultTaxExemptionFactory defaultTaxExemptionFactory) {
         this.simulation = simulation;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
@@ -57,7 +58,7 @@ public class FirecastingApplication implements CommandLineRunner {
         this.withdrawPhaseFactory = withdrawPhaseFactory;
         this.specificationFactory = specificationFactory;
         this.defaultTaxRuleFactory = defaultTaxRuleFactory;
-        this.defaultPreTaxRuleFactory = defaultPreTaxRuleFactory;
+        this.defaultTaxExemptionFactory = defaultTaxExemptionFactory;
     }
 
     public static void main(String[] args) {
@@ -97,9 +98,9 @@ public class FirecastingApplication implements CommandLineRunner {
         IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();
         IAction withdraw = new Withdraw(0, 0.04, 0,0);
-        List<ITaxRule> depositTaxRules = new LinkedList<>(List.of(defaultPreTaxRuleFactory.createExemptionRule(), defaultPreTaxRuleFactory.createStockRule()));
-        List<ITaxRule> passiveTaxRules = new LinkedList<>(List.of(defaultPreTaxRuleFactory.createExemptionRule(), defaultPreTaxRuleFactory.createStockRule()));
-        List<ITaxRule> withdrawTaxRules = new LinkedList<>(List.of(defaultPreTaxRuleFactory.createExemptionRule(), defaultPreTaxRuleFactory.createStockRule()));
+        List<ITaxExemption> depositTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.createExemptionRule(), defaultTaxExemptionFactory.createStockRule()));
+        List<ITaxExemption> passiveTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.createExemptionRule(), defaultTaxExemptionFactory.createStockRule()));
+        List<ITaxExemption> withdrawTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.createExemptionRule(), defaultTaxExemptionFactory.createStockRule()));
 
         IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositTaxRules, depositDays, deposit);
         phases.add(currentPhase);

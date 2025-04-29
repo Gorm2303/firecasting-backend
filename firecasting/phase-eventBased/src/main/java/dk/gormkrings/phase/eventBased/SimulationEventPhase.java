@@ -8,6 +8,7 @@ import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.event.YearEvent;
 import dk.gormkrings.phase.IEventPhase;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.NonNull;
@@ -24,15 +25,14 @@ public abstract class SimulationEventPhase implements IEventPhase, ISimulationPh
     private IDate startDate;
     private long duration;
     private ISpecification specification;
-    private List<ITaxRule> taxRules;
+    private List<ITaxExemption> taxExemptions;
     private String name;
 
-    SimulationEventPhase(ISpecification specification, IDate startDate, List<ITaxRule> taxRules,long duration, String name) {
+    SimulationEventPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
-        this.taxRules = taxRules;
         this.specification = specification;
-        this.taxRules = taxRules;
+        this.taxExemptions = taxExemptions;
         this.name = name;
     }
 

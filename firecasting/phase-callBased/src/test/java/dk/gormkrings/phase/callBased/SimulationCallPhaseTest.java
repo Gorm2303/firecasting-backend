@@ -7,6 +7,7 @@ import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,7 @@ public class SimulationCallPhaseTest {
         when(startDate.plusDays(1L)).thenReturn(plusDate);
         when(plusDate.getDayOfWeek()).thenReturn(3);
 
-        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate, List.of(mock(ITaxRule.class)), 10, "TestPhase") {
+        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate, List.of(mock(ITaxExemption.class)), 10, "TestPhase") {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -54,7 +55,7 @@ public class SimulationCallPhaseTest {
         when(startDate.plusDays(1L)).thenReturn(plusDate);
         when(plusDate.getDayOfWeek()).thenReturn(5);
 
-        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate,  List.of(mock(ITaxRule.class)), 10, "TestPhase") {
+        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate,  List.of(mock(ITaxExemption.class)), 10, "TestPhase") {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -74,7 +75,7 @@ public class SimulationCallPhaseTest {
         when(specification.getLiveData()).thenReturn(liveData);
         when(specification.getInflation()).thenReturn(inflation);
 
-        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate,  List.of(mock(ITaxRule.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -95,7 +96,7 @@ public class SimulationCallPhaseTest {
 
         String phaseName = "TestPhase";
 
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxRule.class)), 10L, phaseName) {
+        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, phaseName) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -109,7 +110,7 @@ public class SimulationCallPhaseTest {
     @Test
     public void testSupportsEvent() {
         ISpecification specification = mock(ISpecification.class);
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxRule.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -130,7 +131,7 @@ public class SimulationCallPhaseTest {
         when(liveData.toString()).thenReturn(expectedString);
         when(specification.getLiveData()).thenReturn(liveData);
 
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxRule.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;

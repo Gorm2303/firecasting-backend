@@ -17,7 +17,8 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
-import dk.gormkrings.tax.IPreTaxRuleFactory;
+import dk.gormkrings.tax.ITaxExemptionFactory;
+import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +51,7 @@ public class FirecastingController {
     private final ISpecificationFactory specificationFactory;
     private final SimulationAggregationService aggregationService;
     private final ITaxRuleFactory taxRuleFactory;
-    private final IPreTaxRuleFactory preTaxRuleFactory;
+    private final ITaxExemptionFactory preTaxRuleFactory;
 
     @Value("${settings.runs}")
     private int runs;
@@ -73,7 +74,7 @@ public class FirecastingController {
                                  ISpecificationFactory specificationFactory,
                                  SimulationAggregationService aggregationService,
                                  ITaxRuleFactory taxRuleFactory,
-                                 IPreTaxRuleFactory PreTaxRuleFactory) {
+                                 ITaxExemptionFactory PreTaxRuleFactory) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.depositPhaseFactory = depositPhaseFactory;
@@ -114,13 +115,13 @@ public class FirecastingController {
         List<IPhase> phases = new LinkedList<>();
 
         for (PhaseRequest pr : request.getPhases()) {
-            List<ITaxRule> taxRules = new LinkedList<>();
+            List<ITaxExemption> taxExemptions = new LinkedList<>();
 
             for (String tax : pr.getTaxRules()) {
                 if (tax.equalsIgnoreCase("stockexemption")) {
-                    taxRules.add(preTaxRuleFactory.createStockRule());
+                    taxExemptions.add(preTaxRuleFactory.createStockRule());
                 } else {
-                    taxRules.add(preTaxRuleFactory.createExemptionRule());
+                    taxExemptions.add(preTaxRuleFactory.createExemptionRule());
                 }
             }
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
@@ -131,15 +132,15 @@ public class FirecastingController {
                     double monthlyDeposit = pr.getMonthlyDeposit() != null ? pr.getMonthlyDeposit() : 0;
                     double yearlyIncreaseInPercent = pr.getYearlyIncreaseInPercentage() != null ? pr.getYearlyIncreaseInPercentage() : 0;
                     IAction deposit = new Deposit(initialDeposit, monthlyDeposit, yearlyIncreaseInPercent);
-                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, taxRules, days, deposit);
+                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, taxExemptions, days, deposit);
                 }
                 case "PASSIVE" -> {
                     IAction passive = new Passive();
-                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, taxRules, days, passive);
+                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, taxExemptions, days, passive);
                 }
                 case "WITHDRAW" -> {
                     IAction withdraw = getAction(pr);
-                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, taxRules, days, withdraw);
+                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, taxExemptions, days, withdraw);
                 }
                 default -> throw new IllegalArgumentException("Unknown phase type: " + pr.getPhaseType());
             };

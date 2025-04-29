@@ -54,7 +54,7 @@ class TaxExemptionCardTest {
         CapitalGainsTax capitalRule = new CapitalGainsTax(0.25f);
 
         IWithdrawPhase phase = WithdrawPhaseTestHelper
-                .makePhaseWithRules(startingCapital, deposited, withdrawal, stockRule, capitalRule);
+                .makePhaseWithRules(startingCapital, deposited, withdrawal, stockRule, stockRule);
 
         phase.addCapitalTax();   // actually apply addTax()
 

@@ -4,6 +4,7 @@ import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.NotionalGainsTax;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,8 +36,8 @@ public class ISimulationPhaseTest {
             }
 
             @Override
-            public List<ITaxRule> getTaxRules() {
-                return List.of(taxRule);
+            public List<ITaxExemption> getTaxExemptions() {
+                return List.of();
             }
         };
     }
@@ -56,7 +57,7 @@ public class ISimulationPhaseTest {
 
     @Test
     public void testAddTax_NonNotionalGainsTax_UsingMock() {
-        when(simulationPhase.getTaxRules().getFirst()).thenReturn(taxRule);
+        when(specification.getTaxRule()).thenReturn(taxRule);
 
         simulationPhase.addNotionalTax();
 
@@ -68,7 +69,7 @@ public class ISimulationPhaseTest {
 
     @Test
     public void testAddTax_ZeroOrNegativeTax() {
-        when(simulationPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
+        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
 
         when(liveData.getReturned()).thenReturn(100.0);
         when(notionalGainsTax.getPreviousReturned()).thenReturn(100.0);
@@ -85,7 +86,7 @@ public class ISimulationPhaseTest {
 
     @Test
     public void testAddTax_PositiveTax() {
-        when(simulationPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
+        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
 
         when(liveData.getReturned()).thenReturn(120.0);
         when(notionalGainsTax.getPreviousReturned()).thenReturn(100.0);
@@ -124,7 +125,7 @@ public class ISimulationPhaseTest {
 
     @Test
     public void testAddTax_NegativeTax() {
-        when(simulationPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
+        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
         // Set up a scenario where the difference is negative: 100 - 120 = -20.
         when(liveData.getReturned()).thenReturn(100.0);
         when(notionalGainsTax.getPreviousReturned()).thenReturn(120.0);
@@ -176,7 +177,7 @@ public class ISimulationPhaseTest {
     @Test
     public void testAddTax_ZeroDifferenceWithZeros() {
         // When both returned and previous returned are zero, the tax should be zero.
-        when(simulationPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
+        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
         when(liveData.getReturned()).thenReturn(0.0);
         when(notionalGainsTax.getPreviousReturned()).thenReturn(0.0);
         when(notionalGainsTax.calculateTax(0.0)).thenReturn(0.0);
@@ -209,7 +210,7 @@ public class ISimulationPhaseTest {
     @Test
     public void testAddTax_HighPositiveTax() {
         // Simulate a case with extremely high tax values.
-        when(simulationPhase.getTaxRules().getFirst()).thenReturn(notionalGainsTax);
+        when(specification.getTaxRule()).thenReturn(notionalGainsTax);
         // liveData.getReturned() is very high compared to previous returned.
         when(liveData.getReturned()).thenReturn(1e9);
         when(notionalGainsTax.getPreviousReturned()).thenReturn(5e8); // 500 million difference => 500 million

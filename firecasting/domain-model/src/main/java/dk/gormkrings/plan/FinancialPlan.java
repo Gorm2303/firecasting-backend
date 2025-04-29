@@ -10,22 +10,24 @@ import java.util.List;
 @Setter
 @Getter
 public class FinancialPlan implements IPlan {
-    private List<ISegment> accounts;
+    private List<ISegment> segments;
 
     public FinancialPlan() {
-        this.accounts = new ArrayList<>();
+        this.segments = new ArrayList<>();
     }
 
     public void addSegment(ISegment segment) {
-        this.accounts.add(segment);
+        this.segments.add(segment);
     }
 
     public void removeSegment(ISegment segment) {
-        this.accounts.remove(segment);
+        this.segments.remove(segment);
     }
 
     @Override
-    public void execute(List<ISegment> segments) {
-
+    public void execute() {
+        for (ISegment segment : segments) {
+            segment.process();
+        }
     }
 }
