@@ -39,7 +39,7 @@ import java.util.concurrent.Executors;
 
 @Slf4j
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:8080")
 @RequestMapping("/api/simulation")
 public class FirecastingController {
 
