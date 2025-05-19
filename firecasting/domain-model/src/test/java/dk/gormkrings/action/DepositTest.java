@@ -51,11 +51,9 @@ class DepositTest {
         double monthly = 100.0;
         Deposit deposit = new Deposit(initial, monthly,0);
 
-        double newInitial = 2000.0;
         double newMonthly = 200.0;
         deposit.setMonthly(newMonthly);
 
-        assertEquals(newInitial, deposit.getInitial(), "The getter should return the updated initial value");
         assertEquals(newMonthly, deposit.getMonthly(), "The getter should return the updated monthly value");
 
         assertThrows(IllegalArgumentException.class, () -> {

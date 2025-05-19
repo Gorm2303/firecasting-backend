@@ -26,6 +26,7 @@ public class SimulationCallPhaseTest {
         ILiveData liveData = mock(ILiveData.class);
         IReturner returner = mock(IReturner.class);
 
+        when(liveData.getCapital()).thenReturn(100.0);
         when(liveData.getSessionDuration()).thenReturn(1L);
         when(specification.getLiveData()).thenReturn(liveData);
         when(specification.getReturner()).thenReturn(returner);

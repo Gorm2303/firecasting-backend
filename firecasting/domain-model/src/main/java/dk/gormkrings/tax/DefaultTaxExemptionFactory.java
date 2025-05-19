@@ -3,6 +3,7 @@ package dk.gormkrings.tax;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class DefaultTaxExemptionFactory implements ITaxExemptionFactory {
     ApplicationContext context;
 
+    @Autowired
     public DefaultTaxExemptionFactory(ApplicationContext context) {
         this.context = context;
     }

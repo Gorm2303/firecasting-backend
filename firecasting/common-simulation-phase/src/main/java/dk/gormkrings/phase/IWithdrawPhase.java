@@ -15,19 +15,21 @@ public interface IWithdrawPhase extends ISimulationPhase {
         if (capital < 0.0001) return;
         double withdrawAmount = getWithdraw().getMonthlyAmount(capital, getLiveData().getInflation());
         withdrawAmount += getWithdraw().getDynamicAmountOfReturn();
-        if (withdrawAmount < 0.0001) withdrawAmount = 0;
-        if (withdrawAmount > capital) withdrawAmount = capital;
-        getLiveData().setWithdraw(withdrawAmount);
+        if (Double.isNaN(withdrawAmount) || withdrawAmount < 0.0001) {
+            withdrawAmount = 0;
+        } else if (withdrawAmount > capital) {
+            withdrawAmount = capital;
+        }
 
-        double depositOfCapitalRate = (getLiveData().getDeposited() / capital);
-        getLiveData().subtractFromDeposited((depositOfCapitalRate) * withdrawAmount);
+        double depositRatio = getLiveData().getDeposited() / capital;
+        getLiveData().subtractFromDeposited(depositRatio * withdrawAmount);
 
         if (getSpecification().getTaxRule() instanceof CapitalGainsTax capitalGainsTax && !getWithdraw().isPercentageWithdraw()) {
             double estimateTaxRate = estimateCapitalTaxRate(withdrawAmount, capitalGainsTax);
             withdrawAmount = withdrawAmount / (1 - estimateTaxRate);
-            getLiveData().setWithdraw(withdrawAmount);
         }
 
+        getLiveData().setWithdraw(withdrawAmount);
         getLiveData().addToWithdrawn(withdrawAmount);
         getLiveData().subtractFromCapital(withdrawAmount);
     }

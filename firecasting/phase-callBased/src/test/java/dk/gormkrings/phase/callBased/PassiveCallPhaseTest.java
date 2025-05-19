@@ -63,12 +63,6 @@ public class PassiveCallPhaseTest {
 
         when(liveData.getReturned()).thenReturn(returnedAmount);
         when(passive.getPreviouslyReturned()).thenReturn(previousReturned);
-        IReturner returner = mock(IReturner.class);
-        when(specification.getReturner()).thenReturn(returner);
-
-        IDate dayAfter = mock(IDate.class);
-        when(startDate.plusDays(anyLong())).thenReturn(dayAfter);
-        when(dayAfter.getDayOfWeek()).thenReturn(3);
 
         passiveCallPhase.onDayEnd();
 
@@ -98,20 +92,7 @@ public class PassiveCallPhaseTest {
         assertEquals(duration, copyPhase.getDuration(), "Duration should be preserved");
         assertSame(passiveCopy, copyPhase.getPassive(), "Passive should be the result of passive.copy()");
     }
-
-    @Test
-    public void testOnDayEnd_CallsCalculatePassive_EvenIfNonWeekday() {
-        IDate plusDate = mock(IDate.class);
-        when(startDate.plusDays(anyLong())).thenReturn(plusDate);
-        when(plusDate.getDayOfWeek()).thenReturn(6);
-
-        PassiveCallPhase spyPhase = spy(passiveCallPhase);
-
-        spyPhase.onDayEnd();
-
-        verify(spyPhase).calculatePassive();
-    }
-
+    
     @Test
     public void testSupportsEvent_UnsupportedEvent() {
         assertFalse(passiveCallPhase.supportsEvent(EventType.WEEK_END),

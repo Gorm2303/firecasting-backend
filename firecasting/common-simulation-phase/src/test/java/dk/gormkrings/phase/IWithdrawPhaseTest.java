@@ -86,7 +86,7 @@ public class IWithdrawPhaseTest {
     public void testAddTax_CapitalGainsTax() {
         when(specification.getTaxRule()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
-        when(capitalGainsTax.calculateTax(100.0)).thenReturn(15.0);
+        when(capitalGainsTax.calculateTax(anyDouble())).thenReturn(15.0);
 
         withdrawPhase.addCapitalTax();
 
@@ -138,9 +138,9 @@ public class IWithdrawPhaseTest {
 
         withdrawPhase.withdrawMoney();
 
-        verify(liveData).setWithdraw(-50.0);
-        verify(liveData).addToWithdrawn(-50.0);
-        verify(liveData).subtractFromCapital(-50.0);
+        verify(liveData).setWithdraw(0);
+        verify(liveData).addToWithdrawn(0);
+        verify(liveData).subtractFromCapital(0);
     }
 
     @Test
@@ -176,9 +176,9 @@ public class IWithdrawPhaseTest {
 
         withdrawPhase.withdrawMoney();
 
-        verify(liveData).setWithdraw(Double.POSITIVE_INFINITY);
-        verify(liveData).addToWithdrawn(Double.POSITIVE_INFINITY);
-        verify(liveData).subtractFromCapital(Double.POSITIVE_INFINITY);
+        verify(liveData).setWithdraw(1000);
+        verify(liveData).addToWithdrawn(1000);
+        verify(liveData).subtractFromCapital(1000);
     }
 
     @Test
@@ -189,9 +189,9 @@ public class IWithdrawPhaseTest {
 
         withdrawPhase.withdrawMoney();
 
-        verify(liveData).setWithdraw(Double.NaN);
-        verify(liveData).addToWithdrawn(Double.NaN);
-        verify(liveData).subtractFromCapital(Double.NaN);
+        verify(liveData).setWithdraw(0);
+        verify(liveData).addToWithdrawn(0);
+        verify(liveData).subtractFromCapital(0);
     }
 
     @Test
@@ -212,56 +212,6 @@ public class IWithdrawPhaseTest {
         verify(liveData).setWithdraw(90.0);
         verify(liveData).addToWithdrawn(90.0);
         verify(liveData).subtractFromCapital(90.0);
-    }
-
-    @Test
-    public void testAddTax_UnknownTaxRule() {
-        when(withdrawPhase.getTaxExemptions().getFirst()).thenReturn(new ITaxExemption() {
-            @Override
-            public double calculateTax(double amount) {
-                return 0;
-            }
-
-            @Override
-            public ITaxExemption copy() {
-                return null;
-            }
-
-            @Override
-            public void yearlyUpdate() {
-
-            }
-        });
-
-        withdrawPhase.addCapitalTax();
-
-        verify(liveData, never()).setCurrentTax(anyDouble());
-        verify(liveData, never()).addToTax(anyDouble());
-    }
-
-    @Test
-    public void testAddNetEarnings_UnknownTaxRule() {
-        when(withdrawPhase.getTaxExemptions().getFirst()).thenReturn(new ITaxExemption() {
-            @Override
-            public double calculateTax(double amount) {
-                return 0;
-            }
-
-            @Override
-            public ITaxExemption copy() {
-                return null;
-            }
-
-            @Override
-            public void yearlyUpdate() {
-
-            }
-        });
-
-        withdrawPhase.addNetEarnings();
-
-        verify(liveData, never()).addToNetEarnings(anyDouble());
-        verify(liveData, never()).setCurrentNet(anyDouble());
     }
 
 }

@@ -33,11 +33,11 @@ public interface ISimulationPhase {
 
                 tax += notionalTax.calculateTax(taxableAmount);
                 if (tax < 0.0001) tax = 0;
-                getLiveData().setCurrentTax(tax);
                 getLiveData().subtractFromCapital(tax);
                 getLiveData().subtractFromReturned(tax);
                 getLiveData().addToTax(tax);
             }
+            getLiveData().setCurrentTax(tax);
             notionalTax.setPreviousReturned(getLiveData().getReturned());
         }
     }

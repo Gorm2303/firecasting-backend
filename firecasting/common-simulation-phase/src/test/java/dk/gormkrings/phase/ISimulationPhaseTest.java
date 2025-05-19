@@ -72,7 +72,7 @@ public class ISimulationPhaseTest {
         when(specification.getTaxRule()).thenReturn(notionalGainsTax);
 
         when(liveData.getReturned()).thenReturn(100.0);
-        when(notionalGainsTax.getPreviousReturned()).thenReturn(100.0);
+        when(notionalGainsTax.getPreviousReturned()).thenReturn(120.0);
         when(notionalGainsTax.calculateTax(0.0)).thenReturn(0.0);
 
         simulationPhase.addNotionalTax();
@@ -81,7 +81,7 @@ public class ISimulationPhaseTest {
         verify(liveData, never()).subtractFromCapital(anyDouble());
         verify(liveData, never()).subtractFromReturned(anyDouble());
         verify(liveData, never()).addToTax(anyDouble());
-        verify(notionalGainsTax, never()).setPreviousReturned(anyDouble());
+        verify(notionalGainsTax).setPreviousReturned(100);
     }
 
     @Test
@@ -126,18 +126,17 @@ public class ISimulationPhaseTest {
     @Test
     public void testAddTax_NegativeTax() {
         when(specification.getTaxRule()).thenReturn(notionalGainsTax);
-        // Set up a scenario where the difference is negative: 100 - 120 = -20.
         when(liveData.getReturned()).thenReturn(100.0);
         when(notionalGainsTax.getPreviousReturned()).thenReturn(120.0);
-        when(notionalGainsTax.calculateTax(-20.0)).thenReturn(-20.0);
+        when(notionalGainsTax.calculateTax(anyDouble())).thenReturn(-20.0);
 
         simulationPhase.addNotionalTax();
 
-        verify(liveData).setCurrentTax(-20.0);
+        verify(liveData).setCurrentTax(0);
         verify(liveData, never()).subtractFromCapital(anyDouble());
         verify(liveData, never()).subtractFromReturned(anyDouble());
         verify(liveData, never()).addToTax(anyDouble());
-        verify(notionalGainsTax, never()).setPreviousReturned(anyDouble());
+        verify(notionalGainsTax).setPreviousReturned(100.0);
     }
 
     @Test
@@ -188,7 +187,7 @@ public class ISimulationPhaseTest {
         verify(liveData, never()).subtractFromCapital(anyDouble());
         verify(liveData, never()).subtractFromReturned(anyDouble());
         verify(liveData, never()).addToTax(anyDouble());
-        verify(notionalGainsTax, never()).setPreviousReturned(anyDouble());
+        verify(notionalGainsTax).setPreviousReturned(0);
     }
 
     @Test

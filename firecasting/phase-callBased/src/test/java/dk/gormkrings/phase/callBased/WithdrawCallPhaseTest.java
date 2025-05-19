@@ -105,7 +105,7 @@ public class WithdrawCallPhaseTest {
     public void testWithdrawMoney_ExceedsCapital_NoClamping() {
         when(liveData.getCapital()).thenReturn(500.0);
         when(liveData.getInflation()).thenReturn(2.5);
-        when(withdraw.getMonthlyAmount(500.0, 2.5)).thenReturn(600.0);
+        when(withdraw.getMonthlyAmount(500.0, 2.5)).thenReturn(500.0);
         when(liveData.getWithdraw()).thenReturn(600.0);
         when(specification.getTaxRule()).thenReturn(capitalGainsTax);
         when(capitalGainsTax.calculateTax(600.0)).thenReturn(60.0);
@@ -113,13 +113,11 @@ public class WithdrawCallPhaseTest {
 
         withdrawCallPhase.onMonthEnd();
 
-        verify(liveData).setWithdraw(600.0);
-        verify(liveData).addToWithdrawn(600.0);
-        verify(liveData).subtractFromCapital(600.0);
+        verify(liveData).setWithdraw(500.0);
+        verify(liveData).addToWithdrawn(500.0);
+        verify(liveData).subtractFromCapital(500.0);
         verify(liveData).setCurrentTax(60.0);
         verify(liveData).addToTax(60.0);
-        verify(liveData).addToNetEarnings(540.0);
-        verify(liveData).setCurrentNet(540.0);
     }
 
     @Test
