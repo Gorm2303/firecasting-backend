@@ -1,17 +1,12 @@
 package dk.gormkrings;
 
-import dk.gormkrings.action.Deposit;
-import dk.gormkrings.action.IAction;
-import dk.gormkrings.action.Passive;
-import dk.gormkrings.action.Withdraw;
+import dk.gormkrings.action.*;
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.SimulationRequest;
 import dk.gormkrings.factory.IDateFactory;
-import dk.gormkrings.factory.IDepositPhaseFactory;
-import dk.gormkrings.factory.IPassivePhaseFactory;
+import dk.gormkrings.factory.IPhaseFactory;
 import dk.gormkrings.factory.ISimulationFactory;
 import dk.gormkrings.factory.ISpecificationFactory;
-import dk.gormkrings.factory.IWithdrawPhaseFactory;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
@@ -45,13 +40,12 @@ public class FirecastingController {
 
     private final ISimulationFactory simulationFactory;
     private final IDateFactory dateFactory;
-    private final IDepositPhaseFactory depositPhaseFactory;
-    private final IPassivePhaseFactory passivePhaseFactory;
-    private final IWithdrawPhaseFactory withdrawPhaseFactory;
+    private final IPhaseFactory phaseFactory;
     private final ISpecificationFactory specificationFactory;
     private final SimulationAggregationService aggregationService;
     private final ITaxRuleFactory taxRuleFactory;
-    private final ITaxExemptionFactory preTaxRuleFactory;
+    private final ITaxExemptionFactory taxExemptionFactory;
+    private final IActionFactory actionFactory;
 
     @Value("${settings.runs}")
     private int runs;
@@ -68,28 +62,22 @@ public class FirecastingController {
 
     public FirecastingController(ISimulationFactory simulationFactory,
                                  IDateFactory dateFactory,
-                                 IDepositPhaseFactory depositPhaseFactory,
-                                 IPassivePhaseFactory passivePhaseFactory,
-                                 IWithdrawPhaseFactory withdrawPhaseFactory,
+                                 IPhaseFactory phaseFactory,
                                  ISpecificationFactory specificationFactory,
                                  SimulationAggregationService aggregationService,
                                  ITaxRuleFactory taxRuleFactory,
-                                 ITaxExemptionFactory PreTaxRuleFactory) {
+                                 ITaxExemptionFactory taxExemptionFactory,
+                                 IActionFactory actionFactory) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
-        this.depositPhaseFactory = depositPhaseFactory;
-        this.passivePhaseFactory = passivePhaseFactory;
-        this.withdrawPhaseFactory = withdrawPhaseFactory;
+        this.phaseFactory = phaseFactory;
         this.specificationFactory = specificationFactory;
         this.aggregationService = aggregationService;
         this.taxRuleFactory = taxRuleFactory;
-        this.preTaxRuleFactory = PreTaxRuleFactory;
+        this.taxExemptionFactory = taxExemptionFactory;
+        this.actionFactory = actionFactory;
     }
-
-    /**
-     * POST endpoint to start the simulation.
-     * It returns a simulation ID that the frontend can use to subscribe for progress updates.
-     */
+    
     @PostMapping("/start")
     public ResponseEntity<String> startSimulation(@RequestBody SimulationRequest request) {
         // Generate a unique simulation ID.
@@ -97,14 +85,9 @@ public class FirecastingController {
         log.info("Starting simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
 
         float taxPercentage = request.getTaxPercentage();
-        ITaxRule overAllTaxRule = request.getOverallTaxRule() != null ?
-                request.getOverallTaxRule().equalsIgnoreCase("capital") ?
-                    taxRuleFactory.createCapitalTax(taxPercentage) :
-                    taxRuleFactory.createNotionalTax(taxPercentage) :
-                taxRuleFactory.createCapitalTax(taxPercentage);
-
+        ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
         // Build the simulation specification.
-        var specification = specificationFactory.newSpecification(
+        var specification = specificationFactory.create(
                 request.getEpochDay(), overAllTaxRule, 2F);
 
         var currentDate = dateFactory.dateOf(
@@ -117,34 +100,24 @@ public class FirecastingController {
         for (PhaseRequest pr : request.getPhases()) {
             List<ITaxExemption> taxExemptions = new LinkedList<>();
 
-            for (String tax : pr.getTaxRules()) {
-                if (tax.equalsIgnoreCase("stockexemption")) {
-                    taxExemptions.add(preTaxRuleFactory.createStockRule());
-                } else {
-                    taxExemptions.add(preTaxRuleFactory.createExemptionRule());
-                }
+            for (String taxExemption : pr.getTaxRules()) {
+                taxExemptions.add(taxExemptionFactory.create(taxExemption));
             }
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
+            String phaseType = pr.getPhaseType().toLowerCase();
 
-            IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
-                case "DEPOSIT" -> {
-                    double initialDeposit = pr.getInitialDeposit() != null ? pr.getInitialDeposit() : 0;
-                    double monthlyDeposit = pr.getMonthlyDeposit() != null ? pr.getMonthlyDeposit() : 0;
-                    double yearlyIncreaseInPercent = pr.getYearlyIncreaseInPercentage() != null ? pr.getYearlyIncreaseInPercentage() : 0;
-                    IAction deposit = new Deposit(initialDeposit, monthlyDeposit, yearlyIncreaseInPercent);
-                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, taxExemptions, days, deposit);
-                }
-                case "PASSIVE" -> {
-                    IAction passive = new Passive();
-                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, taxExemptions, days, passive);
-                }
-                case "WITHDRAW" -> {
-                    IAction withdraw = getAction(pr);
-                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, taxExemptions, days, withdraw);
-                }
-                default -> throw new IllegalArgumentException("Unknown phase type: " + pr.getPhaseType());
+            IAction action = switch (phaseType) {
+                case "deposit" -> actionFactory.createDepositAction(
+                        pr.getInitialDeposit(), pr.getMonthlyDeposit(), pr.getYearlyIncreaseInPercentage()
+                );
+                case "withdraw" -> actionFactory.createWithdrawAction(
+                        pr.getWithdrawAmount(), pr.getWithdrawRate(), pr.getLowerVariationPercentage(), pr.getUpperVariationPercentage()
+                );
+                case "passive" -> actionFactory.createPassiveAction();
+                default -> throw new IllegalArgumentException("Unknown phase type: " + phaseType);
             };
-            phases.add(phase);
+
+            phases.add(phaseFactory.create(phaseType, specification, currentDate, taxExemptions, days, action));
             currentDate = currentDate.plusMonths(pr.getDurationInMonths());
         }
 
@@ -195,14 +168,6 @@ public class FirecastingController {
         return ResponseEntity.ok(simulationId);
     }
 
-    private static IAction getAction(PhaseRequest pr) {
-        double withdrawAmount = pr.getWithdrawAmount() != null ? pr.getWithdrawAmount() : 0;
-        double withdrawRate = pr.getWithdrawRate() != null ? pr.getWithdrawRate() : 0;
-        double lowerVariationRate = pr.getLowerVariationPercentage() != null ? pr.getLowerVariationPercentage() : 0;
-        double upperVariationRate = pr.getUpperVariationPercentage() != null ? pr.getUpperVariationPercentage() : 0;
-        return new Withdraw(withdrawAmount, withdrawRate, lowerVariationRate, upperVariationRate);
-    }
-
     private void emitterSend(String progressMessage, String simulationId) {
         // If an SSE emitter is registered for this simulation, send the update.
         SseEmitter emitter = emitters.get(simulationId);
@@ -215,10 +180,6 @@ public class FirecastingController {
         }
     }
 
-    /**
-     * GET endpoint to subscribe to simulation progress updates.
-     * The frontend calls this using the simulation ID returned from /start.
-     */
     @GetMapping(
             path     = "/progress/{simulationId}",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE

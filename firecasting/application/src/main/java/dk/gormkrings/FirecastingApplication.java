@@ -32,9 +32,7 @@ public class FirecastingApplication implements CommandLineRunner {
 
     private final ISimulation simulation;
     private final IDateFactory dateFactory;
-    private final IDepositPhaseFactory depositPhaseFactory;
-    private final IPassivePhaseFactory passivePhaseFactory;
-    private final IWithdrawPhaseFactory withdrawPhaseFactory;
+    private final IPhaseFactory phaseFactory;
     private final ISpecificationFactory specificationFactory;
     private final ITaxRuleFactory defaultTaxRuleFactory;
     private final DefaultTaxExemptionFactory defaultTaxExemptionFactory;
@@ -46,16 +44,12 @@ public class FirecastingApplication implements CommandLineRunner {
 
     public FirecastingApplication(ISimulation simulation,
                                   IDateFactory dateFactory,
-                                  IDepositPhaseFactory depositPhaseFactory,
-                                  IPassivePhaseFactory passivePhaseFactory,
-                                  IWithdrawPhaseFactory withdrawPhaseFactory,
+                                  IPhaseFactory phaseFactory,
                                   ISpecificationFactory specificationFactory,
                                   ITaxRuleFactory defaultTaxRuleFactory, DefaultTaxExemptionFactory defaultTaxExemptionFactory) {
         this.simulation = simulation;
         this.dateFactory = dateFactory;
-        this.depositPhaseFactory = depositPhaseFactory;
-        this.passivePhaseFactory = passivePhaseFactory;
-        this.withdrawPhaseFactory = withdrawPhaseFactory;
+        this.phaseFactory = phaseFactory;
         this.specificationFactory = specificationFactory;
         this.defaultTaxRuleFactory = defaultTaxRuleFactory;
         this.defaultTaxExemptionFactory = defaultTaxExemptionFactory;
@@ -91,24 +85,24 @@ public class FirecastingApplication implements CommandLineRunner {
         long passiveDays = passiveStartIDate.daysUntil(withdrawStartIDate);
         long withdrawDays = withdrawStartIDate.daysUntil(withdrawEndIDate);
 
-        ITaxRule taxRule = defaultTaxRuleFactory.createCapitalTax(42);
+        ITaxRule taxRule = defaultTaxRuleFactory.create("capital", 42);
 
-        ISpecification specification = specificationFactory.newSpecification(depositStartIDate.getEpochDay(), taxRule, 7);
+        ISpecification specification = specificationFactory.create(depositStartIDate.getEpochDay(), taxRule, 2);
 
         IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();
         IAction withdraw = new Withdraw(0, 0.04, 0,0);
-        List<ITaxExemption> depositTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.createExemptionRule(), defaultTaxExemptionFactory.createStockRule()));
-        List<ITaxExemption> passiveTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.createExemptionRule(), defaultTaxExemptionFactory.createStockRule()));
-        List<ITaxExemption> withdrawTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.createExemptionRule(), defaultTaxExemptionFactory.createStockRule()));
+        List<ITaxExemption> depositTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("card"), defaultTaxExemptionFactory.create("stock")));
+        List<ITaxExemption> passiveTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("card"), defaultTaxExemptionFactory.create("stock")));
+        List<ITaxExemption> withdrawTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("card"), defaultTaxExemptionFactory.create("stock")));
 
-        IPhase currentPhase = depositPhaseFactory.createDepositPhase(specification, depositStartIDate, depositTaxRules, depositDays, deposit);
+        IPhase currentPhase = phaseFactory.create("deposit", specification, depositStartIDate, depositTaxRules, depositDays, deposit);
         phases.add(currentPhase);
 
-        currentPhase = passivePhaseFactory.createPassivePhase(specification, passiveStartIDate, passiveTaxRules, passiveDays, passive);
+        currentPhase = phaseFactory.create("passive", specification, passiveStartIDate, passiveTaxRules, passiveDays, passive);
         phases.add(currentPhase);
 
-        currentPhase = withdrawPhaseFactory.createWithdrawPhase(specification, withdrawStartIDate, withdrawTaxRules, withdrawDays, withdraw);
+        currentPhase = phaseFactory.create("withdraw", specification, withdrawStartIDate, withdrawTaxRules, withdrawDays, withdraw);
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
