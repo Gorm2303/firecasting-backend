@@ -2,6 +2,7 @@ package dk.gormkrings.simulation.engine.schedule;
 
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.engine.schedule.ISchedule;
+import dk.gormkrings.engine.schedule.IScheduleEvent;
 import dk.gormkrings.engine.schedule.IScheduleFactory;
 import dk.gormkrings.factory.IResultFactory;
 import dk.gormkrings.factory.ISnapshotFactory;
@@ -45,8 +46,8 @@ public class ScheduleEngineConcurrentExecutionTest {
             ILiveData liveData1 = mock(ILiveData.class);
             when(phase1.getLiveData()).thenReturn(liveData1);
 
-            // Use an empty schedule for simplicity.
             ISchedule schedule1 = mock(ISchedule.class);
+            schedule1.getEvents().add(mock(IScheduleEvent.class));
             when(schedule1.getEvents()).thenReturn(Collections.emptyList());
             when(scheduleFactory1.getSchedule()).thenReturn(schedule1);
 
