@@ -28,8 +28,8 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Run Tests with Maven
-      run: mvn -B test --file firecasting/pom.xml
+    - name: Validate, Compile, and Run Unit Tests
+      run: mvn -B clean verify --file firecasting/pom.xml
 
-    - name: Build with Maven
-      run: mvn -B package --file firecasting/pom.xml
+    - name: Package application
+      run: mvn -B package --file firecasting/pom.xml -DskipTests
