@@ -24,10 +24,10 @@ public class DefaultTaxExemptionFactory implements ITaxExemptionFactory {
         }
 
         switch (type.trim().toLowerCase()) {
-            case "card":
+            case "exemptioncard":
                 log.info("Creating Tax Exemption Card rule");
                 return context.getBean(TaxExemptionCard.class);
-            case "stock":
+            case "stockexemption":
                 log.info("Creating Stock Exemption rule");
                 return context.getBean(StockExemptionTax.class);
             default:
