@@ -18,15 +18,11 @@ class CapitalGainsTaxTest {
     @Test
     void testCopy() {
         double taxRate = 42.0;
-        CapitalGainsTax original = new CapitalGainsTax(taxRate, null, null);
+        CapitalGainsTax original = new CapitalGainsTax(taxRate);
         CapitalGainsTax copy = original.copy();
 
         assertEquals(original.getTaxRate(), copy.getTaxRate(),
                 "Copied tax rate should equal original tax rate");
-        assertEquals(original.getStockExemptionTax(), copy.getStockExemptionTax(),
-                "Copied stock exemption tax should equal original");
-        assertEquals(original.getTaxExemptionCard(), copy.getTaxExemptionCard(),
-                "Copied tax exemption card should equal original");
         assertNotSame(original, copy, "Copy should be a different instance");
     }
 }

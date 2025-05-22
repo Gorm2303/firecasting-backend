@@ -6,11 +6,15 @@ import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.EventType;
 import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
+import dk.gormkrings.tax.ITaxRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -33,7 +37,7 @@ public class PassiveCallPhaseTest {
     @BeforeEach
     public void setup() {
         lenient().when(specification.getLiveData()).thenReturn(liveData);
-        passiveCallPhase = new PassiveCallPhase(specification, startDate, duration, passive);
+        passiveCallPhase = new PassiveCallPhase(specification, startDate,  List.of(mock(ITaxExemption.class)), duration, passive);
     }
 
     @Test
@@ -59,12 +63,6 @@ public class PassiveCallPhaseTest {
 
         when(liveData.getReturned()).thenReturn(returnedAmount);
         when(passive.getPreviouslyReturned()).thenReturn(previousReturned);
-        IReturner returner = mock(IReturner.class);
-        when(specification.getReturner()).thenReturn(returner);
-
-        IDate dayAfter = mock(IDate.class);
-        when(startDate.plusDays(anyLong())).thenReturn(dayAfter);
-        when(dayAfter.getDayOfWeek()).thenReturn(3);
 
         passiveCallPhase.onDayEnd();
 
@@ -94,20 +92,7 @@ public class PassiveCallPhaseTest {
         assertEquals(duration, copyPhase.getDuration(), "Duration should be preserved");
         assertSame(passiveCopy, copyPhase.getPassive(), "Passive should be the result of passive.copy()");
     }
-
-    @Test
-    public void testOnDayEnd_CallsCalculatePassive_EvenIfNonWeekday() {
-        IDate plusDate = mock(IDate.class);
-        when(startDate.plusDays(anyLong())).thenReturn(plusDate);
-        when(plusDate.getDayOfWeek()).thenReturn(6);
-
-        PassiveCallPhase spyPhase = spy(passiveCallPhase);
-
-        spyPhase.onDayEnd();
-
-        verify(spyPhase).calculatePassive();
-    }
-
+    
     @Test
     public void testSupportsEvent_UnsupportedEvent() {
         assertFalse(passiveCallPhase.supportsEvent(EventType.WEEK_END),

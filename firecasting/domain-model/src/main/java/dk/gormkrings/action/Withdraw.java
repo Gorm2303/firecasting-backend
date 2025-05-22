@@ -8,31 +8,47 @@ import lombok.extern.slf4j.Slf4j;
 public class Withdraw implements IWithdraw {
     private double monthlyAmount;
     @Setter
-    private double monthlyPercent;
+    private double yearlyPercentage;
     @Setter
+    @Getter
     private double dynamicAmountOfReturn;
     @Getter
-    private final double dynamicPercentOfReturn;
+    private boolean percentageWithdraw = false;
+    private final double lowerThreshold;
+    private final double upperThreshold;
 
-    public Withdraw(double monthlyAmount, double monthlyPercent, double dynamicPercentOfReturn) {
-        if (monthlyAmount < 0 || monthlyPercent < 0) throw new IllegalArgumentException("Withdraw constructor called with a negative value");
+
+    public Withdraw(double monthlyAmount, double yearlyPercentage, double lowerThreshold, double upperThreshold) {
+        if (monthlyAmount < 0 || yearlyPercentage < 0) throw new IllegalArgumentException("Withdraw constructor called with a negative value");
         this.monthlyAmount = monthlyAmount;
-        this.monthlyPercent = monthlyPercent;
-        this.dynamicPercentOfReturn = dynamicPercentOfReturn;
-        log.debug("Initializing withdraw: {} monthly, {} percent, {} dynamic percent", monthlyAmount, monthlyPercent, dynamicPercentOfReturn);
+        this.yearlyPercentage = yearlyPercentage;
+        this.lowerThreshold = lowerThreshold;
+        this.upperThreshold = upperThreshold;
+        log.debug("Initializing withdraw: {} monthly, {} percent, {} lower percent, {} upper percent", monthlyAmount, yearlyPercentage, this.lowerThreshold, this.upperThreshold);
     }
 
     public double getMonthlyAmount(double capital) {
         return getMonthlyAmount(capital, 0);
     }
 
+    @Override
+    public double getLowerVariationPercentage() {
+        return lowerThreshold;
+    }
+
+    @Override
+    public double getUpperVariationPercentage() {
+        return upperThreshold;
+    }
+
+    @Override
     public double getMonthlyAmount(double capital, double inflation) {
-        if (monthlyAmount > 0) {
-            return monthlyAmount + (monthlyAmount * (inflation / 100)) + dynamicAmountOfReturn;
-        } else {
-            monthlyAmount = (monthlyPercent * capital)/12;
-            return getMonthlyAmount(capital, inflation);
+        if (monthlyAmount <= 0) {
+            monthlyAmount = (yearlyPercentage/100 * capital)/12;
+            percentageWithdraw = true;
         }
+        return monthlyAmount + (monthlyAmount * (inflation / 100));
+
     }
 
     public void setMonthlyAmount(double monthlyAmount) {
@@ -40,11 +56,13 @@ public class Withdraw implements IWithdraw {
         this.monthlyAmount = monthlyAmount;
     }
 
+    @Override
     public Withdraw copy() {
         return new Withdraw(
                 this.monthlyAmount,
-                this.monthlyPercent,
-                this.dynamicPercentOfReturn
+                this.yearlyPercentage,
+                this.lowerThreshold,
+                this.upperThreshold
         );
     }
 }

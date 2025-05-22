@@ -1,22 +1,21 @@
 package dk.gormkrings;
 
-import dk.gormkrings.action.Deposit;
-import dk.gormkrings.action.IAction;
-import dk.gormkrings.action.Passive;
-import dk.gormkrings.action.Withdraw;
+import dk.gormkrings.action.*;
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.SimulationRequest;
 import dk.gormkrings.factory.IDateFactory;
-import dk.gormkrings.factory.IDepositPhaseFactory;
-import dk.gormkrings.factory.IPassivePhaseFactory;
+import dk.gormkrings.factory.IPhaseFactory;
 import dk.gormkrings.factory.ISimulationFactory;
 import dk.gormkrings.factory.ISpecificationFactory;
-import dk.gormkrings.factory.IWithdrawPhaseFactory;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.YearlySummary;
+import dk.gormkrings.tax.ITaxExemptionFactory;
+import dk.gormkrings.tax.ITaxExemption;
+import dk.gormkrings.tax.ITaxRule;
+import dk.gormkrings.tax.ITaxRuleFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -29,25 +28,24 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 @Slf4j
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:8080")
 @RequestMapping("/api/simulation")
 public class FirecastingController {
 
     private final ISimulationFactory simulationFactory;
     private final IDateFactory dateFactory;
-    private final IDepositPhaseFactory depositPhaseFactory;
-    private final IPassivePhaseFactory passivePhaseFactory;
-    private final IWithdrawPhaseFactory withdrawPhaseFactory;
+    private final IPhaseFactory phaseFactory;
     private final ISpecificationFactory specificationFactory;
     private final SimulationAggregationService aggregationService;
+    private final ITaxRuleFactory taxRuleFactory;
+    private final ITaxExemptionFactory taxExemptionFactory;
+    private final IActionFactory actionFactory;
 
     @Value("${settings.runs}")
     private int runs;
@@ -64,33 +62,33 @@ public class FirecastingController {
 
     public FirecastingController(ISimulationFactory simulationFactory,
                                  IDateFactory dateFactory,
-                                 IDepositPhaseFactory depositPhaseFactory,
-                                 IPassivePhaseFactory passivePhaseFactory,
-                                 IWithdrawPhaseFactory withdrawPhaseFactory,
+                                 IPhaseFactory phaseFactory,
                                  ISpecificationFactory specificationFactory,
-                                 SimulationAggregationService aggregationService) {
+                                 SimulationAggregationService aggregationService,
+                                 ITaxRuleFactory taxRuleFactory,
+                                 ITaxExemptionFactory taxExemptionFactory,
+                                 IActionFactory actionFactory) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
-        this.depositPhaseFactory = depositPhaseFactory;
-        this.passivePhaseFactory = passivePhaseFactory;
-        this.withdrawPhaseFactory = withdrawPhaseFactory;
+        this.phaseFactory = phaseFactory;
         this.specificationFactory = specificationFactory;
         this.aggregationService = aggregationService;
+        this.taxRuleFactory = taxRuleFactory;
+        this.taxExemptionFactory = taxExemptionFactory;
+        this.actionFactory = actionFactory;
     }
-
-    /**
-     * POST endpoint to start the simulation.
-     * It returns a simulation ID that the frontend can use to subscribe for progress updates.
-     */
+    
     @PostMapping("/start")
     public ResponseEntity<String> startSimulation(@RequestBody SimulationRequest request) {
         // Generate a unique simulation ID.
         String simulationId = UUID.randomUUID().toString();
-        log.info("Starting simulation with id: {}", simulationId);
+        log.info("Starting simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
 
+        float taxPercentage = request.getTaxPercentage();
+        ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
         // Build the simulation specification.
-        var specification = specificationFactory.newSpecification(
-                request.getEpochDay(), request.getTaxPercentage(), request.getReturnPercentage(), 2f);
+        var specification = specificationFactory.create(
+                request.getEpochDay(), overAllTaxRule, 2F);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),
@@ -100,24 +98,26 @@ public class FirecastingController {
         List<IPhase> phases = new LinkedList<>();
 
         for (PhaseRequest pr : request.getPhases()) {
+            List<ITaxExemption> taxExemptions = new LinkedList<>();
+
+            for (String taxExemption : pr.getTaxRules()) {
+                taxExemptions.add(taxExemptionFactory.create(taxExemption));
+            }
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
-            IPhase phase = switch (pr.getPhaseType().toUpperCase()) {
-                case "DEPOSIT" -> {
-                    IAction deposit = new Deposit(pr.getInitialDeposit(), pr.getMonthlyDeposit());
-                    yield depositPhaseFactory.createDepositPhase(specification, currentDate, days, deposit);
-                }
-                case "PASSIVE" -> {
-                    IAction passive = new Passive();
-                    yield passivePhaseFactory.createPassivePhase(specification, currentDate, days, passive);
-                }
-                case "WITHDRAW" -> {
-                    double withdrawAmount = pr.getWithdrawAmount() != null ? pr.getWithdrawAmount() : 0;
-                    IAction withdraw = new Withdraw(withdrawAmount, pr.getWithdrawRate(), 0.5);
-                    yield withdrawPhaseFactory.createWithdrawPhase(specification, currentDate, days, withdraw);
-                }
-                default -> throw new IllegalArgumentException("Unknown phase type: " + pr.getPhaseType());
+            String phaseType = pr.getPhaseType().toLowerCase();
+
+            IAction action = switch (phaseType) {
+                case "deposit" -> actionFactory.createDepositAction(
+                        pr.getInitialDeposit(), pr.getMonthlyDeposit(), pr.getYearlyIncreaseInPercentage()
+                );
+                case "withdraw" -> actionFactory.createWithdrawAction(
+                        pr.getWithdrawAmount(), pr.getWithdrawRate(), pr.getLowerVariationPercentage(), pr.getUpperVariationPercentage()
+                );
+                case "passive" -> actionFactory.createPassiveAction();
+                default -> throw new IllegalArgumentException("Unknown phase type: " + phaseType);
             };
-            phases.add(phase);
+
+            phases.add(phaseFactory.create(phaseType, specification, currentDate, taxExemptions, days, action));
             currentDate = currentDate.plusMonths(pr.getDurationInMonths());
         }
 
@@ -133,6 +133,11 @@ public class FirecastingController {
                         progressMessage -> emitterSend(progressMessage, simulationId)
                 );
 
+                log.debug("SimulationResults count = {}", simulationResults.size());
+                if (!simulationResults.isEmpty()) {
+                    log.debug("  first result: {}", simulationResults.get(0));
+                }
+
                 // Save results for potential export.
                 lastResults = simulationResults;
 
@@ -140,6 +145,10 @@ public class FirecastingController {
                 List<YearlySummary> summaries = aggregationService.aggregateResults(
                         simulationResults,
                         progressMessage -> emitterSend(progressMessage, simulationId));
+
+                log.debug("Summaries count = {}", summaries.size());
+                log.debug("Summaries = {}", summaries);
+
                 // Send the final aggregated statistics to the SSE emitter.
                 SseEmitter emitter = emitters.get(simulationId);
                 if (emitter != null) {
@@ -171,13 +180,13 @@ public class FirecastingController {
         }
     }
 
-    /**
-     * GET endpoint to subscribe to simulation progress updates.
-     * The frontend calls this using the simulation ID returned from /start.
-     */
-    @GetMapping("/progress/{simulationId}")
+    @GetMapping(
+            path     = "/progress/{simulationId}",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
     public SseEmitter getProgress(@PathVariable String simulationId) {
-        SseEmitter emitter = new SseEmitter(timeout);
+        SseEmitter emitter = new SseEmitter(0L);
+
         // Put the emitter in the map, so that simulation progress updates can find it.
         emitters.put(simulationId, emitter);
 

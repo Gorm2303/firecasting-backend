@@ -11,7 +11,7 @@ class DepositTest {
         double initial = 1000.0;
         double monthly = 100.0;
 
-        Deposit deposit = new Deposit(initial, monthly);
+        Deposit deposit = new Deposit(initial, monthly,0);
 
         assertEquals(initial, deposit.getInitial(), "Initial value should match the provided value");
         assertEquals(monthly, deposit.getMonthly(), "Monthly value should match the provided value");
@@ -20,13 +20,13 @@ class DepositTest {
     @Test
     void testConstructorRejectsBothNegative() {
         assertThrows(IllegalArgumentException.class, () -> {
-            new Deposit(-10000, 5000);
+            new Deposit(-10000, 5000,0);
         });
         assertThrows(IllegalArgumentException.class, () -> {
-            new Deposit(10000, -5000);
+            new Deposit(10000, -5000,0);
         });
         assertThrows(IllegalArgumentException.class, () -> {
-            new Deposit(-10000, -5000);
+            new Deposit(-10000, -5000,0);
         });
     }
 
@@ -34,7 +34,7 @@ class DepositTest {
     void copyMethodTest() {
         double initial = 1000.0;
         double monthly = 100.0;
-        Deposit original = new Deposit(initial, monthly);
+        Deposit original = new Deposit(initial, monthly,0);
 
         Deposit copy = original.copy();
 
@@ -49,14 +49,11 @@ class DepositTest {
     void setterAndGetterTest() {
         double initial = 1000.0;
         double monthly = 100.0;
-        Deposit deposit = new Deposit(initial, monthly);
+        Deposit deposit = new Deposit(initial, monthly,0);
 
-        double newInitial = 2000.0;
         double newMonthly = 200.0;
-        deposit.setInitial(newInitial);
         deposit.setMonthly(newMonthly);
 
-        assertEquals(newInitial, deposit.getInitial(), "The getter should return the updated initial value");
         assertEquals(newMonthly, deposit.getMonthly(), "The getter should return the updated monthly value");
 
         assertThrows(IllegalArgumentException.class, () -> {

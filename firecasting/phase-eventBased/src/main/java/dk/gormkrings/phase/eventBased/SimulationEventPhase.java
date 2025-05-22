@@ -8,11 +8,15 @@ import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.event.YearEvent;
 import dk.gormkrings.phase.IEventPhase;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
+import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
+
+import java.util.List;
 
 @Slf4j
 @Getter
@@ -21,12 +25,14 @@ public abstract class SimulationEventPhase implements IEventPhase, ISimulationPh
     private IDate startDate;
     private long duration;
     private ISpecification specification;
+    private List<ITaxExemption> taxExemptions;
     private String name;
 
-    SimulationEventPhase(ISpecification specification, IDate startDate, long duration, String name) {
+    SimulationEventPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
+        this.taxExemptions = taxExemptions;
         this.name = name;
     }
 
@@ -37,7 +43,7 @@ public abstract class SimulationEventPhase implements IEventPhase, ISimulationPh
             addReturn();
         } else if (event instanceof YearEvent yearEvent &&
                 yearEvent.getType() == Type.END) {
-            addTax();
+            addNotionalTax();
             addInflation();
         }
     }

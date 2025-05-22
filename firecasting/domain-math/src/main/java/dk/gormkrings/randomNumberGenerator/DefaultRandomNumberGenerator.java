@@ -1,13 +1,18 @@
 package dk.gormkrings.randomNumberGenerator;
 
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.SplittableRandom;
 
 @Component
+@Scope("prototype")
 public class DefaultRandomNumberGenerator implements IRandomNumberGenerator {
     private final SplittableRandom random;
+    @Value("${returner.random.seed}")
+    private long seed;
 
     public DefaultRandomNumberGenerator() {
         this.random = new SplittableRandom();
@@ -28,6 +33,10 @@ public class DefaultRandomNumberGenerator implements IRandomNumberGenerator {
 
     @Override
     public IRandomNumberGenerator copy() {
-        return new DefaultRandomNumberGenerator(this.random);
+        if (seed < 0) {
+            return new DefaultRandomNumberGenerator(random);
+        }
+        seed++;
+        return new DefaultRandomNumberGenerator(seed);
     }
 }

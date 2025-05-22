@@ -8,11 +8,15 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Getter
@@ -20,8 +24,8 @@ import org.springframework.context.ApplicationEvent;
 public class WithdrawEventPhase extends SimulationEventPhase implements IWithdrawPhase {
     private IWithdraw withdraw;
 
-    public WithdrawEventPhase(ISpecification specification, IDate startDate, long duration, IAction withdraw) {
-        super(specification, startDate, duration, "Withdraw");
+    public WithdrawEventPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction withdraw) {
+        super(specification, startDate, taxExemptions, duration, "Withdraw");
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = (IWithdraw) withdraw;
     }
@@ -32,7 +36,7 @@ public class WithdrawEventPhase extends SimulationEventPhase implements IWithdra
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
             withdrawMoney();
-            addTax();
+            addCapitalTax();
             addNetEarnings();
             if (Formatter.debug) log.debug(prettyString());
         }
@@ -40,9 +44,14 @@ public class WithdrawEventPhase extends SimulationEventPhase implements IWithdra
 
     @Override
     public WithdrawEventPhase copy(ISpecification specificationCopy) {
+        List<ITaxExemption> copy = new ArrayList<>();
+        for (ITaxExemption rule : getTaxExemptions()) {
+            copy.add(rule.copy());
+        }
         return new WithdrawEventPhase(
                 specificationCopy,
                 getStartDate(),
+                copy,
                 getDuration(),
                 this.withdraw.copy()
         );

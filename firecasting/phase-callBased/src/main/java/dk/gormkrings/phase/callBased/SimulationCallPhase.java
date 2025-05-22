@@ -6,9 +6,12 @@ import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.event.EventType;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 @Slf4j
 @Getter
@@ -17,18 +20,22 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     private IDate startDate;
     private long duration;
     private ISpecification specification;
+    private List<ITaxExemption> taxExemptions;
     private String name;
 
-    public SimulationCallPhase(ISpecification specification, IDate startDate, long duration, String name) {
+    public SimulationCallPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, String name) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
+        this.taxExemptions = taxExemptions;
         this.name = name;
     }
 
     @Override
     public boolean supportsEvent(EventType eventType) {
-        return eventType.equals(EventType.DAY_END) || eventType.equals(EventType.YEAR_END);
+        return eventType.equals(EventType.DAY_END)
+                || eventType.equals(EventType.YEAR_START)
+                || eventType.equals(EventType.YEAR_END);
     }
 
     @Override
@@ -38,6 +45,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onDayEnd() {
+        if (getLiveData().getCapital() <= 0) return;
         if (startDate.plusDays(specification.getLiveData().getSessionDuration()).getDayOfWeek() < 5) addReturn();
     }
 
@@ -63,12 +71,14 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onYearStart() {
-
+        for (ITaxExemption rule : getTaxExemptions()) {
+            rule.yearlyUpdate();
+        }
     }
 
     @Override
     public void onYearEnd() {
-        addTax();
+        addNotionalTax();
         addInflation();
     }
 

@@ -5,6 +5,7 @@ public interface ILiveData extends ILive {
     void subtractFromCapital(double capital);
 
     void addToDeposited(double deposit);
+    void subtractFromDeposited(double deposit);
 
     void addToReturned(double returned);
     void subtractFromReturned(double amount);
@@ -20,6 +21,7 @@ public interface ILiveData extends ILive {
     void addToNetEarnings(double netEarnings);
 
     double getCapital();
+    double getDeposited();
     double getReturned();
     double getWithdraw();
     double getWithdrawn();

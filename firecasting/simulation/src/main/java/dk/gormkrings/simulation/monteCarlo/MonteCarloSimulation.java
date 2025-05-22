@@ -41,7 +41,7 @@ public class MonteCarloSimulation implements ISimulation {
     }
 
     public List<IRunResult> run(long runs, List<IPhase> phases) {
-        return runWithProgress(runs, 1, phases, null);
+        return runWithProgress(runs, 10000, phases, null);
     }
 
     public List<IRunResult> runWithProgress(long runs, int batchSize, List<IPhase> phases, IProgressCallback callback) {

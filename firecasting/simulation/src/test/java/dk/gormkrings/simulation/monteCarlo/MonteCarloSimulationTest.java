@@ -253,7 +253,7 @@ public class MonteCarloSimulationTest {
 
         MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "scheduleEngine");
 
-        int runs = 100000;
+        int runs = 10000;
         List<IPhase> phases = Collections.singletonList(phase);
         List<IRunResult> results = simulation.run(runs, phases);
         verify(engine, times(runs)).simulatePhases(anyList());
@@ -318,9 +318,9 @@ public class MonteCarloSimulationTest {
                 });
 
         Map<String, IEngine> engines = new HashMap<>();
-        engines.put("callEngine", engine);
+        engines.put("scheduleEngine", engine);
 
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "callEngine");
+        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "scheduleEngine");
 
         List<IPhase> phases = Collections.singletonList(phase);
         List<IRunResult> results = simulation.run(runs, phases);

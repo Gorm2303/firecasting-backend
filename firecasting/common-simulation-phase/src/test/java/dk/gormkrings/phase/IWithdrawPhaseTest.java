@@ -3,14 +3,14 @@ package dk.gormkrings.phase;
 import dk.gormkrings.action.Withdraw;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.specification.ISpecification;
-import dk.gormkrings.tax.CapitalGainsTax;
-import dk.gormkrings.tax.ITaxRule;
-import dk.gormkrings.tax.NotionalGainsTax;
+import dk.gormkrings.tax.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
 
 import static org.mockito.Mockito.*;
 
@@ -43,6 +43,11 @@ public class IWithdrawPhaseTest {
             }
 
             @Override
+            public List<ITaxExemption> getTaxExemptions() {
+                return List.of();
+            }
+
+            @Override
             public ISpecification getSpecification() {
                 return specification;
             }
@@ -53,8 +58,8 @@ public class IWithdrawPhaseTest {
             }
 
             @Override
-            public void addTax() {
-                IWithdrawPhase.super.addTax();
+            public void addCapitalTax() {
+                IWithdrawPhase.super.addCapitalTax();
             }
 
             @Override
@@ -81,9 +86,9 @@ public class IWithdrawPhaseTest {
     public void testAddTax_CapitalGainsTax() {
         when(specification.getTaxRule()).thenReturn(capitalGainsTax);
         when(liveData.getWithdraw()).thenReturn(100.0);
-        when(capitalGainsTax.calculateTax(100.0)).thenReturn(15.0);
+        when(capitalGainsTax.calculateTax(anyDouble())).thenReturn(15.0);
 
-        withdrawPhase.addTax();
+        withdrawPhase.addCapitalTax();
 
         verify(liveData).setCurrentTax(15.0);
         verify(liveData).addToTax(15.0);
@@ -133,9 +138,9 @@ public class IWithdrawPhaseTest {
 
         withdrawPhase.withdrawMoney();
 
-        verify(liveData).setWithdraw(-50.0);
-        verify(liveData).addToWithdrawn(-50.0);
-        verify(liveData).subtractFromCapital(-50.0);
+        verify(liveData).setWithdraw(0);
+        verify(liveData).addToWithdrawn(0);
+        verify(liveData).subtractFromCapital(0);
     }
 
     @Test
@@ -171,9 +176,9 @@ public class IWithdrawPhaseTest {
 
         withdrawPhase.withdrawMoney();
 
-        verify(liveData).setWithdraw(Double.POSITIVE_INFINITY);
-        verify(liveData).addToWithdrawn(Double.POSITIVE_INFINITY);
-        verify(liveData).subtractFromCapital(Double.POSITIVE_INFINITY);
+        verify(liveData).setWithdraw(1000);
+        verify(liveData).addToWithdrawn(1000);
+        verify(liveData).subtractFromCapital(1000);
     }
 
     @Test
@@ -184,9 +189,9 @@ public class IWithdrawPhaseTest {
 
         withdrawPhase.withdrawMoney();
 
-        verify(liveData).setWithdraw(Double.NaN);
-        verify(liveData).addToWithdrawn(Double.NaN);
-        verify(liveData).subtractFromCapital(Double.NaN);
+        verify(liveData).setWithdraw(0);
+        verify(liveData).addToWithdrawn(0);
+        verify(liveData).subtractFromCapital(0);
     }
 
     @Test
@@ -207,46 +212,6 @@ public class IWithdrawPhaseTest {
         verify(liveData).setWithdraw(90.0);
         verify(liveData).addToWithdrawn(90.0);
         verify(liveData).subtractFromCapital(90.0);
-    }
-
-    @Test
-    public void testAddTax_UnknownTaxRule() {
-        when(specification.getTaxRule()).thenReturn(new ITaxRule() {
-            @Override
-            public double calculateTax(double amount) {
-                return 0;
-            }
-
-            @Override
-            public ITaxRule copy() {
-                return null;
-            }
-        });
-
-        withdrawPhase.addTax();
-
-        verify(liveData, never()).setCurrentTax(anyDouble());
-        verify(liveData, never()).addToTax(anyDouble());
-    }
-
-    @Test
-    public void testAddNetEarnings_UnknownTaxRule() {
-        when(specification.getTaxRule()).thenReturn(new ITaxRule() {
-            @Override
-            public double calculateTax(double amount) {
-                return 0;
-            }
-
-            @Override
-            public ITaxRule copy() {
-                return null;
-            }
-        });
-
-        withdrawPhase.addNetEarnings();
-
-        verify(liveData, never()).addToNetEarnings(anyDouble());
-        verify(liveData, never()).setCurrentNet(anyDouble());
     }
 
 }

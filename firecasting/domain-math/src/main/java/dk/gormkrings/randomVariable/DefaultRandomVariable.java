@@ -9,10 +9,12 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component("defaultRandomVariable")
+@Scope("prototype")
 @Getter
 @Setter
 public class DefaultRandomVariable implements IRandomVariable {

@@ -3,8 +3,12 @@ package dk.gormkrings.phase;
 import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
+import dk.gormkrings.tax.ITaxRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.mockito.Mockito.*;
 
@@ -32,13 +36,18 @@ public class IPassivePhaseTest {
             }
 
             @Override
+            public List<ITaxExemption> getTaxExemptions() {
+                return List.of();
+            }
+
+            @Override
             public void addReturn() {
                 IPassivePhase.super.addReturn();
             }
 
             @Override
-            public void addTax() {
-                IPassivePhase.super.addTax();
+            public void addNotionalTax() {
+                IPassivePhase.super.addNotionalTax();
             }
 
             @Override

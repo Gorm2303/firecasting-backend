@@ -30,4 +30,9 @@ public class RunResult implements IRunResult {
     public void addResult(IRunResult result) {
         this.snapshots.addAll(result.getSnapshots());
     }
+
+    @Override
+    public String toString() {
+        return snapshots.toString();
+    }
 }

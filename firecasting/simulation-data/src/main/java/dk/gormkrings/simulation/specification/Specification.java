@@ -10,9 +10,9 @@ import lombok.Getter;
 @Getter
 public class Specification implements ISpecification {
     private final LiveData liveData;
-    private final ITaxRule taxRule;
     private final IReturner returner;
     private final IInflation Inflation;
+    private final ITaxRule taxRule;
 
     public Specification(long startTime, ITaxRule taxRule, IReturner returner, IInflation Inflation) {
         this.liveData = new LiveData(startTime);
@@ -34,7 +34,6 @@ public class Specification implements ISpecification {
                 liveData.copy(),
                 taxRule.copy(),
                 returner.copy(),
-                Inflation.copy()
-        );
+                Inflation.copy());
     }
 }

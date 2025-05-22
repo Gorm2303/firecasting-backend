@@ -8,11 +8,15 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Slf4j
@@ -21,8 +25,8 @@ public class PassiveEventPhase extends SimulationEventPhase implements IPassiveP
     @Setter
     private boolean firstTime = true;
 
-    public PassiveEventPhase(ISpecification specification, IDate startDate, long duration, IAction passive) {
-        super(specification, startDate, duration, "Passive");
+    public PassiveEventPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction passive) {
+        super(specification, startDate, taxExemptions, duration, "Passive");
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = (IPassive) passive;
     }
@@ -39,9 +43,14 @@ public class PassiveEventPhase extends SimulationEventPhase implements IPassiveP
 
     @Override
     public PassiveEventPhase copy(ISpecification specificationCopy) {
+        List<ITaxExemption> copy = new ArrayList<>();
+        for (ITaxExemption rule : getTaxExemptions()) {
+            copy.add(rule.copy());
+        }
         return new PassiveEventPhase(
                 specificationCopy,
                 getStartDate(),
+                copy,
                 getDuration(),
                 this.passive.copy()
         );
