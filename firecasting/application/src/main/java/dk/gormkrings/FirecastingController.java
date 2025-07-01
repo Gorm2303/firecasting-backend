@@ -16,6 +16,8 @@ import dk.gormkrings.tax.ITaxExemptionFactory;
 import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.ITaxRuleFactory;
+import dk.gormkrings.ui.fields.UISchemaField;
+import dk.gormkrings.ui.generator.UISchemaGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -34,7 +36,7 @@ import java.util.concurrent.Executors;
 
 @Slf4j
 @RestController
-@CrossOrigin(origins = "http://localhost:8080")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/simulation")
 public class FirecastingController {
 
@@ -76,6 +78,16 @@ public class FirecastingController {
         this.taxRuleFactory = taxRuleFactory;
         this.taxExemptionFactory = taxExemptionFactory;
         this.actionFactory = actionFactory;
+    }
+
+    @GetMapping("/schema/simulation")
+    public List<UISchemaField> getSimulationSchema() {
+        return UISchemaGenerator.generateSchema(SimulationRequest.class);
+    }
+
+    @GetMapping("/schema/phase")
+    public List<UISchemaField> getPhaseSchema() {
+        return UISchemaGenerator.generateSchema(PhaseRequest.class);
     }
     
     @PostMapping("/start")
