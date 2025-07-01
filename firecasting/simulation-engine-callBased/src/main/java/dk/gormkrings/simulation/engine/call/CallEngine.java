@@ -9,18 +9,24 @@ import dk.gormkrings.factory.ISnapshotFactory;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Setter
+@Getter
 @Slf4j
 @Service("callEngine")
+@Scope("prototype")
 public class CallEngine implements IEngine {
 
-    private final IDateFactory dateFactory;
-    private final IResultFactory resultFactory;
-    private final ISnapshotFactory snapshotFactory;
+    private IDateFactory dateFactory;
+    private IResultFactory resultFactory;
+    private ISnapshotFactory snapshotFactory;
 
     public CallEngine(IDateFactory dateFactory, IResultFactory resultFactory, ISnapshotFactory snapshotFactory) {
         this.dateFactory = dateFactory;
@@ -30,7 +36,6 @@ public class CallEngine implements IEngine {
 
     public IRunResult simulatePhases(List<IPhase> phaseCopies) {
         IRunResult result = resultFactory.newResult();
-        result.addSnapshot(snapshotFactory.snapshot((ILiveData) phaseCopies.getFirst().getLiveData()));
         for (IPhase phase : phaseCopies) {
             result.addResult(simulatePhase((ICallPhase) phase));
         }
@@ -40,7 +45,6 @@ public class CallEngine implements IEngine {
     private IRunResult simulatePhase(ICallPhase phase) {
         log.debug("Simulation running for {} days", phase.getDuration());
         IRunResult result = resultFactory.newResult();
-        ILiveData data = (ILiveData) phase.getLiveData();
         IDate startDate = phase.getStartDate();
 
         // Precompute boundaries using epoch day values.
@@ -55,14 +59,13 @@ public class CallEngine implements IEngine {
         int currentYearEndEpochDay = startDate.computeYearEnd();
 
         // Sim init methods here
+        phase.onPhaseStart();
 
         // Main simulation loop – controlled by epoch day.
         while (currentEpochDay < finalEpochDay) {
-            data.incrementTime();
+            phase.getLiveData().incrementTime();
             currentEpochDay++; // advance one day
-
-            // Call Day Methods.
-            //phase.onDayStart();
+            phase.onDayStart();
 
             // Call Month Start Methods.
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {
@@ -92,11 +95,14 @@ public class CallEngine implements IEngine {
                 phase.onYearEnd();
                 IDate nextDay = dateFactory.fromEpochDay(currentEpochDay);
                 currentYearEndEpochDay = nextDay.computeNextYearEnd();
+                result.addSnapshot(snapshotFactory.snapshot((ILiveData) phase.getLiveData()));
             }
+            phase.onDayEnd();
         }
+        phase.onPhaseEnd();
 
-        result.addSnapshot(snapshotFactory.snapshot(data));
-        data.resetSession();
+        result.addSnapshot(snapshotFactory.snapshot((ILiveData) phase.getLiveData()));
+        phase.getLiveData().resetSession();
         return result;
     }
 
