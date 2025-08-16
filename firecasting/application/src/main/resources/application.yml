@@ -11,6 +11,23 @@ spring:
       allowed-headers: "*"
       allow-credentials: true
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: firecasting-api
+
 settings:
   debug: false
   runs: 10000
