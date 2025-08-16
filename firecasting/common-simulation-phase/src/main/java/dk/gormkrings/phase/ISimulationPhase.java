@@ -84,10 +84,10 @@ public interface ISimulationPhase {
         return taxableAmount;
     }
 
-    default void addInflation() {
+    default void compoundInflation() {
         IInflation iInflation = getSpecification().getInflation();
         double inflationAmount = iInflation.calculatePercentage();
-        getLiveData().addToInflation(inflationAmount);
+        getLiveData().compoundInflation(inflationAmount);
     }
 }
 

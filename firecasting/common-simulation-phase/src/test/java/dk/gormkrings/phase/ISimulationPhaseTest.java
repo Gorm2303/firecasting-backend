@@ -102,12 +102,12 @@ public class ISimulationPhaseTest {
     }
 
     @Test
-    public void testAddInflation_BasicInflationUpdate() {
+    public void testCompoundInflation_BasicInflationUpdate() {
         when(inflation.calculatePercentage()).thenReturn(2.5);
         when(specification.getInflation()).thenReturn(inflation);
-        simulationPhase.addInflation();
+        simulationPhase.compoundInflation();
 
-        verify(liveData).addToInflation(2.5);
+        verify(liveData).compoundInflation(2.5);
     }
 
     @Test
@@ -140,23 +140,23 @@ public class ISimulationPhaseTest {
     }
 
     @Test
-    public void testAddInflation_NegativeInflation() {
+    public void testCompoundInflation_NegativeInflation() {
         when(inflation.calculatePercentage()).thenReturn(-1.5);
         when(specification.getInflation()).thenReturn(inflation);
 
-        simulationPhase.addInflation();
+        simulationPhase.compoundInflation();
 
-        verify(liveData).addToInflation(-1.5);
+        verify(liveData).compoundInflation(-1.5);
     }
 
     @Test
-    public void testAddInflation_ZeroInflation() {
+    public void testCompoundInflation_ZeroInflation() {
         when(inflation.calculatePercentage()).thenReturn(0.0);
         when(specification.getInflation()).thenReturn(inflation);
 
-        simulationPhase.addInflation();
+        simulationPhase.compoundInflation();
 
-        verify(liveData).addToInflation(0.0);
+        verify(liveData).compoundInflation(0.0);
     }
 
     @Test
@@ -225,14 +225,14 @@ public class ISimulationPhaseTest {
     }
 
     @Test
-    public void testAddInflation_HighInflation() {
+    public void testCompoundInflation_HighInflation() {
         // Simulate a very high inflation rate.
         when(inflation.calculatePercentage()).thenReturn(100.0);
         when(specification.getInflation()).thenReturn(inflation);
 
-        simulationPhase.addInflation();
+        simulationPhase.compoundInflation();
 
-        verify(liveData).addToInflation(100.0);
+        verify(liveData).compoundInflation(100.0);
     }
 
 

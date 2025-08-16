@@ -79,7 +79,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     @Override
     public void onYearEnd() {
         addNotionalTax();
-        addInflation();
+        compoundInflation();
     }
 
     @Override

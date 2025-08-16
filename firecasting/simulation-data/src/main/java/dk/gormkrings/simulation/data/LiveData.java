@@ -150,8 +150,8 @@ public class LiveData implements ILiveData {
         this.tax += tax;
     }
 
-    public void addToInflation(double inflation) {
-        this.inflation += inflation;
+    public void compoundInflation(double inflation) {
+        this.inflation *= inflation;
     }
 
     public void addToNetEarnings(double netEarnings) {

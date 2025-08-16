@@ -99,7 +99,7 @@ public class FirecastingController {
         ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
         // Build the simulation specification.
         var specification = specificationFactory.create(
-                request.getEpochDay(), overAllTaxRule, 2F);
+                request.getEpochDay(), overAllTaxRule, 1.02F);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),

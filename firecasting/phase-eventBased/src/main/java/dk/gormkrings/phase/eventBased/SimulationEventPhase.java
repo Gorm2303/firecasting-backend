@@ -9,7 +9,6 @@ import dk.gormkrings.event.YearEvent;
 import dk.gormkrings.phase.IEventPhase;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
-import dk.gormkrings.tax.ITaxRule;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -44,7 +43,7 @@ public abstract class SimulationEventPhase implements IEventPhase, ISimulationPh
         } else if (event instanceof YearEvent yearEvent &&
                 yearEvent.getType() == Type.END) {
             addNotionalTax();
-            addInflation();
+            compoundInflation();
         }
     }
 

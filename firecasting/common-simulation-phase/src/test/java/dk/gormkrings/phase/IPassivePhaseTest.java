@@ -4,7 +4,6 @@ import dk.gormkrings.action.Passive;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
-import dk.gormkrings.tax.ITaxRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -51,8 +50,8 @@ public class IPassivePhaseTest {
             }
 
             @Override
-            public void addInflation() {
-                IPassivePhase.super.addInflation();
+            public void compoundInflation() {
+                IPassivePhase.super.compoundInflation();
             }
         };
     }

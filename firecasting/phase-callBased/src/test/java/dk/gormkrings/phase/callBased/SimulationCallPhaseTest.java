@@ -8,7 +8,6 @@ import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
-import dk.gormkrings.tax.ITaxRule;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -85,7 +84,7 @@ public class SimulationCallPhaseTest {
 
         phase.onYearEnd();
         verify(phase).addNotionalTax();
-        verify(phase).addInflation();
+        verify(phase).compoundInflation();
     }
 
 

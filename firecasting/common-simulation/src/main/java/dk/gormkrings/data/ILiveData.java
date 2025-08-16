@@ -17,7 +17,7 @@ public interface ILiveData extends ILive {
     void subtractFromPassiveReturned(double amount);
 
     void addToTax(double tax);
-    void addToInflation(double inflation);
+    void compoundInflation(double inflation);
     void addToNetEarnings(double netEarnings);
 
     double getCapital();

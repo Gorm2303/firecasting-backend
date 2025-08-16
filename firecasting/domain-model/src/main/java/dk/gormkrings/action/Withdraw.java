@@ -28,7 +28,7 @@ public class Withdraw implements IWithdraw {
     }
 
     public double getMonthlyAmount(double capital) {
-        return getMonthlyAmount(capital, 0);
+        return getMonthlyAmount(capital, 1);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class Withdraw implements IWithdraw {
             monthlyAmount = (yearlyPercentage/100 * capital)/12;
             percentageWithdraw = true;
         }
-        return monthlyAmount + (monthlyAmount * (inflation / 100));
+        return monthlyAmount * inflation;
 
     }
 
