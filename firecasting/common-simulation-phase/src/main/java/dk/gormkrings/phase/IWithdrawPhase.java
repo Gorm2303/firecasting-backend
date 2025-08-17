@@ -21,17 +21,20 @@ public interface IWithdrawPhase extends ISimulationPhase {
             withdrawAmount = capital;
         }
 
-        double depositRatio = getLiveData().getDeposited() / capital;
-        getLiveData().subtractFromDeposited(depositRatio * withdrawAmount);
-
+        double realWithdrawAmount = withdrawAmount;
         if (getSpecification().getTaxRule() instanceof CapitalGainsTax capitalGainsTax && !getWithdraw().isPercentageWithdraw()) {
-            double estimateTaxRate = estimateCapitalTaxRate(withdrawAmount, capitalGainsTax);
-            withdrawAmount = withdrawAmount / (1 - estimateTaxRate);
+            for (int i = 0; i < 3; i++) {
+                double estimateTaxRate = estimateCapitalTaxRate(realWithdrawAmount, capitalGainsTax);
+                realWithdrawAmount = withdrawAmount / (1 - estimateTaxRate);
+            }
         }
 
-        getLiveData().setWithdraw(withdrawAmount);
-        getLiveData().addToWithdrawn(withdrawAmount);
-        getLiveData().subtractFromCapital(withdrawAmount);
+        double depositRatio = getLiveData().getDeposited() / capital;
+        getLiveData().subtractFromDeposited(depositRatio * realWithdrawAmount);
+
+        getLiveData().setWithdraw(realWithdrawAmount);
+        getLiveData().addToWithdrawn(realWithdrawAmount);
+        getLiveData().subtractFromCapital(realWithdrawAmount);
     }
 
     default double estimateCapitalTaxRate(double withdraw, CapitalGainsTax capitalGainsTax) {
