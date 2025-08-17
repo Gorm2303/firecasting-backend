@@ -10,6 +10,18 @@ spring:
       allowed-methods: GET,POST,PUT,DELETE,OPTIONS
       allowed-headers: "*"
       allow-credentials: true
+  datasource:
+    url: jdbc:postgresql://db:5432/appdb
+    username: appuser
+    password: ${DB_PASSWORD:devpass}
+    jpa:
+      hibernate:
+        ddl-auto: validate
+      properties:
+        hibernate:
+          dialect: org.hibernate.dialect.PostgreSQLDialect
+    flyway:
+      enabled: true
 
 management:
   endpoints:

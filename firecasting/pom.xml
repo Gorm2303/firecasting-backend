@@ -32,6 +32,8 @@
         <module>common-simulation-phase</module>
         <module>simulation-phase-factory</module>
         <module>simulation-statistics</module>
+        <module>persistence</module>
+		<module>common-statistics</module>
     </modules>
 
 	<properties>

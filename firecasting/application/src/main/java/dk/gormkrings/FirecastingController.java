@@ -11,6 +11,7 @@ import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
+import dk.gormkrings.statistics.StatisticsService;
 import dk.gormkrings.statistics.YearlySummary;
 import dk.gormkrings.tax.ITaxExemptionFactory;
 import dk.gormkrings.tax.ITaxExemption;
@@ -47,6 +48,7 @@ public class FirecastingController {
     private final ITaxRuleFactory taxRuleFactory;
     private final ITaxExemptionFactory taxExemptionFactory;
     private final IActionFactory actionFactory;
+    private final StatisticsService statisticsService;
 
     @Value("${settings.runs}")
     private int runs;
@@ -66,6 +68,7 @@ public class FirecastingController {
                                  IPhaseFactory phaseFactory,
                                  ISpecificationFactory specificationFactory,
                                  SimulationAggregationService aggregationService,
+                                 StatisticsService  statisticsService,
                                  ITaxRuleFactory taxRuleFactory,
                                  ITaxExemptionFactory taxExemptionFactory,
                                  IActionFactory actionFactory) {
@@ -77,6 +80,7 @@ public class FirecastingController {
         this.taxRuleFactory = taxRuleFactory;
         this.taxExemptionFactory = taxExemptionFactory;
         this.actionFactory = actionFactory;
+        this.statisticsService = statisticsService;
     }
 
     @GetMapping("/schema/simulation")
@@ -155,6 +159,7 @@ public class FirecastingController {
                 // Once simulation finishes, aggregate the results.
                 List<YearlySummary> summaries = aggregationService.aggregateResults(
                         simulationResults,
+                        simulationId,
                         progressMessage -> emitterSend(progressMessage, simulationId));
 
                 log.debug("Summaries count = {}", summaries.size());
@@ -191,20 +196,39 @@ public class FirecastingController {
         }
     }
 
-    @GetMapping(
-            path     = "/progress/{simulationId}",
-            produces = MediaType.TEXT_EVENT_STREAM_VALUE
-    )
-    public SseEmitter getProgress(@PathVariable String simulationId) {
-        SseEmitter emitter = new SseEmitter(0L);
+    @GetMapping(value = "/progress/{simulationId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<YearlySummary>> getProgressJson(@PathVariable String simulationId) {
+        if (!statisticsService.hasCompletedSummaries(simulationId)) {
+            return ResponseEntity.notFound().build();
+        }
+        var summaries = statisticsService.getSummariesForRun(simulationId);
+        return summaries.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok(summaries);
+    }
 
-        // Put the emitter in the map, so that simulation progress updates can find it.
+    @GetMapping(value = "/progress/{simulationId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter getProgressSse(@PathVariable String simulationId) {
+        if (statisticsService.hasCompletedSummaries(simulationId)) {
+            // One-shot SSE for already-finished simulation
+            var emitter = new SseEmitter(0L);
+            try {
+                var summaries = statisticsService.getSummariesForRun(simulationId);
+                emitter.send(SseEmitter.event().name("completed").data(summaries, MediaType.APPLICATION_JSON));
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+            return emitter;
+        }
+
+        // Register for live updates
+        var emitter = new SseEmitter(0L);
         emitters.put(simulationId, emitter);
-
-        // Remove the emitter from the map if it completes or times out.
         emitter.onCompletion(() -> emitters.remove(simulationId));
         emitter.onTimeout(() -> emitters.remove(simulationId));
-
+        // Optional keepalive to placate proxies:
+        try {
+            emitter.send(SseEmitter.event().name("ping").data("keepalive"));
+        } catch (Exception ignored) {}
         return emitter;
     }
 

@@ -22,8 +22,6 @@ import static dk.gormkrings.statistics.StatisticsUtils.*;
 @Setter
 @Getter
 public class SimulationAggregationService {
-    private final YearlySummaryCalculator summaryCalculator = new YearlySummaryCalculator();
-
     private double lowerThresholdPercentile = 0.05;
     private double upperThresholdPercentile = 0.95;
 
@@ -35,7 +33,7 @@ public class SimulationAggregationService {
      *   3) For the remaining runs, mark snapshots as failed only from the snapshot that first fails (and onward).
      *   4) Group snapshots by year and build yearly summaries.
      */
-    public List<YearlySummary> aggregateResults(List<IRunResult> results, IProgressCallback callback) {
+    public List<YearlySummary> aggregateResults(List<IRunResult> results, String simulationId, IProgressCallback callback) {
         long startTime = System.currentTimeMillis();
         // Step 1: Process each simulation run.
         List<SimulationRunData> simulationDataList = new ArrayList<>();
@@ -136,7 +134,7 @@ public class SimulationAggregationService {
                     .collect(Collectors.toList());
 
             long yearStartTime = System.currentTimeMillis();
-            YearlySummary summary = summaryCalculator.calculateYearlySummary(phaseName, year, capitals, failed);
+            YearlySummary summary = YearlySummaryCalculator.calculateYearlySummary(phaseName, year, capitals, failed);
             String progressMessage = String.format("Calculate %,d/%,d yearly summaries in %,ds",
                     counter, dataByYear.size(),
                     (yearStartTime - startTime)/1000);
