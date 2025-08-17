@@ -37,6 +37,8 @@ public class FirecastingApplication implements CommandLineRunner {
     private final ITaxRuleFactory defaultTaxRuleFactory;
     private final DefaultTaxExemptionFactory defaultTaxExemptionFactory;
 
+    @Value("${settings.runs}")
+    private int runs;
     @Value("${settings.run-local}")
     private boolean runLocal = false;
     @Value("${settings.debug}")
@@ -87,14 +89,14 @@ public class FirecastingApplication implements CommandLineRunner {
 
         ITaxRule taxRule = defaultTaxRuleFactory.create("capital", 42);
 
-        ISpecification specification = specificationFactory.create(depositStartIDate.getEpochDay(), taxRule, 2);
+        ISpecification specification = specificationFactory.create(depositStartIDate.getEpochDay(), taxRule, 1.02D);
 
         IAction deposit = new Deposit(10000, 10000, 0.005);
         IAction passive = new Passive();
         IAction withdraw = new Withdraw(0, 0.04, 0,0);
-        List<ITaxExemption> depositTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("card"), defaultTaxExemptionFactory.create("stock")));
-        List<ITaxExemption> passiveTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("card"), defaultTaxExemptionFactory.create("stock")));
-        List<ITaxExemption> withdrawTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("card"), defaultTaxExemptionFactory.create("stock")));
+        List<ITaxExemption> depositTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("stockexemption"), defaultTaxExemptionFactory.create("exemptioncard")));
+        List<ITaxExemption> passiveTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("stockexemption"), defaultTaxExemptionFactory.create("exemptioncard")));
+        List<ITaxExemption> withdrawTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("stockexemption"), defaultTaxExemptionFactory.create("exemptioncard")));
 
         IPhase currentPhase = phaseFactory.create("deposit", specification, depositStartIDate, depositTaxRules, depositDays, deposit);
         phases.add(currentPhase);
@@ -106,7 +108,7 @@ public class FirecastingApplication implements CommandLineRunner {
         phases.add(currentPhase);
 
         long startTime = System.currentTimeMillis();
-        List<IRunResult> results = simulation.run(10000, phases);
+        List<IRunResult> results = simulation.run(runs, phases);
         long simTime = System.currentTimeMillis();
         try {
             ConcurrentCsvExporter.exportCsv(results, "firecasting-results");

@@ -12,7 +12,7 @@ import java.io.*;
 @Getter
 @Component
 public class DataAverageInflation implements IInflation {
-    private double averagePercentage;
+    private double averageInflation;
 
     @Value("${inflation.csv-file-path}")
     private String csvFilePath;
@@ -20,13 +20,13 @@ public class DataAverageInflation implements IInflation {
     public DataAverageInflation() {
     }
 
-    public DataAverageInflation(double averagePercentage) {
-        this.averagePercentage = averagePercentage;
+    public DataAverageInflation(double averageInflation) {
+        this.averageInflation = averageInflation;
     }
 
     public DataAverageInflation(String filename) {
         setAverageInflation(filename);
-        log.debug("Initializing DataAverageInflation: {}", averagePercentage);
+        log.debug("Initializing DataAverageInflation: {}", averageInflation);
     }
 
     @PostConstruct
@@ -35,13 +35,13 @@ public class DataAverageInflation implements IInflation {
     }
 
     @Override
-    public double calculatePercentage() {
-        return averagePercentage;
+    public double calculateInflation() {
+        return averageInflation;
     }
 
     @Override
     public IInflation copy() {
-        return new DataAverageInflation(this.averagePercentage);
+        return new DataAverageInflation(this.averageInflation);
     }
 
     private void setAverageInflation(String csvFilePath) {
@@ -76,6 +76,6 @@ public class DataAverageInflation implements IInflation {
             log.error("Error reading CSV file", e);
         }
 
-        averagePercentage = count > 0 ? (float) (sum / count) : 0;
+        averageInflation = count > 0 ? (float) (1 + sum / count / 100) : 1;
     }
 }

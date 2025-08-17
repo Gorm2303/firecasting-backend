@@ -18,7 +18,7 @@ public class DefaultInflationFactory implements IInflationFactory {
     }
 
     @Override
-    public IInflation createInflation(double inflationPercentage) {
-        return new DataAverageInflation(inflationPercentage);
+    public IInflation createInflation(double inflation) {
+        return new DefaultInflation(inflation);
     }
 }

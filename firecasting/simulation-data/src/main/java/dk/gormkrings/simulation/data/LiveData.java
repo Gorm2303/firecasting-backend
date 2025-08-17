@@ -24,7 +24,7 @@ public class LiveData implements ILiveData {
     private double passiveReturn;
     private double passiveReturned;
     private double capital;
-    private double inflation;
+    private double inflation = 1;
     @Setter
     private double currentReturn;
     private double returned;

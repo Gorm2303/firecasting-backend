@@ -103,7 +103,7 @@ public class ISimulationPhaseTest {
 
     @Test
     public void testCompoundInflation_BasicInflationUpdate() {
-        when(inflation.calculatePercentage()).thenReturn(2.5);
+        when(inflation.calculateInflation()).thenReturn(2.5);
         when(specification.getInflation()).thenReturn(inflation);
         simulationPhase.compoundInflation();
 
@@ -141,7 +141,7 @@ public class ISimulationPhaseTest {
 
     @Test
     public void testCompoundInflation_NegativeInflation() {
-        when(inflation.calculatePercentage()).thenReturn(-1.5);
+        when(inflation.calculateInflation()).thenReturn(-1.5);
         when(specification.getInflation()).thenReturn(inflation);
 
         simulationPhase.compoundInflation();
@@ -151,7 +151,7 @@ public class ISimulationPhaseTest {
 
     @Test
     public void testCompoundInflation_ZeroInflation() {
-        when(inflation.calculatePercentage()).thenReturn(0.0);
+        when(inflation.calculateInflation()).thenReturn(0.0);
         when(specification.getInflation()).thenReturn(inflation);
 
         simulationPhase.compoundInflation();
@@ -227,7 +227,7 @@ public class ISimulationPhaseTest {
     @Test
     public void testCompoundInflation_HighInflation() {
         // Simulate a very high inflation rate.
-        when(inflation.calculatePercentage()).thenReturn(100.0);
+        when(inflation.calculateInflation()).thenReturn(100.0);
         when(specification.getInflation()).thenReturn(inflation);
 
         simulationPhase.compoundInflation();

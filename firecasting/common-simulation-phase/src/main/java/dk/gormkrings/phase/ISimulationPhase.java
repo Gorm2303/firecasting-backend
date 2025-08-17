@@ -86,7 +86,7 @@ public interface ISimulationPhase {
 
     default void compoundInflation() {
         IInflation iInflation = getSpecification().getInflation();
-        double inflationAmount = iInflation.calculatePercentage();
+        double inflationAmount = iInflation.calculateInflation();
         getLiveData().compoundInflation(inflationAmount);
     }
 }
