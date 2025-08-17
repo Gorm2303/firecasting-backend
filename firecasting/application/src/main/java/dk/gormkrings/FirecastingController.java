@@ -157,18 +157,21 @@ public class FirecastingController {
                 lastResults = simulationResults;
 
                 // Once simulation finishes, aggregate the results.
-                List<YearlySummary> summaries = aggregationService.aggregateResults(
-                        simulationResults,
-                        simulationId,
-                        progressMessage -> emitterSend(progressMessage, simulationId));
+                // Order of both lists is (year ASC, phaseName ASC) and aligned by index:
+                List<YearlySummary> summaries = aggregationService.aggregateResults(simulationResults, simulationId, msg -> emitterSend(msg, simulationId));
+                // Build parallel 1001-point grids (ascending year; same order as summaries after sortComputeGrowth)
+                List<double[]> grids = aggregationService.buildPercentileGrids(simulationResults);
 
                 log.debug("Summaries count = {}", summaries.size());
                 log.debug("Summaries = {}", summaries);
 
+                // Persist inputs
+                statisticsService.upsertRunWithSummaries(simulationId, request, summaries, grids);
+
                 // Send the final aggregated statistics to the SSE emitter.
                 SseEmitter emitter = emitters.get(simulationId);
                 if (emitter != null) {
-                    emitter.send(summaries, MediaType.APPLICATION_JSON);
+                    emitter.send(SseEmitter.event().name("completed").data(summaries, MediaType.APPLICATION_JSON));
                     emitter.complete();
                 }
             } catch (Exception e) {
