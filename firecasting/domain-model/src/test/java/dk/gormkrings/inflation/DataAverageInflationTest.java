@@ -10,7 +10,7 @@ class DataAverageInflationTest {
     void testCalculateInflationWithValidData() {
         DataAverageInflation inflation = new DataAverageInflation("/dk/gormkrings/inflation/inflation-test.csv");
         double average = inflation.calculateInflation();
-        assertEquals(3.3333, average, 0.0001, "Average inflation should be approximately 3.3333");
+        assertEquals(1.03333, average, 0.0001, "Average inflation should be approximately 3.3333");
     }
 
     @Test

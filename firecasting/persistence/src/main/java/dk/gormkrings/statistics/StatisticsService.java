@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,18 @@ public class StatisticsService {
             var md = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(md.digest(s.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    // StatisticsService.java
+    @Transactional(readOnly = true)
+    public Optional<String> findExistingRunIdForInput(Object inputParams) {
+        try {
+            String inputJson = objectMapper.writeValueAsString(inputParams); // same serializer as upsert
+            String inputHash = sha256Hex(inputJson);
+            return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
+        } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
         }
     }

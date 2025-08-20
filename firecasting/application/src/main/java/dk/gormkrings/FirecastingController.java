@@ -8,6 +8,7 @@ import dk.gormkrings.factory.IPhaseFactory;
 import dk.gormkrings.factory.ISimulationFactory;
 import dk.gormkrings.factory.ISpecificationFactory;
 import dk.gormkrings.phase.IPhase;
+import dk.gormkrings.queue.SimulationQueueService;
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.SimulationAggregationService;
@@ -34,6 +35,7 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 @RestController
@@ -48,6 +50,8 @@ public class FirecastingController {
     private final ITaxRuleFactory taxRuleFactory;
     private final ITaxExemptionFactory taxExemptionFactory;
     private final IActionFactory actionFactory;
+    private final SimulationQueueService simQueue;
+    private final ScheduledExecutorService sseScheduler;
     private final StatisticsService statisticsService;
 
     @Value("${settings.runs}")
@@ -71,7 +75,9 @@ public class FirecastingController {
                                  StatisticsService  statisticsService,
                                  ITaxRuleFactory taxRuleFactory,
                                  ITaxExemptionFactory taxExemptionFactory,
-                                 IActionFactory actionFactory) {
+                                 IActionFactory actionFactory,
+                                 SimulationQueueService simQueue,
+                                 ScheduledExecutorService sseScheduler) {
         this.simulationFactory = simulationFactory;
         this.dateFactory = dateFactory;
         this.phaseFactory = phaseFactory;
@@ -80,6 +86,8 @@ public class FirecastingController {
         this.taxRuleFactory = taxRuleFactory;
         this.taxExemptionFactory = taxExemptionFactory;
         this.actionFactory = actionFactory;
+        this.simQueue = simQueue;
+        this.sseScheduler = sseScheduler;
         this.statisticsService = statisticsService;
     }
 
@@ -92,9 +100,23 @@ public class FirecastingController {
     public List<UISchemaField> getPhaseSchema() {
         return UISchemaGenerator.generateSchema(PhaseRequest.class);
     }
-    
+
+    // FirecastingController.java
+    @GetMapping("/queue/{simulationId}")
+    public ResponseEntity<dk.gormkrings.queue.SimulationQueueService.TaskInfo> queueInfo(@PathVariable String simulationId) {
+        var info = simQueue.info(simulationId);
+        return ResponseEntity.ok(info);
+    }
+
     @PostMapping("/start")
     public ResponseEntity<String> startSimulation(@RequestBody SimulationRequest request) {
+        // 0) If an identical run already exists, return it and bypass the queue.
+        var existingId = statisticsService.findExistingRunIdForInput(request);
+        if (existingId.isPresent()) {
+            log.info("Dedup hit: reusing existing simulation {}", existingId.get());
+            return ResponseEntity.ok(existingId.get());
+        }
+
         // Generate a unique simulation ID.
         String simulationId = UUID.randomUUID().toString();
         log.info("Starting simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
@@ -137,51 +159,32 @@ public class FirecastingController {
         }
 
         // Run the simulation asynchronously.
-        Executors.newSingleThreadExecutor().submit(() -> {
+        boolean accepted = simQueue.submitWithId(simulationId, () -> {
             try {
-                // runWithProgress should accept a lambda progress callback.
-                // Each time a block (e.g. 10,000 runs) is completed, the callback is invoked with a progress message.
-                List<IRunResult> simulationResults = simulationFactory.createSimulation().runWithProgress(
-                        runs,
-                        batchSize,
-                        phases,
-                        progressMessage -> emitterSend(progressMessage, simulationId)
-                );
+                var simulationResults = simulationFactory.createSimulation().runWithProgress(
+                        runs, batchSize, phases, msg -> emitterSend(msg, simulationId));
 
-                log.debug("SimulationResults count = {}", simulationResults.size());
-                if (!simulationResults.isEmpty()) {
-                    log.debug("  first result: {}", simulationResults.get(0));
-                }
-
-                // Save results for potential export.
                 lastResults = simulationResults;
 
-                // Once simulation finishes, aggregate the results.
-                // Order of both lists is (year ASC, phaseName ASC) and aligned by index:
-                List<YearlySummary> summaries = aggregationService.aggregateResults(simulationResults, simulationId, msg -> emitterSend(msg, simulationId));
-                // Build parallel 1001-point grids (ascending year; same order as summaries after sortComputeGrowth)
-                List<double[]> grids = aggregationService.buildPercentileGrids(simulationResults);
+                var summaries = aggregationService.aggregateResults(simulationResults, simulationId,
+                        msg -> emitterSend(msg, simulationId));
 
-                log.debug("Summaries count = {}", summaries.size());
-                log.debug("Summaries = {}", summaries);
+                var grids = aggregationService.buildPercentileGrids(simulationResults);
 
-                // Persist inputs
                 statisticsService.upsertRunWithSummaries(simulationId, request, summaries, grids);
 
-                // Send the final aggregated statistics to the SSE emitter.
-                SseEmitter emitter = emitters.get(simulationId);
+                var emitter = emitters.get(simulationId);
                 if (emitter != null) {
                     emitter.send(SseEmitter.event().name("completed").data(summaries, MediaType.APPLICATION_JSON));
                     emitter.complete();
                 }
             } catch (Exception e) {
-                log.error("Error during simulation (id: {})", simulationId, e);
-                SseEmitter emitter = emitters.get(simulationId);
-                if (emitter != null) {
-                    emitter.completeWithError(e);
-                }
+                var emitter = emitters.get(simulationId);
+                if (emitter != null) emitter.completeWithError(e);
+                throw new RuntimeException(e);
             }
         });
+        if (!accepted) return ResponseEntity.status(429).body("Queue full. Try again later.");
 
         // Return the simulation ID so the frontend can subscribe to progress.
         return ResponseEntity.ok(simulationId);
@@ -211,27 +214,40 @@ public class FirecastingController {
     @GetMapping(value = "/progress/{simulationId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getProgressSse(@PathVariable String simulationId) {
         if (statisticsService.hasCompletedSummaries(simulationId)) {
-            // One-shot SSE for already-finished simulation
             var emitter = new SseEmitter(0L);
             try {
                 var summaries = statisticsService.getSummariesForRun(simulationId);
                 emitter.send(SseEmitter.event().name("completed").data(summaries, MediaType.APPLICATION_JSON));
                 emitter.complete();
-            } catch (Exception e) {
-                emitter.completeWithError(e);
-            }
+            } catch (Exception e) { emitter.completeWithError(e); }
             return emitter;
         }
 
-        // Register for live updates
         var emitter = new SseEmitter(0L);
         emitters.put(simulationId, emitter);
-        emitter.onCompletion(() -> emitters.remove(simulationId));
-        emitter.onTimeout(() -> emitters.remove(simulationId));
-        // Optional keepalive to placate proxies:
-        try {
-            emitter.send(SseEmitter.event().name("ping").data("keepalive"));
-        } catch (Exception ignored) {}
+
+        // schedule periodic queue updates while QUEUED
+        final var handle = new java.util.concurrent.atomic.AtomicReference<java.util.concurrent.ScheduledFuture<?>>();
+        Runnable tick = () -> {
+            try {
+                var info = simQueue.info(simulationId);
+                if (info.getStatus() == dk.gormkrings.queue.SimulationQueueService.Status.QUEUED) {
+                    emitter.send(SseEmitter.event().name("queued").data(
+                            info.getPosition() == null ? "queued" : ("position:" + info.getPosition())));
+                } else if (info.getStatus() == dk.gormkrings.queue.SimulationQueueService.Status.RUNNING) {
+                    emitter.send(SseEmitter.event().name("started").data("running"));
+                    var h = handle.get(); if (h != null) h.cancel(false); // stop queue updates
+                } else if (info.getStatus() == dk.gormkrings.queue.SimulationQueueService.Status.DONE) {
+                    var h = handle.get(); if (h != null) h.cancel(false);
+                    // don't complete here; completion will send 'completed' with summaries
+                }
+            } catch (Exception ignored) {}
+        };
+        handle.set(sseScheduler.scheduleAtFixedRate(tick, 0, 5, java.util.concurrent.TimeUnit.SECONDS));
+
+        emitter.onCompletion(() -> { emitters.remove(simulationId); var h = handle.get(); if (h != null) h.cancel(false); });
+        emitter.onTimeout(() -> { emitters.remove(simulationId); var h = handle.get(); if (h != null) h.cancel(false); });
+
         return emitter;
     }
 
