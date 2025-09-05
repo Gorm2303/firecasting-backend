@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.3</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<version>3.4.8</version>
+		<relativePath/>
 	</parent>
+
 	<groupId>dk.gormkrings</groupId>
 	<artifactId>firecasting</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Firecasting</name>
 	<description>Simulation project for Spring Boot</description>
+
 	<modules>
 		<module>domain-model</module>
 		<module>application</module>
 		<module>simulation</module>
 		<module>simulation-data</module>
 		<module>common-event</module>
-        <module>phase-eventBased</module>
+		<module>phase-eventBased</module>
 		<module>common-simulation</module>
 		<module>phase-callBased</module>
 		<module>simulation-engine-eventBased</module>
@@ -29,34 +33,83 @@
 		<module>common-domain</module>
 		<module>common-math</module>
 		<module>domain-math</module>
-        <module>common-simulation-phase</module>
-        <module>simulation-phase-factory</module>
-        <module>simulation-statistics</module>
-        <module>persistence</module>
+		<module>common-simulation-phase</module>
+		<module>simulation-phase-factory</module>
+		<module>simulation-statistics</module>
+		<module>persistence</module>
 		<module>common-statistics</module>
-    </modules>
+	</modules>
 
 	<properties>
 		<java.version>23</java.version>
-		<spring-modulith.version>1.3.3</spring-modulith.version>
 
+		<!-- Central knobs -->
+		<spring-modulith.version>1.3.3</spring-modulith.version>
+		<spring-security.version>6.4.4</spring-security.version> <!-- BCrypt fix -->
+		<jackson.version>2.17.2</jackson.version>
+		<micrometer.version>1.14.10</micrometer.version>
+
+		<!-- Plugin versions -->
+		<cyclonedx.maven.plugin.version>2.9.0</cyclonedx.maven.plugin.version>
+		<owasp.dependencycheck.plugin.version>12.1.0</owasp.dependencycheck.plugin.version>
+		<maven.enforcer.plugin.version>3.5.0</maven.enforcer.plugin.version>
+		<maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<!-- Modulith -->
+			<dependency>
+				<groupId>org.springframework.modulith</groupId>
+				<artifactId>spring-modulith-bom</artifactId>
+				<version>${spring-modulith.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- Lift Spring Security family -->
+			<dependency>
+				<groupId>org.springframework.security</groupId>
+				<artifactId>spring-security-bom</artifactId>
+				<version>${spring-security.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- Keep Jackson consistent -->
+			<dependency>
+				<groupId>com.fasterxml.jackson</groupId>
+				<artifactId>jackson-bom</artifactId>
+				<version>${jackson.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- Force Micrometer upper bound -->
+			<dependency>
+				<groupId>io.micrometer</groupId>
+				<artifactId>micrometer-bom</artifactId>
+				<version>${micrometer.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.modulith</groupId>
 			<artifactId>spring-modulith-starter-core</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-suite-api</artifactId>
-			<version>1.11.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>4.11.0</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -72,11 +125,13 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -88,20 +143,10 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.springframework.modulith</groupId>
-				<artifactId>spring-modulith-bom</artifactId>
-				<version>${spring-modulith.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 
 	<build>
 		<plugins>
+			<!-- Annotation processing -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -114,6 +159,89 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+
+			<!-- Tests -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>${maven.surefire.plugin.version}</version>
+			</plugin>
+
+			<!-- Enforcer (single block) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>${maven.enforcer.plugin.version}</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>extra-enforcer-rules</artifactId>
+						<version>1.10.0</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>enforce</id>
+						<goals><goal>enforce</goal></goals>
+						<configuration>
+							<rules>
+								<dependencyConvergence/>
+								<requireUpperBoundDeps/>
+								<banDuplicateClasses>
+									<findAllDuplicates>true</findAllDuplicates>
+									<ignoreWhenIdentical>true</ignoreWhenIdentical>
+									<scopes>
+										<scope>compile</scope>
+										<scope>runtime</scope>
+									</scopes>
+								</banDuplicateClasses>
+							</rules>
+							<fail>true</fail>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- SBOM -->
+			<plugin>
+				<groupId>org.cyclonedx</groupId>
+				<artifactId>cyclonedx-maven-plugin</artifactId>
+				<version>${cyclonedx.maven.plugin.version}</version>
+				<executions>
+					<execution>
+						<phase>verify</phase>
+						<goals><goal>makeAggregateBom</goal></goals>
+					</execution>
+				</executions>
+				<configuration>
+					<schemaVersion>1.6</schemaVersion>
+					<includeBomSerialNumber>true</includeBomSerialNumber>
+					<outputFormat>json</outputFormat>
+					<outputName>bom</outputName>
+				</configuration>
+			</plugin>
+
+			<!-- OWASP DC -->
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>${owasp.dependencycheck.plugin.version}</version>
+				<executions>
+					<execution>
+						<phase>verify</phase>
+						<goals><goal>check</goal></goals>
+					</execution>
+				</executions>
+				<configuration>
+					<failBuildOnCVSS>7.0</failBuildOnCVSS>
+					<formats>HTML,JSON</formats>
+					<suppressionFiles>
+						<suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+				</configuration>
+			</plugin>
+
+			<!-- Boot plugin disabled at parent -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -127,13 +255,6 @@
 					<skip>true</skip>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M7</version>
-			</plugin>
-
 		</plugins>
 	</build>
-
 </project>

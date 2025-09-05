@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -21,7 +22,7 @@ class MonteCarloSimulationTest {
     private MonteCarloSimulation newSim(IEngine engine, ExecutorService pool, int progressStep) {
         String name = "testEngine";
         Map<String, IEngine> engines = Map.of(name, engine);
-        return new MonteCarloSimulation(engines, name, pool, progressStep);
+        return new MonteCarloSimulation(engines, name, pool, progressStep, true);
     }
 
     private static List<IPhase> phasesWithSharedSpec(IPhase... phases) {
@@ -54,7 +55,7 @@ class MonteCarloSimulationTest {
             // name in map doesn't match name we pass
             Map<String, IEngine> engines = Map.of("someOtherEngine", engine);
             assertThrows(IllegalArgumentException.class,
-                    () -> new MonteCarloSimulation(engines, "testEngine", pool, 1));
+                    () -> new MonteCarloSimulation(engines, "testEngine", pool, 1000, true));
         } finally {
             pool.shutdownNow();
         }
@@ -208,8 +209,9 @@ class MonteCarloSimulationTest {
         List<IRunResult> distinct = new ArrayList<>(runs);
         for (int i = 0; i < runs; i++) distinct.add(mock(IRunResult.class, "res" + i));
 
-        final int[] idx = {0};
-        when(engine.simulatePhases(anyList())).thenAnswer((Answer<IRunResult>) inv -> distinct.get(idx[0]++));
+        AtomicInteger idx = new AtomicInteger(0);
+        when(engine.simulatePhases(anyList()))
+                .thenAnswer((Answer<IRunResult>) inv -> distinct.get(idx.getAndIncrement()));
 
         ExecutorService pool = Executors.newFixedThreadPool(4);
         try {
@@ -222,4 +224,5 @@ class MonteCarloSimulationTest {
             pool.shutdownNow();
         }
     }
+
 }

@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -65,7 +66,7 @@ public class FirecastingController {
     private List<IRunResult> lastResults;
 
     // Map to store SSE emitters by simulation ID.
-    private final ConcurrentHashMap<String, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
     public FirecastingController(ISimulationFactory simulationFactory,
                                  IDateFactory dateFactory,
@@ -158,7 +159,7 @@ public class FirecastingController {
             currentDate = currentDate.plusMonths(pr.getDurationInMonths());
         }
 
-        // Run the simulation asynchronously.
+        // Run the simulation asynchronously (after dedup and phases built)
         boolean accepted = simQueue.submitWithId(simulationId, () -> {
             try {
                 var simulationResults = simulationFactory.createSimulation().runWithProgress(
@@ -166,40 +167,78 @@ public class FirecastingController {
 
                 lastResults = simulationResults;
 
-                var summaries = aggregationService.aggregateResults(simulationResults, simulationId,
-                        msg -> emitterSend(msg, simulationId));
+                var summaries = aggregationService.aggregateResults(
+                        simulationResults, simulationId, msg -> emitterSend(msg, simulationId));
 
                 var grids = aggregationService.buildPercentileGrids(simulationResults);
 
                 statisticsService.upsertRunWithSummaries(simulationId, request, summaries, grids);
 
-                var emitter = emitters.get(simulationId);
-                if (emitter != null) {
-                    emitter.send(SseEmitter.event().name("completed").data(summaries, MediaType.APPLICATION_JSON));
-                    emitter.complete();
+                // Notify all subscribers
+                broadcastEvent(simulationId, SseEmitter.event()
+                        .name("completed")
+                        .data(summaries, MediaType.APPLICATION_JSON));
+
+                // Close all emitters for this id
+                var list = emitters.remove(simulationId);
+                if (list != null) {
+                    for (var em : list) {
+                        try { em.complete(); } catch (Exception ignore) {}
+                    }
                 }
+
             } catch (Exception e) {
-                var emitter = emitters.get(simulationId);
-                if (emitter != null) emitter.completeWithError(e);
+                // Broadcast error + close all emitters for this id
+                var list = emitters.remove(simulationId);
+                if (list != null) {
+                    for (var em : list) {
+                        try { em.completeWithError(e); } catch (Exception ignore) {}
+                    }
+                }
+                // Re-throw so queue marks FAILED (if you track it)
                 throw new RuntimeException(e);
             }
         });
-        if (!accepted) return ResponseEntity.status(429).body("Queue full. Try again later.");
+
+        // If you haven't already handled it above:
+        if (!accepted) {
+            return ResponseEntity.status(429).body("Queue full. Try again later.");
+        }
 
         // Return the simulation ID so the frontend can subscribe to progress.
         return ResponseEntity.ok(simulationId);
     }
 
-    private void emitterSend(String progressMessage, String simulationId) {
-        // If an SSE emitter is registered for this simulation, send the update.
-        SseEmitter emitter = emitters.get(simulationId);
-        if (emitter != null) {
-            try {
-                emitter.send(progressMessage, MediaType.TEXT_PLAIN);
-            } catch (Exception e) {
-                log.error("Error sending progress update for simulationId {}: {}", simulationId, e.getMessage());
-            }
+    private void addEmitter(String id, SseEmitter e) {
+        emitters.computeIfAbsent(id, __ -> new CopyOnWriteArrayList<>()).add(e);
+        e.onCompletion(() -> removeEmitter(id, e));
+        e.onTimeout(() -> removeEmitter(id, e));
+    }
+
+    private void removeEmitter(String id, SseEmitter e) {
+        var list = emitters.get(id);
+        if (list != null) list.remove(e);
+    }
+
+    private void broadcast(String id, Object data, MediaType type) {
+        var list = emitters.get(id);
+        if (list == null) return;
+        for (var e : list) {
+            try { e.send(data, type); } catch (Exception ignore) {}
         }
+    }
+
+    private void broadcastEvent(String id, SseEmitter.SseEventBuilder event) {
+        var list = emitters.get(id);
+        if (list == null) return;
+        for (var e : list) {
+            try { e.send(event); } catch (Exception ignore) {}
+        }
+    }
+
+    // Update your existing progress helper to fan out:
+    private void emitterSend(String progressMessage, String simulationId) {
+        broadcast(simulationId, progressMessage, MediaType.TEXT_PLAIN);
     }
 
     @GetMapping(value = "/progress/{simulationId}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -224,7 +263,7 @@ public class FirecastingController {
         }
 
         var emitter = new SseEmitter(0L);
-        emitters.put(simulationId, emitter);
+        addEmitter(simulationId, emitter);
 
         // schedule periodic queue updates while QUEUED
         final var handle = new java.util.concurrent.atomic.AtomicReference<java.util.concurrent.ScheduledFuture<?>>();

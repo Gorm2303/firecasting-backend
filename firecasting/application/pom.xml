@@ -81,8 +81,8 @@
         </dependency>
         <!-- in the runnable backend module's pom.xml (e.g., application/pom.xml) -->
         <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-security</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         <dependency>
             <groupId>dk.gormkrings</groupId>

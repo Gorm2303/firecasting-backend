@@ -25,12 +25,15 @@ public class MonteCarloSimulation implements ISimulation {
     private final IEngine engine;
     private final ExecutorService workerPool;
     private final int progressStep;
+    /** If true, a task failure aborts the whole run (handy for tests). Default false for resilience. */
+    private final boolean failOnTaskError;
 
     public MonteCarloSimulation(
             Map<String, IEngine> engines,
             @Value("${simulation.engine.selected:scheduleEngine}") String engineName,
             @Qualifier("simWorkerPool") ExecutorService workerPool,
-            @Value("${simulation.progressStep:1000}") int progressStep
+            @Value("${simulation.progressStep:1000}") int progressStep,
+            @Value("${simulation.failOnTaskError:false}") boolean failOnTaskError
     ) {
         if (!engines.containsKey(engineName)) {
             throw new IllegalArgumentException("No engine found with name: " + engineName +
@@ -39,6 +42,7 @@ public class MonteCarloSimulation implements ISimulation {
         this.engine = engines.get(engineName);
         this.workerPool = workerPool;
         this.progressStep = Math.max(1, progressStep);
+        this.failOnTaskError = failOnTaskError;
         log.info("Selected engine: {} (available: {})", engineName, engines.keySet());
     }
 
@@ -52,15 +56,19 @@ public class MonteCarloSimulation implements ISimulation {
         if (phases == null || phases.isEmpty() || runs <= 0) {
             throw new IllegalArgumentException("No phases to run or runs <= 0");
         }
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException("batchSize must be > 0");
+        }
+
         engine.init(phases);
 
-        final List<IRunResult> allResults = new ArrayList<>((int)Math.min(runs, Integer.MAX_VALUE));
+        final List<IRunResult> allResults = new ArrayList<>((int) Math.min(runs, Integer.MAX_VALUE));
         final long t0 = System.currentTimeMillis();
         long completed = 0;
 
         try {
             for (long offset = 0; offset < runs; offset += batchSize) {
-                int thisBatch = (int) Math.min(batchSize, runs - offset);
+                final int thisBatch = (int) Math.min(batchSize, runs - offset);
 
                 // Build tasks for this batch
                 List<Callable<IRunResult>> tasks = new ArrayList<>(thisBatch);
@@ -70,33 +78,45 @@ public class MonteCarloSimulation implements ISimulation {
                     List<IPhase> phaseCopies = new ArrayList<>(phases.size());
                     for (IPhase p : phases) phaseCopies.add(p.copy(specCopy));
 
-                    tasks.add(() -> engine.simulatePhases(phaseCopies));
+                    tasks.add(() -> {
+                        try {
+                            return engine.simulatePhases(phaseCopies);
+                        } catch (Throwable t) {
+                            // Log and swallow (resilient mode), or propagate (strict mode)
+                            if (failOnTaskError) {
+                                throw t;
+                            } else {
+                                log.error("Simulation task failed (run skipped): {}", t.toString(), t);
+                                return null;
+                            }
+                        }
+                    });
                 }
 
                 // Submit & wait for batch to finish
                 List<Future<IRunResult>> futures = workerPool.invokeAll(tasks);
                 for (Future<IRunResult> f : futures) {
-                    // Propagate ExecutionException; respect interrupts
-                    IRunResult r = f.get();
-                    allResults.add(r);
+                    try {
+                        IRunResult r = f.get(); // may throw ExecutionException only in strict mode
+                        if (r == null) continue; // failed task in resilient mode
+                        allResults.add(r);
 
-                    completed++;
-                    if (cb != null && (completed % progressStep == 0 || completed == runs)) {
-                        long secs = (System.currentTimeMillis() - t0) / 1000;
-                        String msg = String.format("Completed %,d/%,d runs in %,ds", completed, runs, secs);
-                        cb.update(msg);
-                        log.info(msg);
+                        completed++;
+                        if (cb != null && (completed % progressStep == 0 || completed == runs)) {
+                            long secs = (System.currentTimeMillis() - t0) / 1000;
+                            cb.update(String.format("Completed %,d/%,d runs in %,ds", completed, runs, secs));
+                        }
+                    } catch (ExecutionException ee) {
+                        // Only happens in strict mode; abort entire run
+                        log.error("Simulation task failed (strict mode abort)", ee.getCause());
+                        throw new RuntimeException("Simulation task failed", ee.getCause());
                     }
                 }
             }
         } catch (InterruptedException ie) {
-            // Restore interrupt flag and stop early
             Thread.currentThread().interrupt();
             log.warn("Simulation interrupted after {} runs", completed);
             throw new RuntimeException("Simulation interrupted", ie);
-        } catch (ExecutionException ee) {
-            log.error("Simulation task failed", ee.getCause());
-            throw new RuntimeException("Simulation task failed", ee.getCause());
         }
 
         log.info("Monte Carlo finished: {}/{} runs in {} ms",
