@@ -44,7 +44,7 @@ public class Withdraw implements IWithdraw {
     @Override
     public double getMonthlyAmount(double capital, double inflation) {
         if (monthlyAmount <= 0) {
-            monthlyAmount = (yearlyPercentage/100 * capital)/12;
+            monthlyAmount = yearlyPercentage * capital / 12;
             percentageWithdraw = true;
         }
         return monthlyAmount * inflation;
