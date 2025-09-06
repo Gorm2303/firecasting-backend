@@ -2,7 +2,6 @@ package dk.gormkrings.statistics;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import static dk.gormkrings.statistics.StatisticsUtils.*;
 
 public interface YearlySummaryCalculator {
 

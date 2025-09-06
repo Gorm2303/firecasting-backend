@@ -1,12 +1,12 @@
 package dk.gormkrings.statistics.persistence;
 
-import com.vladmihalcea.hibernate.type.array.DoubleArrayType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(
@@ -51,7 +51,7 @@ public class YearlySummaryEntity {
     @Column(name = "neg_capital_pct") private double negativeCapitalPercentage;
 
     // 1001 doubles: p0..p100 at 0.1% increments
-    @Type(DoubleArrayType.class)
+    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "percentiles", columnDefinition = "double precision[]", nullable = false)
-    private double[] percentiles;
+    private Double[] percentiles;   // <- use wrapper array with Hibernate 6
 }

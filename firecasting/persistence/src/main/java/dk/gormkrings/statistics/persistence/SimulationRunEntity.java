@@ -1,5 +1,7 @@
 package dk.gormkrings.statistics.persistence;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,9 +26,9 @@ public class SimulationRunEntity {
     @Column(name = "id", nullable = false, updatable = false, length = 36)
     private String id;
 
-    @Lob
-    @Column(name = "input_json", nullable = false)
-    private String inputJson;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "input_json", columnDefinition = "jsonb", nullable = false)
+    private String inputJson; // (or JsonNode if you prefer)
 
     @Column(name = "input_hash", nullable = false, length = 64)
     private String inputHash;

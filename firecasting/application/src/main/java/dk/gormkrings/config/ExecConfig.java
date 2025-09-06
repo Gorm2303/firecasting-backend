@@ -13,23 +13,19 @@ public class ExecConfig {
 
     // Single-worker queue that serializes simulations
     @Bean(name = "simExecutor", destroyMethod = "shutdown")
-    public ThreadPoolExecutor simExecutor(
-            @Value("${simulation.queue.capacity:100}") int queueCapacity
-    ) {
-        BlockingQueue<Runnable> q = new ArrayBlockingQueue<>(queueCapacity);
-        ThreadFactory tf = new ThreadFactory() {
-            private final AtomicInteger n = new AtomicInteger(1);
-            @Override public Thread newThread(Runnable r) {
-                Thread t = new Thread(r, "sim-queue-" + n.getAndIncrement());
-                t.setDaemon(true);
-                return t;
-            }
-        };
-        ThreadPoolExecutor exec = new ThreadPoolExecutor(
-                1, 1, 0L, TimeUnit.MILLISECONDS, q, tf, new ThreadPoolExecutor.AbortPolicy()
-        );
-        exec.prestartAllCoreThreads();
-        return exec;
+    public ExecutorService simExecutor(@Value("${simulation.queue.capacity:100}") int cap) {
+        var ex = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(cap),
+                r -> { var t = new Thread(r, "sim-queue"); t.setDaemon(true); return t; },
+                new ThreadPoolExecutor.AbortPolicy());
+        ex.prestartAllCoreThreads();
+        return Executors.unconfigurableExecutorService(ex); // hides concrete type
+    }
+
+    // CPU-bound pool used inside MonteCarloSimulation
+    @Bean(name = "simWorkerPool", destroyMethod = "shutdown")
+    public ExecutorService simWorkerPool(@Value("${simulation.parallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}") int p) {
+        return Executors.newFixedThreadPool(p, r -> { var t = new Thread(r, "sim-worker"); t.setDaemon(true); return t; });
     }
 
     // Scheduler for SSE/queue heartbeats
@@ -40,20 +36,5 @@ public class ExecConfig {
             t.setDaemon(true);
             return t;
         });
-    }
-
-    // CPU-bound pool used inside MonteCarloSimulation
-    @Bean(name = "simWorkerPool", destroyMethod = "shutdown")
-    public ExecutorService simWorkerPool(
-            @Value("${simulation.parallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
-            int parallelism
-    ) {
-        return new ThreadPoolExecutor(
-                parallelism, parallelism,
-                0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(),
-                r -> { Thread t = new Thread(r, "sim-worker-" + r.hashCode()); t.setDaemon(true); return t; },
-                new ThreadPoolExecutor.AbortPolicy()
-        );
     }
 }

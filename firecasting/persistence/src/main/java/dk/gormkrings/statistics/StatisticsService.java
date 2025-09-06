@@ -63,7 +63,7 @@ public class StatisticsService {
     public String upsertRunWithSummaries(String simulationId,
                                          Object inputParams,
                                          List<YearlySummary> summaries,
-                                         List<double[]> percentileGrids) {
+                                         List<Double[]> percentileGrids) {
         if (summaries.size() != percentileGrids.size()) {
             throw new IllegalArgumentException("Summaries and grids must have same size.");
         }
@@ -84,7 +84,7 @@ public class StatisticsService {
         run.getSummaries().clear();
         for (int i = 0; i < summaries.size(); i++) {
             YearlySummary dto = summaries.get(i);
-            double[] grid = percentileGrids.get(i);
+            Double[] grid = percentileGrids.get(i);
             if (grid == null || grid.length != 1001) {
                 throw new IllegalArgumentException("Each percentile grid must have length 1001.");
             }

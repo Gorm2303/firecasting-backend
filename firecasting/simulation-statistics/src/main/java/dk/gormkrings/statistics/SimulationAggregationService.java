@@ -58,17 +58,17 @@ public class SimulationAggregationService {
      * Build 1001-point percentile grids (0.0%..100.0%) per (phase,year), NO interpolation.
      * Order matches aggregateResults: year ASC, phaseName ASC.
      */
-    public List<double[]> buildPercentileGrids(List<IRunResult> results) {
-        LinkedHashMap<Key, List<DataPoint>> dataByKey = computeMarkedDataByPhaseYear(results);
+    public List<Double[]> buildPercentileGrids(List<IRunResult> results) {
+        var dataByKey = computeMarkedDataByPhaseYear(results);
 
-        List<double[]> grids = new ArrayList<>(dataByKey.size());
-        for (Map.Entry<Key, List<DataPoint>> e : dataByKey.entrySet()) {
-            // keep only non-failed samples
-            double[] samples = e.getValue().stream()
+        List<Double[]> grids = new ArrayList<>(dataByKey.size());
+        for (var e : dataByKey.entrySet()) {
+            Double[] samples = e.getValue().stream()
                     .filter(dp -> !dp.runFailed())
-                    .mapToDouble(DataPoint::capital)
+                    .mapToDouble(DataPoint::capital) // primitive
                     .sorted()
-                    .toArray();
+                    .boxed()                         // turn DoubleStream -> Stream<Double>
+                    .toArray(Double[]::new);         // -> Double[]
             grids.add(buildNoInterpolationGrid(samples)); // 1001 points
         }
         return grids;
@@ -207,8 +207,8 @@ public class SimulationAggregationService {
      * For p in {0/1000..1000/1000}, index = ceil(p*n)-1 clamped to [0..n-1].
      * If no samples, returns an all-NaN grid.
      */
-    private static double[] buildNoInterpolationGrid(double[] sortedAsc) {
-        double[] grid = new double[1001];
+    private static Double[] buildNoInterpolationGrid(Double[] sortedAsc) {
+        Double[] grid = new Double[1001];
         int n = sortedAsc.length;
         if (n == 0) {
             Arrays.fill(grid, Double.NaN);

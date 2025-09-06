@@ -14,14 +14,29 @@ spring:
     url: jdbc:postgresql://db:5432/appdb
     username: appuser
     password: ${DB_PASSWORD:devpass}
-    jpa:
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.format_sql: false
+      hibernate.show_sql: false
+      hibernate.default_schema: public
+
+  flyway:
+    enabled: true
+    schemas: public
+    default-schema: public
+    baseline-on-migrate: true   # only if DB is non-empty WITHOUT Flyway history
+
+logging:
+  level:
+    org:
       hibernate:
-        ddl-auto: validate
-      properties:
-        hibernate:
-          dialect: org.hibernate.dialect.PostgreSQLDialect
-    flyway:
-      enabled: true
+        orm:
+          boot: DEBUG
+        type: DEBUG
+        mapping: TRACE
 
 management:
   endpoints:

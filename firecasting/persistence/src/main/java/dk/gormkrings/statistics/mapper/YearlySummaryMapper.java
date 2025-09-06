@@ -29,7 +29,7 @@ public interface YearlySummaryMapper {
 
     /** Optional helper if you sometimes build entities from DTO + grid */
     public static YearlySummaryEntity toEntity(
-            YearlySummary d, SimulationRunEntity run, double[] percentilesGrid) {
+            YearlySummary d, SimulationRunEntity run, Double[] percentilesGrid) {
         YearlySummaryEntity e = new YearlySummaryEntity();
         e.setRun(run);
         e.setPhaseName(d.getPhaseName());
