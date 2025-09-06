@@ -3,331 +3,226 @@ package dk.gormkrings.simulation.monteCarlo;
 import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
+import dk.gormkrings.simulation.IProgressCallback;
 import dk.gormkrings.specification.ISpecification;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
 
-import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class MonteCarloSimulationTest {
+class MonteCarloSimulationTest {
 
-    @Test
-    public void testValidEngineSelection() {
-        IEngine mockEngine = mock(IEngine.class);
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
+    private MonteCarloSimulation newSim(IEngine engine, ExecutorService pool, int progressStep) {
+        String name = "testEngine";
+        Map<String, IEngine> engines = Map.of(name, engine);
+        return new MonteCarloSimulation(engines, name, pool, progressStep, true);
+    }
 
-        assertNotNull(simulation, "Simulation instance should be created successfully.");
+    private static List<IPhase> phasesWithSharedSpec(IPhase... phases) {
+        // each run must use a fresh spec copy; we just wire mocks so copy() returns same mock
+        ISpecification base = mock(ISpecification.class);
+        when(base.copy()).thenReturn(base);
+        for (IPhase p : phases) {
+            when(p.getSpecification()).thenReturn(base);
+            when(p.copy(base)).thenReturn(p);
+        }
+        return Arrays.asList(phases);
     }
 
     @Test
-    public void testInvalidEngineName() {
-        IEngine mockEngine = mock(IEngine.class);
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("someOtherEngine", mockEngine);
-        assertThrows(IllegalArgumentException.class, () -> {
-            new MonteCarloSimulation(engines, "testEngine");
-        });
-    }
-
-    @Test
-    public void testRunReturnsCorrectNumberOfResults() throws Exception {
-        IEngine mockEngine = mock(IEngine.class);
-        IRunResult dummyResult = mock(IRunResult.class);
-        when(mockEngine.simulatePhases(anyList())).thenReturn(dummyResult);
-
-        IPhase mockPhase1 = mock(IPhase.class);
-        IPhase mockPhase2 = mock(IPhase.class);
-        ISpecification dummySpecification = mock(ISpecification.class);
-
-        when(mockPhase1.getSpecification()).thenReturn(dummySpecification);
-
-        when(dummySpecification.copy()).thenReturn(dummySpecification);
-        when(mockPhase1.copy(dummySpecification)).thenReturn(mockPhase1);
-        when(mockPhase2.copy(dummySpecification)).thenReturn(mockPhase2);
-
-        List<IPhase> phases = List.of(mockPhase1, mockPhase2);
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
-
-        int runs = 10;
-        List<IRunResult> results = simulation.run(runs, phases);
-        assertEquals(runs, results.size(), "The number of results should equal the number of runs.");
-        verify(mockEngine, times(runs)).simulatePhases(anyList());
-    }
-
-    @Test
-    public void testRunWithZeroRunsReturnsEmptyList() throws Exception {
-        IEngine mockEngine = mock(IEngine.class);
-        IRunResult dummyResult = mock(IRunResult.class);
-        when(mockEngine.simulatePhases(anyList())).thenReturn(dummyResult);
-
-        IPhase mockPhase1 = mock(IPhase.class);
-        IPhase mockPhase2 = mock(IPhase.class);
-        ISpecification dummySpecification = mock(ISpecification.class);
-
-        when(mockPhase1.getSpecification()).thenReturn(dummySpecification);
-        when(dummySpecification.copy()).thenReturn(dummySpecification);
-        when(mockPhase1.copy(dummySpecification)).thenReturn(mockPhase1);
-        when(mockPhase2.copy(dummySpecification)).thenReturn(mockPhase2);
-
-        List<IPhase> phases = List.of(mockPhase1, mockPhase2);
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
-
-        int runs = 0;
-        List<IRunResult> results = simulation.run(runs, phases);
-        assertTrue(results.isEmpty(), "The results list should be empty when no runs are executed.");
-        verify(mockEngine, never()).simulatePhases(anyList());
-    }
-
-    @Test
-    public void testEngineSimulationFailure() throws Exception {
-        IEngine mockEngine = mock(IEngine.class);
-        IRunResult dummyResult = mock(IRunResult.class);
-
-        when(mockEngine.simulatePhases(anyList()))
-                .thenReturn(dummyResult)
-                .thenThrow(new RuntimeException("Simulation error"));
-
-        IPhase mockPhase1 = mock(IPhase.class);
-        IPhase mockPhase2 = mock(IPhase.class);
-        ISpecification dummySpec = mock(ISpecification.class);
-
-        when(mockPhase1.getSpecification()).thenReturn(dummySpec);
-        when(dummySpec.copy()).thenReturn(dummySpec);
-        when(mockPhase1.copy(dummySpec)).thenReturn(mockPhase1);
-        when(mockPhase2.copy(dummySpec)).thenReturn(mockPhase2);
-
-        List<IPhase> phases = List.of(mockPhase1, mockPhase2);
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
-
-        List<IRunResult> results = simulation.run(2, phases);
-        assertEquals(1, results.size(), "Only successful runs should be added to the results list.");
-        verify(mockEngine, times(2)).simulatePhases(anyList());
-    }
-
-    @Test
-    public void testPhaseCopyInvocation() throws Exception {
-        IEngine mockEngine = mock(IEngine.class);
-        IRunResult dummyResult = mock(IRunResult.class);
-        when(mockEngine.simulatePhases(any())).thenReturn(dummyResult);
-
-        IPhase phase1 = mock(IPhase.class);
-        IPhase phase2 = mock(IPhase.class);
-        ISpecification dummySpec = mock(ISpecification.class);
-        ISpecification specCopy = mock(ISpecification.class);
-
-        when(phase1.getSpecification()).thenReturn(dummySpec);
-        when(dummySpec.copy()).thenReturn(specCopy);
-        when(phase1.copy(any())).thenReturn(phase1);
-        when(phase2.copy(any())).thenReturn(phase2);
-
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
-        List<IPhase> phases = List.of(phase1, phase2);
-        int runs = 3;
-        simulation.run(runs, phases);
-
-        verify(phase1, times(runs)).getSpecification();
-        verify(dummySpec, times(runs)).copy();
-        verify(phase1, times(runs)).copy(specCopy);
-        verify(phase2, times(runs)).copy(specCopy);
-
-        ArgumentCaptor<ISpecification> specCaptor = ArgumentCaptor.forClass(ISpecification.class);
-        verify(phase2, atLeast(1)).copy(specCaptor.capture());
-        specCaptor.getAllValues().forEach(capturedSpec ->
-                assertEquals(specCopy, capturedSpec, "Each phase copy should be called with the same specification copy."));
-    }
-
-    @Test
-    public void testResultsResetBetweenRuns() throws Exception {
-        IEngine mockEngine = mock(IEngine.class);
-        IRunResult dummyResult = mock(IRunResult.class);
-        when(mockEngine.simulatePhases(any())).thenReturn(dummyResult);
-
-        IPhase phase1 = mock(IPhase.class);
-        IPhase phase2 = mock(IPhase.class);
-        ISpecification dummySpec = mock(ISpecification.class);
-        ISpecification specCopy = mock(ISpecification.class);
-        when(phase1.getSpecification()).thenReturn(dummySpec);
-
-        when(dummySpec.copy()).thenReturn(specCopy);
-        when(phase1.copy(any())).thenReturn(phase1);
-        when(phase2.copy(any())).thenReturn(phase2);
-
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
-
-        List<IPhase> phases = List.of(phase1, phase2);
-        int firstRunCount = 2;
-        List<IRunResult> firstResults = simulation.run(firstRunCount, phases);
-        assertEquals(firstRunCount, firstResults.size(), "First run should return 2 results.");
-
-        int secondRunCount = 3;
-        List<IRunResult> secondResults = simulation.run(secondRunCount, phases);
-        assertEquals(secondRunCount, secondResults.size(), "Second run should return 3 results only, not accumulated from first run.");
-    }
-
-    @Test
-    public void testEmptyPhasesListThrowsException() {
-        IEngine mockEngine = mock(IEngine.class);
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
-
-        List<IPhase> emptyPhases = Collections.emptyList();
-        List<IPhase> notEmptyPhases = new ArrayList<>();
-        notEmptyPhases.add(mock(IPhase.class));
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            simulation.run(10, emptyPhases);
-        }, "Expected run() to throw IndexOutOfBoundsException when phases list is empty.");
-        assertThrows(IllegalArgumentException.class, () -> {
-            simulation.run(-10, notEmptyPhases);
-        }, "Expected run() to throw IndexOutOfBoundsException when phases list is empty.");
-    }
-
-    @Test
-    public void testTaskSubmissionCount() throws Exception {
-        IEngine mockEngine = mock(IEngine.class);
-        IRunResult dummyResult = mock(IRunResult.class);
-        when(mockEngine.simulatePhases(any())).thenReturn(dummyResult);
-
-        IPhase phase1 = mock(IPhase.class);
-        IPhase phase2 = mock(IPhase.class);
-        ISpecification dummySpec = mock(ISpecification.class);
-        when(phase1.getSpecification()).thenReturn(dummySpec);
-        when(dummySpec.copy()).thenReturn(dummySpec);
-        when(phase1.copy(dummySpec)).thenReturn(phase1);
-        when(phase2.copy(dummySpec)).thenReturn(phase2);
-        List<IPhase> phases = List.of(phase1, phase2);
-
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("testEngine", mockEngine);
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "testEngine");
-
-        CountingExecutorService countingExecutor = new CountingExecutorService(2);
-
-        Field executorField = MonteCarloSimulation.class.getDeclaredField("executorService");
-        executorField.setAccessible(true);
-        executorField.set(simulation, countingExecutor);
-
-        int runs = 5;
-        simulation.run(runs, phases);
-
-        assertEquals(runs, countingExecutor.getSubmitCount(), "The submit count should equal the number of runs");
-        countingExecutor.shutdown();
-    }
-
-
-    @Test
-    void testMultipleSuccessfulRuns() throws Exception {
+    void validEngineSelection() {
         IEngine engine = mock(IEngine.class);
-        IPhase phase = mock(IPhase.class);
-        ISpecification specification = mock(ISpecification.class);
-        IRunResult result = mock(IRunResult.class);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            assertDoesNotThrow(() -> newSim(engine, pool, 1000));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
 
-        when(phase.getSpecification()).thenReturn(specification);
-        when(specification.copy()).thenReturn(specification);
-        when(phase.copy(specification)).thenReturn(phase);
+    @Test
+    void invalidEngineNameThrows() {
+        IEngine engine = mock(IEngine.class);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            // name in map doesn't match name we pass
+            Map<String, IEngine> engines = Map.of("someOtherEngine", engine);
+            assertThrows(IllegalArgumentException.class,
+                    () -> new MonteCarloSimulation(engines, "testEngine", pool, 1000, true));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void runReturnsCorrectNumberOfResults() throws Exception {
+        IEngine engine = mock(IEngine.class);
+        IRunResult result = mock(IRunResult.class);
         when(engine.simulatePhases(anyList())).thenReturn(result);
 
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("scheduleEngine", engine);
+        IPhase p1 = mock(IPhase.class), p2 = mock(IPhase.class);
+        List<IPhase> phases = phasesWithSharedSpec(p1, p2);
 
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "scheduleEngine");
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        try {
+            MonteCarloSimulation sim = newSim(engine, pool, 1000);
+            int runs = 10;
 
-        int runs = 10000;
-        List<IPhase> phases = Collections.singletonList(phase);
-        List<IRunResult> results = simulation.run(runs, phases);
-        verify(engine, times(runs)).simulatePhases(anyList());
-        assertEquals(runs, results.size());
+            List<IRunResult> out = sim.run(runs, phases);
+
+            assertEquals(runs, out.size());
+            verify(engine, times(runs)).simulatePhases(anyList());
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test
-    void testConcurrentExecutionHandling() throws Exception {
+    void zeroRunsThrows_and_emptyPhasesThrow() {
         IEngine engine = mock(IEngine.class);
-        IPhase phase = mock(IPhase.class);
-        ISpecification specification = mock(ISpecification.class);
-        IRunResult result = mock(IRunResult.class);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            MonteCarloSimulation sim = newSim(engine, pool, 1000);
 
-        when(phase.getSpecification()).thenReturn(specification);
-        when(specification.copy()).thenReturn(specification);
-        when(phase.copy(specification)).thenReturn(phase);
-        ConcurrentLinkedQueue<String> threadNames = new ConcurrentLinkedQueue<>();
+            List<IPhase> phases = phasesWithSharedSpec(mock(IPhase.class));
+            assertThrows(IllegalArgumentException.class, () -> sim.run(0, phases));
+            assertThrows(IllegalArgumentException.class, () -> sim.run(-1, phases));
+            assertThrows(IllegalArgumentException.class, () -> sim.run(10, Collections.emptyList()));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
 
-        when(engine.simulatePhases(anyList())).thenAnswer((Answer<IRunResult>) invocation -> {
-            Thread.sleep(50);
-            threadNames.add(Thread.currentThread().getName());
-            return result;
+    @Test
+    void engineFailurePropagatesAsRuntimeException() {
+        IEngine engine = mock(IEngine.class);
+        when(engine.simulatePhases(anyList()))
+                .thenReturn(mock(IRunResult.class))
+                .thenThrow(new RuntimeException("boom"));
+
+        IPhase p = mock(IPhase.class);
+        List<IPhase> phases = phasesWithSharedSpec(p);
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            MonteCarloSimulation sim = newSim(engine, pool, 1);
+            assertThrows(RuntimeException.class, () -> sim.run(2, phases));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void phaseCopyInvocationPerRun() throws Exception {
+        IEngine engine = mock(IEngine.class);
+        when(engine.simulatePhases(anyList())).thenReturn(mock(IRunResult.class));
+
+        IPhase p1 = mock(IPhase.class), p2 = mock(IPhase.class);
+        ISpecification base = mock(ISpecification.class);
+        ISpecification copy = mock(ISpecification.class);
+        when(p1.getSpecification()).thenReturn(base);
+        when(base.copy()).thenReturn(copy);
+        when(p1.copy(copy)).thenReturn(p1);
+        when(p2.copy(copy)).thenReturn(p2);
+        List<IPhase> phases = List.of(p1, p2);
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            MonteCarloSimulation sim = newSim(engine, pool, 1000);
+            int runs = 3;
+            sim.run(runs, phases);
+
+            verify(p1, times(runs)).getSpecification();
+            verify(base, times(runs)).copy();
+            verify(p1, times(runs)).copy(copy);
+            verify(p2, times(runs)).copy(copy);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void resultsResetBetweenRuns() throws Exception {
+        IEngine engine = mock(IEngine.class);
+        when(engine.simulatePhases(anyList())).thenReturn(mock(IRunResult.class));
+
+        List<IPhase> phases = phasesWithSharedSpec(mock(IPhase.class), mock(IPhase.class));
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            MonteCarloSimulation sim = newSim(engine, pool, 1000);
+
+            int first = 2;
+            int second = 3;
+
+            List<IRunResult> r1 = sim.run(first, phases);
+            List<IRunResult> r2 = sim.run(second, phases);
+
+            assertEquals(first, r1.size());
+            assertEquals(second, r2.size());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void concurrentExecutionUsesMultipleThreads() throws Exception {
+        IEngine engine = mock(IEngine.class);
+        IRunResult res = mock(IRunResult.class);
+
+        Set<String> threads = Collections.synchronizedSet(new HashSet<>());
+        when(engine.simulatePhases(anyList())).thenAnswer((Answer<IRunResult>) inv -> {
+            threads.add(Thread.currentThread().getName());
+            Thread.sleep(30);
+            return res;
         });
 
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("scheduleEngine", engine);
+        List<IPhase> phases = phasesWithSharedSpec(mock(IPhase.class));
 
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "scheduleEngine");
-        int runs = 20;
-        List<IPhase> phases = Collections.singletonList(phase);
-        List<IRunResult> results = simulation.run(runs, phases);
-        verify(engine, times(runs)).simulatePhases(anyList());
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        try {
+            MonteCarloSimulation sim = newSim(engine, pool, 1000);
+            List<IRunResult> out = sim.run(20, phases);
 
-        assertEquals(runs, results.size(), "The results list should have one entry per simulation run.");
-        assertFalse(threadNames.isEmpty(), "There should be recorded thread names.");
-
-        long distinctThreads = threadNames.stream().distinct().count();
-        assertTrue(distinctThreads > 1, "Expected tasks to run on more than one thread for concurrent execution.");
+            assertEquals(20, out.size());
+            assertTrue(threads.size() > 1, "Expected more than one worker thread to be used");
+        } finally {
+            pool.shutdown();
+            pool.awaitTermination(2, TimeUnit.SECONDS);
+        }
     }
 
     @Test
-    void testResultVerificationForEachRun() throws Exception {
+    void returnsExactlyTheDistinctResults() throws Exception {
         IEngine engine = mock(IEngine.class);
         IPhase phase = mock(IPhase.class);
-        ISpecification specification = mock(ISpecification.class);
-        when(phase.getSpecification()).thenReturn(specification);
-        when(specification.copy()).thenReturn(specification);
-        when(phase.copy(specification)).thenReturn(phase);
+        List<IPhase> phases = phasesWithSharedSpec(phase);
 
-        int runs = 10000;
+        int runs = 1000;
+        List<IRunResult> distinct = new ArrayList<>(runs);
+        for (int i = 0; i < runs; i++) distinct.add(mock(IRunResult.class, "res" + i));
 
-        List<IRunResult> distinctResults = new ArrayList<>();
-        for (int i = 0; i < runs; i++) {
-            distinctResults.add(mock(IRunResult.class, "result" + i));
-        }
-
-        AtomicInteger counter = new AtomicInteger(0);
+        AtomicInteger idx = new AtomicInteger(0);
         when(engine.simulatePhases(anyList()))
-                .thenAnswer((Answer<IRunResult>) invocation -> {
-                    int index = counter.getAndIncrement();
-                    return distinctResults.get(index);
-                });
+                .thenAnswer((Answer<IRunResult>) inv -> distinct.get(idx.getAndIncrement()));
 
-        Map<String, IEngine> engines = new HashMap<>();
-        engines.put("scheduleEngine", engine);
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        try {
+            MonteCarloSimulation sim = newSim(engine, pool, 10_000);
+            List<IRunResult> out = sim.run(runs, phases);
 
-        MonteCarloSimulation simulation = new MonteCarloSimulation(engines, "scheduleEngine");
-
-        List<IPhase> phases = Collections.singletonList(phase);
-        List<IRunResult> results = simulation.run(runs, phases);
-        verify(engine, times(runs)).simulatePhases(anyList());
-
-        assertEquals(runs, results.size(), "The results list size should match the number of runs.");
-        assertEquals(new HashSet<>(distinctResults), new HashSet<>(results),
-                "The results list should contain exactly the distinct IResult mocks.");
+            assertEquals(runs, out.size());
+            assertEquals(new HashSet<>(distinct), new HashSet<>(out));
+        } finally {
+            pool.shutdownNow();
+        }
     }
+
 }

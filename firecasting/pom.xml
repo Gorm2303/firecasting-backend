@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -20,7 +20,7 @@
 		<module>simulation</module>
 		<module>simulation-data</module>
 		<module>common-event</module>
-        <module>phase-eventBased</module>
+		<module>phase-eventBased</module>
 		<module>common-simulation</module>
 		<module>phase-callBased</module>
 		<module>simulation-engine-eventBased</module>
@@ -29,10 +29,12 @@
 		<module>common-domain</module>
 		<module>common-math</module>
 		<module>domain-math</module>
-        <module>common-simulation-phase</module>
-        <module>simulation-phase-factory</module>
-        <module>simulation-statistics</module>
-    </modules>
+		<module>common-simulation-phase</module>
+		<module>simulation-phase-factory</module>
+		<module>simulation-statistics</module>
+		<module>persistence</module>
+		<module>common-statistics</module>
+	</modules>
 
 	<properties>
 		<java.version>23</java.version>
@@ -84,6 +86,24 @@
 			<groupId>org.springframework.modulith</groupId>
 			<artifactId>spring-modulith-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+
+		<!-- JDBC driver -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Flyway (if used) -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 	</dependencies>
 	<dependencyManagement>

@@ -9,7 +9,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>simulation-statistics</artifactId>
+    <artifactId>simulation-data</artifactId>
 
     <properties>
         <maven.compiler.source>23</maven.compiler.source>
@@ -19,21 +19,20 @@
     <dependencies>
         <dependency>
             <groupId>dk.gormkrings</groupId>
+            <artifactId>common-domain</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>dk.gormkrings</groupId>
             <artifactId>common-simulation</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>dk.gormkrings</groupId>
-            <artifactId>simulation-data</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>dk.gormkrings</groupId>
-            <artifactId>common-statistics</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.18.2</version>
         </dependency>
     </dependencies>
 

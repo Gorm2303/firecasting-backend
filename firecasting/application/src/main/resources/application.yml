@@ -10,6 +10,33 @@ spring:
       allowed-methods: GET,POST,PUT,DELETE,OPTIONS
       allowed-headers: "*"
       allow-credentials: true
+  datasource:
+    url: jdbc:postgresql://db:5432/appdb
+    username: appuser
+    password: ${DB_PASSWORD:devpass}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.format_sql: false
+      hibernate.show_sql: false
+      hibernate.default_schema: public
+
+  flyway:
+    enabled: true
+    schemas: public
+    default-schema: public
+    baseline-on-migrate: true   # only if DB is non-empty WITHOUT Flyway history
+
+logging:
+  level:
+    org:
+      hibernate:
+        orm:
+          boot: DEBUG
+        type: DEBUG
+        mapping: TRACE
 
 management:
   endpoints:
@@ -43,6 +70,9 @@ simulation:
     selected: callEngine
   phase:
     type: call
+  queue:
+    capacity: 1000
+  progressStep: 1000      # emit progress every N runs
 
 tax:
   exemption-card:

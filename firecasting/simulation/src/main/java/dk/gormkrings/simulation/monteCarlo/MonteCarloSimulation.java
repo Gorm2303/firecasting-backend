@@ -7,6 +7,7 @@ import dk.gormkrings.simulation.IProgressCallback;
 import dk.gormkrings.simulation.ISimulation;
 import dk.gormkrings.specification.ISpecification;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -14,10 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
@@ -25,67 +23,109 @@ import java.util.concurrent.Future;
 public class MonteCarloSimulation implements ISimulation {
 
     private final IEngine engine;
-    private final List<IRunResult> allResults = new ArrayList<>();
-    private final ExecutorService executorService = Executors.newFixedThreadPool(32);
+    private final ExecutorService workerPool;
+    private final int progressStep;
+    /** If true, a task failure aborts the whole run (handy for tests). Default false for resilience. */
+    private final boolean failOnTaskError;
 
-    // Inject all IEngine beans as a map and select one based on a configuration property.
-    public MonteCarloSimulation(Map<String, IEngine> engines,
-                                @Value("${simulation.engine.selected:scheduleEngine}") String engineName) {
-        if (engines.containsKey(engineName)) {
-            this.engine = engines.get(engineName);
-            log.info("Selected engine: {} from available engines: {}", engineName, engines.keySet());
-        } else {
+    public MonteCarloSimulation(
+            Map<String, IEngine> engines,
+            @Value("${simulation.engine.selected:scheduleEngine}") String engineName,
+            @Qualifier("simWorkerPool") ExecutorService workerPool,
+            @Value("${simulation.progressStep:1000}") int progressStep,
+            @Value("${simulation.failOnTaskError:false}") boolean failOnTaskError
+    ) {
+        if (!engines.containsKey(engineName)) {
             throw new IllegalArgumentException("No engine found with name: " + engineName +
                     ". Available engines: " + engines.keySet());
         }
+        this.engine = engines.get(engineName);
+        this.workerPool = workerPool;
+        this.progressStep = Math.max(1, progressStep);
+        this.failOnTaskError = failOnTaskError;
+        log.info("Selected engine: {} (available: {})", engineName, engines.keySet());
     }
 
+    @Override
     public List<IRunResult> run(long runs, List<IPhase> phases) {
-        return runWithProgress(runs, 10000, phases, null);
+        return runWithProgress(runs, 10_000, phases, null);
     }
 
-    public List<IRunResult> runWithProgress(long runs, int batchSize, List<IPhase> phases, IProgressCallback callback) {
-        if (phases.isEmpty() || runs < 0) throw new IllegalArgumentException("No phases to run");
-        allResults.clear();
-        engine.init(phases);
-
-        long startTime = System.currentTimeMillis();
-
-        for (int i = 0; i < runs; i += batchSize) {
-            List<Future<IRunResult>> futures = new ArrayList<>();
-            for (int j = 0; j < batchSize && (i + j) < runs; j++) {
-                List<IPhase> phaseCopies = new ArrayList<>();
-                ISpecification specification = phases.getFirst().getSpecification().copy();
-                for (IPhase phase : phases) {
-                    phaseCopies.add(phase.copy(specification));
-                }
-                futures.add(executorService.submit(() -> engine.simulatePhases(phaseCopies)));
-            }
-
-            // Collect results for this batch.
-            for (Future<IRunResult> future : futures) {
-                try {
-                    allResults.add(future.get());
-                    if (allResults.size() % 1000 == 0) {
-                        long blockEndTime = System.currentTimeMillis();
-
-                        String progressMessage = String.format("Completed %,d/%,d runs in %,ds",
-                                allResults.size(), runs,
-                                (blockEndTime - startTime) / 1000);
-                        log.info(progressMessage);
-                        // Invoke the progress callback.
-                        if (callback != null) callback.update(progressMessage);
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    log.info("Some simulation runs failed: {} result(s), {} run(s)", allResults.size(), runs);
-                    log.error("Error in batch simulation", e);
-                }
-            }
-
+    @Override
+    public List<IRunResult> runWithProgress(long runs, int batchSize, List<IPhase> phases, IProgressCallback cb) {
+        if (phases == null || phases.isEmpty() || runs <= 0) {
+            throw new IllegalArgumentException("No phases to run or runs <= 0");
+        }
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException("batchSize must be > 0");
         }
 
-        log.info("Handled simulation runs in: {} ms", System.currentTimeMillis() - startTime);
-        log.info("Completed simulation runs: {}/{} result(s)", allResults.size(), runs);
+        engine.init(phases);
+
+        final List<IRunResult> allResults = new ArrayList<>((int) Math.min(runs, Integer.MAX_VALUE));
+        final long t0 = System.currentTimeMillis();
+        long completed = 0;
+
+        try {
+            for (long offset = 0; offset < runs; offset += batchSize) {
+                final int thisBatch = (int) Math.min(batchSize, runs - offset);
+
+                // Build tasks for this batch
+                List<Callable<IRunResult>> tasks = new ArrayList<>(thisBatch);
+                for (int j = 0; j < thisBatch; j++) {
+                    // fresh copies for isolation
+                    ISpecification specCopy = phases.getFirst().getSpecification().copy();
+                    List<IPhase> phaseCopies = new ArrayList<>(phases.size());
+                    for (IPhase p : phases) phaseCopies.add(p.copy(specCopy));
+
+                    tasks.add(() -> {
+                        try {
+                            return engine.simulatePhases(phaseCopies);
+                        } catch (Throwable t) {
+                            if (failOnTaskError) {
+                                throw t; // let ExecutionException propagate
+                            } else {
+                                log.error("Simulation task failed (run skipped): {}", t.toString(), t);
+                                return null; // resilient: skip this run
+                            }
+                        }
+                    });
+                }
+
+                // SUBMIT + CONSUME AS THEY COMPLETE (no barrier)
+                ExecutorCompletionService<IRunResult> ecs = new ExecutorCompletionService<>(workerPool);
+                for (Callable<IRunResult> task : tasks) {
+                    ecs.submit(task);
+                }
+
+                for (int i = 0; i < thisBatch; i++) {
+                    try {
+                        Future<IRunResult> f = ecs.take(); // blocks until one task completes
+                        IRunResult r = f.get();            // may throw in strict mode
+                        if (r == null) continue;           // skip failed task (resilient mode)
+
+                        allResults.add(r);
+                        completed++;
+
+                        if (cb != null && (completed % progressStep == 0 || completed == runs)) {
+                            long secs = (System.currentTimeMillis() - t0) / 1000;
+                            cb.update(String.format("Completed %,d/%,d runs in %,ds", completed, runs, secs));
+                        }
+                    } catch (ExecutionException ee) {
+                        // Only in strict mode; abort entire run
+                        log.error("Simulation task failed (strict mode abort)", ee.getCause());
+                        throw new RuntimeException("Simulation task failed", ee.getCause());
+                    }
+                }
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            log.warn("Simulation interrupted after {} runs", completed);
+            throw new RuntimeException("Simulation interrupted", ie);
+        }
+
+        log.info("Monte Carlo finished: {}/{} runs in {} ms",
+                allResults.size(), runs, System.currentTimeMillis() - t0);
         return allResults;
     }
 }

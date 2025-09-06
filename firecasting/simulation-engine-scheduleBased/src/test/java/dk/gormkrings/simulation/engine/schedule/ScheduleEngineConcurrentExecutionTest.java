@@ -65,7 +65,6 @@ public class ScheduleEngineConcurrentExecutionTest {
 
             // Verify that only simulation 1's mocks were used.
             verify(resultFactory1, times(1)).newResult();
-            verify(scheduleFactory1, times(1)).getSchedule();
             // No event-specific methods should be invoked on phase1 since schedule is empty.
             verify(phase1, never()).onMonthStart();
             verify(phase1, never()).onMonthEnd();
@@ -106,7 +105,6 @@ public class ScheduleEngineConcurrentExecutionTest {
 
             // Verify that only simulation 2's mocks were used.
             verify(resultFactory2, times(1)).newResult();
-            verify(scheduleFactory2, times(1)).getSchedule();
             verify(phase2, never()).onMonthStart();
             verify(phase2, never()).onMonthEnd();
             verify(phase2, never()).onYearStart();

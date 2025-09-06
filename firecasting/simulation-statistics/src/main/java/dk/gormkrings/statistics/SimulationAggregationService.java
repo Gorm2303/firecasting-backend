@@ -22,170 +22,215 @@ import static dk.gormkrings.statistics.StatisticsUtils.*;
 @Setter
 @Getter
 public class SimulationAggregationService {
-    private final YearlySummaryCalculator summaryCalculator = new YearlySummaryCalculator();
 
     private double lowerThresholdPercentile = 0.05;
     private double upperThresholdPercentile = 0.95;
 
+    // Composite key: (phase, year)
+    private record Key(String phaseName, int year) {}
+
     /**
-     * Aggregates simulation results into yearly summaries.
-     * Steps:
-     *   1) Process each simulation run to compute final capital and collect snapshots (without marking snapshot failures).
-     *   2) Compute quantile thresholds over final effective capitals and filter out simulation runs that are outliers.
-     *   3) For the remaining runs, mark snapshots as failed only from the snapshot that first fails (and onward).
-     *   4) Group snapshots by year and build yearly summaries.
+     * Aggregate into YearlySummary per (phase,year).
+     * Order of the returned list: year ASC, then phaseName ASC.
+     * Growth is computed per phase across years.
      */
-    public List<YearlySummary> aggregateResults(List<IRunResult> results, IProgressCallback callback) {
-        long startTime = System.currentTimeMillis();
-        // Step 1: Process each simulation run.
-        List<SimulationRunData> simulationDataList = new ArrayList<>();
-        for (IRunResult result : results) {
-            simulationDataList.add(processRun(result));
-            if (result == results.getFirst()) {
-                log.debug("Aggregating and Processing run result: {}", result.getSnapshots());
-            }
-        }
-        long processTime = System.currentTimeMillis();
-        log.debug("Aggregating and Process each simulation run in {} ms", processTime - startTime);
+    public List<YearlySummary> aggregateResults(List<IRunResult> results, String simulationId, IProgressCallback cb) {
+        long t0 = System.currentTimeMillis();
 
-        // Step 2: Compute quantile thresholds over final effective capitals.
-        List<Double> finals = simulationDataList.stream()
-                .map(SimulationRunData::finalEffectiveCapital)
-                .toList();
-        if (finals.isEmpty()) {
-            log.warn("All simulation runs produced NaN or infinite final capital—no data to aggregate");
-            return Collections.emptyList();
-        }
-        int counter = 1;
-        for (SimulationRunData runData : simulationDataList) {
-            double cap = runData.finalEffectiveCapital();
-            if (Double.isNaN(cap) || Double.isInfinite(cap)) {
-                log.error("Run resulted in invalid capital: {}, counter: {}", cap, counter);
-                // optionally throw or skip right here
-                counter++;
-            }
-        }
+        // Build filtered+marked data grouped by (phase,year) in deterministic key order
+        LinkedHashMap<Key, List<DataPoint>> dataByKey = computeMarkedDataByPhaseYear(results);
 
-        List<Double> sorted = new ArrayList<>(finals);
-        Collections.sort(sorted);
-        log.debug("Aggregating and Sorted list of simulation run data: {}", sorted);
-        double lowerThreshold = quantile(sorted, lowerThresholdPercentile);
-        double upperThreshold = quantile(sorted, upperThresholdPercentile);
-        log.debug("Aggregating and Lower threshold percentile = {}", lowerThreshold);
-        log.debug("Aggregating and Upper threshold percentile = {}", upperThreshold);
+        long t1 = System.currentTimeMillis();
+        log.debug("Prepared data for summaries in {} ms", (t1 - t0));
 
-        // Filter out simulation runs that fall outside the desired quantile thresholds.
-        List<SimulationRunData> filteredSimulationData = simulationDataList.stream()
-                .filter(runData -> runData.finalEffectiveCapital() >= lowerThreshold &&
-                        runData.finalEffectiveCapital() <= upperThreshold)
-                .toList();
-        log.debug("Filtered list of simulation run data: {}", filteredSimulationData);
-        // Step 3: For each filtered run, mark snapshots as failed only from the first failing snapshot onward.
-        List<SimulationRunData> markedSimulationData = filteredSimulationData.stream()
-                .map(this::markFailures)
-                .toList();
+        // Build summaries following the same key order
+        List<YearlySummary> summaries = new ArrayList<>(dataByKey.size());
+        buildYearlySummaries(dataByKey, summaries, cb);
 
-        // Step 4: Group all DataPoints (snapshots) from the marked simulation runs by year.
-        Map<Integer, List<DataPoint>> dataByYear = new HashMap<>();
-        for (SimulationRunData runData : markedSimulationData) {
-            for (DataPoint dp : runData.dataPoints()) {
-                dataByYear.computeIfAbsent(dp.year(), y -> new ArrayList<>()).add(dp);
-            }
-        }
+        // Compute growth per phase across years (doesn't reorder the list)
+        computeGrowthPerPhase(summaries);
 
-        startTime = System.currentTimeMillis();
-        List<YearlySummary> summaries = new ArrayList<>();
-
-        buildYearlySummaries(dataByYear, summaries, callback);
-
-        long summaryBuildTime = System.currentTimeMillis();
-        log.info("Built yearly summaries in {} ms", summaryBuildTime - startTime);
-
-        sortComputeGrowth(summaries);
-
+        log.info("Built {} yearly summaries in {} ms", summaries.size(), (System.currentTimeMillis() - t1));
         return summaries;
     }
 
-    private void sortComputeGrowth(List<YearlySummary> summaries) {
-        summaries.sort(Comparator.comparingInt(YearlySummary::getYear));
-        for (int i = 1; i < summaries.size(); i++) {
-            YearlySummary previous = summaries.get(i - 1);
-            YearlySummary current = summaries.get(i);
-            if (previous.getAverageCapital() > 0) {
-                double growth = ((current.getAverageCapital() / previous.getAverageCapital()) - 1) * 100;
-                current.setCumulativeGrowthRate(growth);
-            } else {
-                current.setCumulativeGrowthRate(0.0);
+    /**
+     * Build 1001-point percentile grids (0.0%..100.0%) per (phase,year), NO interpolation.
+     * Order matches aggregateResults: year ASC, phaseName ASC.
+     */
+    public List<Double[]> buildPercentileGrids(List<IRunResult> results) {
+        var dataByKey = computeMarkedDataByPhaseYear(results);
+
+        List<Double[]> grids = new ArrayList<>(dataByKey.size());
+        for (var e : dataByKey.entrySet()) {
+            Double[] samples = e.getValue().stream()
+                    .filter(dp -> !dp.runFailed())
+                    .mapToDouble(DataPoint::capital) // primitive
+                    .sorted()
+                    .boxed()                         // turn DoubleStream -> Stream<Double>
+                    .toArray(Double[]::new);         // -> Double[]
+            grids.add(buildNoInterpolationGrid(samples)); // 1001 points
+        }
+        return grids;
+    }
+
+    // ---------- pipeline shared by summaries & grids ----------
+
+    /**
+     * Process → filter outliers by final capital → mark failures → group by (phase,year).
+     * Returns LinkedHashMap in deterministic key order: year ASC, phaseName ASC.
+     */
+    private LinkedHashMap<Key, List<DataPoint>> computeMarkedDataByPhaseYear(List<IRunResult> results) {
+        // 1) Extract per-run data
+        List<SimulationRunData> runs = new ArrayList<>(results.size());
+        for (IRunResult r : results) runs.add(processRun(r));
+        if (runs.isEmpty()) return new LinkedHashMap<>();
+
+        // 2) Outlier thresholds on final effective capitals
+        List<Double> finals = runs.stream().map(SimulationRunData::finalEffectiveCapital).toList();
+        List<Double> sortedFinals = new ArrayList<>(finals);
+        Collections.sort(sortedFinals);
+        double lower = quantile(sortedFinals, lowerThresholdPercentile);
+        double upper = quantile(sortedFinals, upperThresholdPercentile);
+
+        // 3) Filter inliers and mark failures forward
+        List<SimulationRunData> marked = runs.stream()
+                .filter(r -> r.finalEffectiveCapital() >= lower && r.finalEffectiveCapital() <= upper)
+                .map(this::markFailures)
+                .toList();
+
+        // 4) Group by (phase,year)
+        Map<Key, List<DataPoint>> tmp = new HashMap<>();
+        for (SimulationRunData r : marked) {
+            for (DataPoint dp : r.dataPoints()) {
+                Key k = new Key(dp.phaseName(), dp.year());
+                tmp.computeIfAbsent(k, __ -> new ArrayList<>()).add(dp);
             }
         }
+
+        // 5) Deterministic iteration order: year ASC, then phaseName ASC
+        return tmp.entrySet().stream()
+                .sorted(Comparator
+                        .comparing((Map.Entry<Key, ?> e) -> e.getKey().year())
+                        .thenComparing(e -> e.getKey().phaseName(), Comparator.nullsFirst(String::compareTo)))
+                .collect(LinkedHashMap::new,
+                        (m, e) -> m.put(e.getKey(), e.getValue()),
+                        LinkedHashMap::putAll);
     }
 
-    private void buildYearlySummaries(Map<Integer, List<DataPoint>> dataByYear, List<YearlySummary> summaries, IProgressCallback callback) {
-        int counter = 0;
-        long startTime = System.currentTimeMillis();
-        for (Map.Entry<Integer, List<DataPoint>> entry : dataByYear.entrySet()) {
-            counter++;
-            int year = entry.getKey();
-            String phaseName = entry.getValue().getFirst().phaseName();
-            List<DataPoint> rawDataPoints = entry.getValue();
-            List<Double> capitals = rawDataPoints.stream()
-                    .map(DataPoint::capital)
-                    .collect(Collectors.toList());
-            List<Boolean> failed = rawDataPoints.stream()
-                    .map(DataPoint::runFailed)
-                    .collect(Collectors.toList());
+    // ---------- summaries & growth ----------
 
-            long yearStartTime = System.currentTimeMillis();
-            YearlySummary summary = summaryCalculator.calculateYearlySummary(phaseName, year, capitals, failed);
-            String progressMessage = String.format("Calculate %,d/%,d yearly summaries in %,ds",
-                    counter, dataByYear.size(),
-                    (yearStartTime - startTime)/1000);
-            log.info(progressMessage);
-            callback.update(progressMessage);
-            summaries.add(summary);
+    private void buildYearlySummaries(LinkedHashMap<Key, List<DataPoint>> dataByKey,
+                                      List<YearlySummary> out,
+                                      IProgressCallback cb) {
+        int total = dataByKey.size();
+        long t0 = System.currentTimeMillis();
+        int i = 0;
+
+        for (Map.Entry<Key, List<DataPoint>> entry : dataByKey.entrySet()) {
+            i++;
+            Key k = entry.getKey();
+            List<DataPoint> raw = entry.getValue();
+
+            List<Double> capitals = raw.stream().map(DataPoint::capital).collect(Collectors.toList());
+            List<Boolean> failed = raw.stream().map(DataPoint::runFailed).collect(Collectors.toList());
+
+            YearlySummary summary = YearlySummaryCalculator.calculateYearlySummary(k.phaseName(), k.year(), capitals, failed);
+            out.add(summary);
+
+            String msg = String.format("Calculate %,d/%,d summaries (year=%d, phase=%s) in %,ds",
+                    i, total, k.year(), k.phaseName(), (System.currentTimeMillis() - t0) / 1000);
+            cb.update(msg);
+            log.info(msg);
         }
     }
+
+    /** Compute growth per phase across years, in-place. */
+    private void computeGrowthPerPhase(List<YearlySummary> summaries) {
+        // We assume summaries are ordered by year ASC, phaseName ASC.
+        Map<String, Double> lastAvgByPhase = new HashMap<>();
+        Map<String, Integer> lastYearByPhase = new HashMap<>();
+
+        for (YearlySummary s : summaries) {
+            String phase = s.getPhaseName();
+            Double prevAvg = lastAvgByPhase.get(phase);
+            if (prevAvg != null && prevAvg > 0) {
+                double growthPct = ((s.getAverageCapital() / prevAvg) - 1.0) * 100.0;
+                s.setCumulativeGrowthRate(growthPct);
+            } else {
+                s.setCumulativeGrowthRate(0.0);
+            }
+            lastAvgByPhase.put(phase, s.getAverageCapital());
+            lastYearByPhase.put(phase, s.getYear());
+        }
+    }
+
+    // ---------- per-run processing & failure marking ----------
 
     private SimulationRunData processRun(IRunResult result) {
         double finalEffectiveCapital = 0.0;
-        List<DataPoint> dataPoints = new ArrayList<>();
+        List<DataPoint> dps = new ArrayList<>();
         for (ISnapshot snap : result.getSnapshots()) {
             var state = ((Snapshot) snap).getState();
-            int year = new Date((int) state.getStartTime())
-                    .plusDays(state.getTotalDurationAlive())
-                    .getYear();
+            int year = new Date((int) state.getStartTime()).plusDays(state.getTotalDurationAlive()).getYear();
             double capital = state.getCapital();
-            dataPoints.add(new DataPoint(capital, false, year, state.getPhaseName()));
+            dps.add(new DataPoint(capital, false, year, state.getPhaseName()));
             finalEffectiveCapital = capital;
         }
-        return new SimulationRunData(finalEffectiveCapital, dataPoints);
+        return new SimulationRunData(finalEffectiveCapital, dps);
     }
 
     private SimulationRunData markFailures(SimulationRunData runData) {
-        boolean failureOccurred = false;
-        List<DataPoint> updatedDataPoints = new ArrayList<>();
+        boolean failed = false;
+        List<DataPoint> out = new ArrayList<>(runData.dataPoints().size());
         for (DataPoint dp : runData.dataPoints()) {
-            DataPoint e = new DataPoint(0, true, dp.year(), dp.phaseName());
-            if (!failureOccurred) {
-                // Check if this snapshot should trigger failure.
-                if (!"Deposit".equalsIgnoreCase(dp.phaseName()) && dp.capital() <= 0) {
-                    failureOccurred = true;
-                    // Mark this snapshot as failed.
-                    updatedDataPoints.add(e);
+            DataPoint failPoint = new DataPoint(0.0, true, dp.year(), dp.phaseName());
+            if (!failed) {
+                if (!"Deposit".equalsIgnoreCase(dp.phaseName()) && dp.capital() <= 0.0) {
+                    failed = true;
+                    out.add(failPoint);      // mark this and all next as failed
                 } else {
-                    updatedDataPoints.add(dp);
+                    out.add(dp);
                 }
             } else {
-                // Once failure has occurred, mark all subsequent snapshots as failed.
-                updatedDataPoints.add(e);
+                out.add(failPoint);
             }
         }
-        double updatedFinalCapital = updatedDataPoints.isEmpty() ? 0 :
-                updatedDataPoints.getLast().capital();
-        return new SimulationRunData(updatedFinalCapital, updatedDataPoints);
+        double finalCap = out.isEmpty() ? 0.0 : out.get(out.size() - 1).capital();
+        return new SimulationRunData(finalCap, out);
     }
 
-    private record SimulationRunData(double finalEffectiveCapital, List<DataPoint> dataPoints) {}
+    // ---------- grid builder: NO interpolation ----------
 
+    /**
+     * 1001-point grid using EDF inverse (Type-1, no interpolation).
+     * For p in {0/1000..1000/1000}, index = ceil(p*n)-1 clamped to [0..n-1].
+     * If no samples, returns an all-NaN grid.
+     */
+    private static Double[] buildNoInterpolationGrid(Double[] sortedAsc) {
+        Double[] grid = new Double[1001];
+        int n = sortedAsc.length;
+        if (n == 0) {
+            Arrays.fill(grid, Double.NaN);
+            return grid;
+        }
+        for (int i = 0; i <= 1000; i++) {
+            double p = i / 1000.0;
+            int idx;
+            if (p <= 0.0) idx = 0;
+            else if (p >= 1.0) idx = n - 1;
+            else {
+                idx = (int) Math.ceil(p * n) - 1;
+                if (idx < 0) idx = 0;
+                if (idx >= n) idx = n - 1;
+            }
+            grid[i] = sortedAsc[idx];
+        }
+        return grid;
+    }
+
+    // ---------- internal data carriers ----------
+
+    private record SimulationRunData(double finalEffectiveCapital, List<DataPoint> dataPoints) {}
     private record DataPoint(double capital, boolean runFailed, int year, String phaseName) {}
 }
