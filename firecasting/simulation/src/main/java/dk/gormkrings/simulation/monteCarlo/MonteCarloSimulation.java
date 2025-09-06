@@ -82,32 +82,37 @@ public class MonteCarloSimulation implements ISimulation {
                         try {
                             return engine.simulatePhases(phaseCopies);
                         } catch (Throwable t) {
-                            // Log and swallow (resilient mode), or propagate (strict mode)
                             if (failOnTaskError) {
-                                throw t;
+                                throw t; // let ExecutionException propagate
                             } else {
                                 log.error("Simulation task failed (run skipped): {}", t.toString(), t);
-                                return null;
+                                return null; // resilient: skip this run
                             }
                         }
                     });
                 }
 
-                // Submit & wait for batch to finish
-                List<Future<IRunResult>> futures = workerPool.invokeAll(tasks);
-                for (Future<IRunResult> f : futures) {
-                    try {
-                        IRunResult r = f.get(); // may throw ExecutionException only in strict mode
-                        if (r == null) continue; // failed task in resilient mode
-                        allResults.add(r);
+                // SUBMIT + CONSUME AS THEY COMPLETE (no barrier)
+                ExecutorCompletionService<IRunResult> ecs = new ExecutorCompletionService<>(workerPool);
+                for (Callable<IRunResult> task : tasks) {
+                    ecs.submit(task);
+                }
 
+                for (int i = 0; i < thisBatch; i++) {
+                    try {
+                        Future<IRunResult> f = ecs.take(); // blocks until one task completes
+                        IRunResult r = f.get();            // may throw in strict mode
+                        if (r == null) continue;           // skip failed task (resilient mode)
+
+                        allResults.add(r);
                         completed++;
+
                         if (cb != null && (completed % progressStep == 0 || completed == runs)) {
                             long secs = (System.currentTimeMillis() - t0) / 1000;
                             cb.update(String.format("Completed %,d/%,d runs in %,ds", completed, runs, secs));
                         }
                     } catch (ExecutionException ee) {
-                        // Only happens in strict mode; abort entire run
+                        // Only in strict mode; abort entire run
                         log.error("Simulation task failed (strict mode abort)", ee.getCause());
                         throw new RuntimeException("Simulation task failed", ee.getCause());
                     }
