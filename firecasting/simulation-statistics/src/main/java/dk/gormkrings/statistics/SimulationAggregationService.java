@@ -1,5 +1,7 @@
 package dk.gormkrings.statistics;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dk.gormkrings.dto.ProgressUpdate;
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.result.ISnapshot;
 import dk.gormkrings.simulation.IProgressCallback;
@@ -28,6 +30,8 @@ public class SimulationAggregationService {
 
     // Composite key: (phase, year)
     private record Key(String phaseName, int year) {}
+    private static final ObjectMapper OM = new ObjectMapper();
+
 
     /**
      * Aggregate into YearlySummary per (phase,year).
@@ -138,10 +142,20 @@ public class SimulationAggregationService {
             YearlySummary summary = YearlySummaryCalculator.calculateYearlySummary(k.phaseName(), k.year(), capitals, failed);
             out.add(summary);
 
-            String msg = String.format("Calculate %,d/%,d summaries (year=%d, phase=%s) in %,ds",
-                    i, total, k.year(), k.phaseName(), (System.currentTimeMillis() - t0) / 1000);
-            cb.update(msg);
-            log.info(msg);
+            long elapsedSec = (System.currentTimeMillis() - t0) / 1000;
+            String human = String.format(
+                    "Calculate %,d/%,d summaries (year=%d, phase=%s) in %,ds",
+                    i, total, k.year(), k.phaseName(), elapsedSec
+            );
+
+            try {
+                // send as typed JSON so the controller can pace/coalesce without parsing strings
+                cb.update(OM.writeValueAsString(ProgressUpdate.message(human)));
+                log.info(OM.writeValueAsString(ProgressUpdate.message(human)));
+            } catch (Exception e) {
+                // ultra-safe fallback: still send the human line
+                cb.update(human);
+            }
         }
     }
 
