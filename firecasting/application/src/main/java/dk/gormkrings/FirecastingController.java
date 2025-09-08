@@ -1,8 +1,10 @@
 package dk.gormkrings;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.gormkrings.action.*;
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.SimulationRequest;
+import dk.gormkrings.dto.ProgressUpdate; // <-- new DTO below
 import dk.gormkrings.factory.IDateFactory;
 import dk.gormkrings.factory.IPhaseFactory;
 import dk.gormkrings.factory.ISimulationFactory;
@@ -34,9 +36,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @RestController
@@ -55,25 +56,59 @@ public class FirecastingController {
     private final ScheduledExecutorService sseScheduler;
     private final StatisticsService statisticsService;
 
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    /** Global SSE pacing (ms). All events spaced by this interval; "completed" bypasses. */
+    @Value("${settings.sse-interval:1000}")
+    private long sseIntervalMs;
+
     @Value("${settings.runs}")
     private int runs;
     @Value("${settings.batch-size}")
     private int batchSize;
     @Value("${settings.timeout}")
     private long timeout = 60000;
+    @Value("${simulation.progressStep:1000}")
+    private int progressStep;
 
-    // Field to store the simulation results for later export.
     private List<IRunResult> lastResults;
 
-    // Map to store SSE emitters by simulation ID.
     private final ConcurrentHashMap<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
+
+    // ---- Throttled/coalesced event pipeline ---------------------------------------------
+
+    private static final int PRIO_HEARTBEAT = -1; // lowest
+    private static final int PRIO_PROGRESS  =  0; // numeric run progress
+    private static final int PRIO_OTHER     =  1; // normal text messages
+    private static final int PRIO_STATE     =  2; // queued/started etc.
+
+    private static final class PendingEvent {
+        final String name;
+        final Object data;
+        final MediaType type;
+        final int priority;
+        PendingEvent(String name, Object data, MediaType type, int priority) {
+            this.name = name; this.data = data; this.type = type; this.priority = priority;
+        }
+    }
+
+    /** Latest pending event per simulation (coalesced). */
+    private final ConcurrentHashMap<String, AtomicReference<PendingEvent>> pendingBySim = new ConcurrentHashMap<>();
+    /** Per-simulation flusher task (paces to sseIntervalMs). */
+    private final ConcurrentHashMap<String, ScheduledFuture<?>> flusherBySim = new ConcurrentHashMap<>();
+    /** Last lifecycle state sent (to avoid duplicate "queued"/"started"). */
+    private final ConcurrentHashMap<String, String> lastStateSent = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Integer> lastQueuedPos = new ConcurrentHashMap<>();
+
+
+    // --------------------------------------------------------------------------------------
 
     public FirecastingController(ISimulationFactory simulationFactory,
                                  IDateFactory dateFactory,
                                  IPhaseFactory phaseFactory,
                                  ISpecificationFactory specificationFactory,
                                  SimulationAggregationService aggregationService,
-                                 StatisticsService  statisticsService,
+                                 StatisticsService statisticsService,
                                  ITaxRuleFactory taxRuleFactory,
                                  ITaxExemptionFactory taxExemptionFactory,
                                  IActionFactory actionFactory,
@@ -102,7 +137,6 @@ public class FirecastingController {
         return UISchemaGenerator.generateSchema(PhaseRequest.class);
     }
 
-    // FirecastingController.java
     @GetMapping("/queue/{simulationId}")
     public ResponseEntity<dk.gormkrings.queue.SimulationQueueService.TaskInfo> queueInfo(@PathVariable String simulationId) {
         var info = simQueue.info(simulationId);
@@ -114,34 +148,26 @@ public class FirecastingController {
             @Valid @RequestBody SimulationRequest request,
             @RequestParam(value = "simulationId", required = false) String clientId
     ) {
-        // 0) Dedup by canonicalized input (fast exit)
         var existingId = statisticsService.findExistingRunIdForInput(request);
         if (existingId.isPresent()) {
             log.info("Dedup hit: reusing existing simulation {}", existingId.get());
             return ResponseEntity.ok(existingId.get());
         }
 
-        // 1) Cross-request guard: total duration across phases ≤ 1200 months
-        int totalMonths = request.getPhases().stream()
-                .mapToInt(PhaseRequest::getDurationInMonths)
-                .sum();
+        int totalMonths = request.getPhases().stream().mapToInt(PhaseRequest::getDurationInMonths).sum();
         if (totalMonths > 1200) {
             return ResponseEntity.badRequest()
                     .body("Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")");
         }
 
-        // 2) Use client-provided ID if present so the SSE subscriber matches
         final String simulationId = (clientId != null && !clientId.isBlank())
-                ? clientId
-                : UUID.randomUUID().toString();
+                ? clientId : UUID.randomUUID().toString();
         log.info("Starting simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
 
-        // 3) Build phases/spec
         float taxPercentage = request.getTaxPercentage();
         ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
 
-        var specification = specificationFactory.create(
-                request.getEpochDay(), overAllTaxRule, 1.02D);
+        var specification = specificationFactory.create(request.getEpochDay(), overAllTaxRule, 1.02D);
 
         var currentDate = dateFactory.dateOf(
                 request.getStartDate().getYear(),
@@ -149,23 +175,20 @@ public class FirecastingController {
                 request.getStartDate().getDayOfMonth());
 
         List<IPhase> phases = new LinkedList<>();
-
         for (PhaseRequest pr : request.getPhases()) {
             List<ITaxExemption> taxExemptions = new LinkedList<>();
             for (String taxExemption : pr.getTaxRules()) {
                 taxExemptions.add(taxExemptionFactory.create(taxExemption));
             }
-
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
             String phaseType = pr.getPhaseType().toLowerCase();
 
             IAction action = switch (phaseType) {
                 case "deposit" -> actionFactory.createDepositAction(
-                        pr.getInitialDeposit(), pr.getMonthlyDeposit(), pr.getYearlyIncreaseInPercentage()
-                );
+                        pr.getInitialDeposit(), pr.getMonthlyDeposit(), pr.getYearlyIncreaseInPercentage());
                 case "withdraw" -> actionFactory.createWithdrawAction(
-                        pr.getWithdrawAmount(), pr.getWithdrawRate(), pr.getLowerVariationPercentage(), pr.getUpperVariationPercentage()
-                );
+                        pr.getWithdrawAmount(), pr.getWithdrawRate(),
+                        pr.getLowerVariationPercentage(), pr.getUpperVariationPercentage());
                 case "passive" -> actionFactory.createPassiveAction();
                 default -> throw new IllegalArgumentException("Unknown phase type: " + phaseType);
             };
@@ -174,54 +197,84 @@ public class FirecastingController {
             currentDate = currentDate.plusMonths(pr.getDurationInMonths());
         }
 
-        // 4) Enqueue async simulation
         boolean accepted = simQueue.submitWithId(simulationId, () -> {
             try {
+                startFlusher(simulationId); // pace all events for this run
+
                 var simulationResults = simulationFactory.createSimulation().runWithProgress(
-                        runs, batchSize, phases, msg -> emitterSend(msg, simulationId));
+                        runs, batchSize, phases, msg -> onProgress(simulationId, msg)); // msg can be typed JSON or plain text
 
                 lastResults = simulationResults;
 
                 var summaries = aggregationService.aggregateResults(
-                        simulationResults, simulationId, msg -> emitterSend(msg, simulationId));
+                        simulationResults, simulationId, msg -> onProgress(simulationId, msg)); // aggregator can keep sending text
 
                 var grids = aggregationService.buildPercentileGrids(simulationResults);
-
                 statisticsService.upsertRunWithSummaries(simulationId, request, summaries, grids);
 
-                // Notify all subscribers with final payload
+                // Drain any pending before "completed"
+                flushOnce(simulationId);
+
+                // "completed" bypasses pacing
                 broadcastEvent(simulationId, SseEmitter.event()
                         .name("completed")
                         .data(summaries, MediaType.APPLICATION_JSON));
 
-                // Close all emitters for this id
+                stopFlusher(simulationId);
+
                 var list = emitters.remove(simulationId);
-                if (list != null) {
-                    for (var em : list) {
-                        try { em.complete(); } catch (Exception ignore) {}
-                    }
-                }
+                if (list != null) for (var em : list) try { em.complete(); } catch (Exception ignore) {}
+
             } catch (Exception e) {
-                // Broadcast error + close all emitters for this id
+                stopFlusher(simulationId);
                 var list = emitters.remove(simulationId);
-                if (list != null) {
-                    for (var em : list) {
-                        try { em.completeWithError(e); } catch (Exception ignore) {}
-                    }
-                }
+                if (list != null) for (var em : list) try { em.completeWithError(e); } catch (Exception ignore) {}
                 throw new RuntimeException(e);
             }
         });
 
-        if (!accepted) {
-            return ResponseEntity.status(429).body("Queue full. Try again later.");
-        }
+        if (!accepted) return ResponseEntity.status(429).body("Queue full. Try again later.");
 
-        // 5) Give immediate visual feedback if a subscriber is already connected
-        broadcastEvent(simulationId, SseEmitter.event().name("queued").data("queued"));
+        // ... after 'if (!accepted) return 429;'
+        var info = simQueue.info(simulationId);
+        String queuedData = (info != null && info.getStatus() == SimulationQueueService.Status.QUEUED
+                && info.getPosition() != null)
+                ? "position:" + info.getPosition()   // 0-based from server
+                : "queued";
 
-        // 6) Return the id the server actually uses (client should switch if different)
+        enqueueState(simulationId, "queued", "queued");
         return ResponseEntity.ok(simulationId);
+    }
+
+    /**
+     * Accepts either:
+     *  - JSON ProgressUpdate ({"kind":"RUNS","completed":N,"total":M} or {"kind":"MESSAGE","message":"..."})
+     *  - Plain text (legacy): treated as OTHER "progress".
+     */
+    private void onProgress(String simulationId, String progressMessage) {
+        if (progressMessage == null) return;
+        final String msg = progressMessage.trim();
+        boolean handled = false;
+
+        if (msg.startsWith("{") && msg.contains("\"kind\"")) {
+            try {
+                ProgressUpdate pu = mapper.readValue(msg, ProgressUpdate.class);
+                if (pu.getKind() == ProgressUpdate.Kind.RUNS) {
+                    // keep it terse; UI already labels as "progress"
+                    String line = String.format("Completed %,d/%,d runs", pu.getCompleted(), pu.getTotal());
+                    enqueue(simulationId, "progress", line, PRIO_PROGRESS);
+                    handled = true;
+                } else if (pu.getKind() == ProgressUpdate.Kind.MESSAGE && pu.getMessage() != null) {
+                    enqueue(simulationId, "progress", pu.getMessage(), PRIO_OTHER);
+                    handled = true;
+                }
+            } catch (Exception ignore) {
+                // fall through to legacy text
+            }
+        }
+        if (!handled) {
+            enqueue(simulationId, "progress", msg, PRIO_OTHER);
+        }
     }
 
     private void addEmitter(String id, SseEmitter e) {
@@ -235,44 +288,25 @@ public class FirecastingController {
         if (list != null) list.remove(e);
     }
 
-    private void broadcast(String id, Object data, MediaType type) {
-        var list = emitters.get(id);
-        if (list == null) return;
-        for (var e : list) {
-            try { e.send(data, type); } catch (Exception ignore) {}
-        }
-    }
-
     private void broadcastEvent(String id, SseEmitter.SseEventBuilder event) {
         var list = emitters.get(id);
-        if (list == null) return;
+        if (list == null || list.isEmpty()) return;
+
+        List<SseEmitter> dead = null;
         for (var e : list) {
-            try { e.send(event); } catch (Exception ignore) {}
+            try { e.send(event); }
+            catch (Exception ex) { if (dead == null) dead = new ArrayList<>(); dead.add(e); }
         }
+        if (dead != null) list.removeAll(dead);
     }
-
-    // Update your existing progress helper to fan out:
-    private void emitterSend(String progressMessage, String simulationId) {
-        // Build once to preserve ordering; schedule the actual send on the SSE thread
-        SseEmitter.SseEventBuilder ev = SseEmitter.event()
-                .name("progress")
-                .data(progressMessage, MediaType.TEXT_PLAIN);
-
-        sseScheduler.execute(() -> broadcastEvent(simulationId, ev));
-    }
-
 
     @GetMapping(value = "/progress/{simulationId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<YearlySummary>> getProgressJson(@PathVariable String simulationId) {
-        if (!statisticsService.hasCompletedSummaries(simulationId)) {
-            return ResponseEntity.notFound().build();
-        }
+        if (!statisticsService.hasCompletedSummaries(simulationId)) return ResponseEntity.notFound().build();
         var summaries = statisticsService.getSummariesForRun(simulationId);
         return summaries.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok(summaries);
     }
 
-    // 2) When a client subscribes, send an opening event and start a lightweight heartbeat.
-    //    Keep the heartbeat even while RUNNING; cancel only on completion/timeout.
     @GetMapping(value = "/progress/{simulationId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getProgressSse(@PathVariable String simulationId) {
         if (statisticsService.hasCompletedSummaries(simulationId)) {
@@ -288,50 +322,83 @@ public class FirecastingController {
         var emitter = new SseEmitter(0L);
         addEmitter(simulationId, emitter);
 
-        try {
-            // opening ping primes proxies/buffers
-            emitter.send(SseEmitter.event().name("open").data("ok"));
-        } catch (Exception ignore) {}
+        try { emitter.send(SseEmitter.event().name("open").data("ok")); } catch (Exception ignore) {}
 
-        final var handle = new java.util.concurrent.atomic.AtomicReference<java.util.concurrent.ScheduledFuture<?>>();
+        final var handle = new AtomicReference<ScheduledFuture<?>>();
         Runnable tick = () -> {
             try {
-                // inside tick runnable in getProgressSse
                 var info = simQueue.info(simulationId);
                 if (info == null || info.getStatus() == null) {
-                    emitter.send(SseEmitter.event().name("queued").data("queued"));
+                    if (!"QUEUED".equals(lastStateSent.get(simulationId))) {
+                        enqueueState(simulationId, "queued", "queued");
+                        lastStateSent.put(simulationId, "QUEUED");
+                    }
                     return;
                 }
-
-
+                String status = info.getStatus().name();
                 switch (info.getStatus()) {
-                    case QUEUED -> emitter.send(SseEmitter.event().name("queued")
-                            .data(info.getPosition() == null ? "queued" : ("position:" + info.getPosition())));
+                    // inside getProgressSse(...) -> tick Runnable -> switch(info.getStatus())
+                    case QUEUED -> {
+                        // Always compute current position
+                        Integer p = info.getPosition(); // already 0-based from SimulationQueueService.info()
+                        Integer prev = lastQueuedPos.get(simulationId);
+
+                        if (p != null) {
+                            // Send if changed (coalesced by 1s flusher)
+                            if (!Objects.equals(prev, p)) {
+                                enqueueState(simulationId, "queued", "position:" + p);
+                                lastQueuedPos.put(simulationId, p);
+                            }
+                        } else {
+                            // Fallback: unknown position
+                            if (!Objects.equals(prev, -1)) {
+                                enqueueState(simulationId, "queued", "queued");
+                                lastQueuedPos.put(simulationId, -1);
+                            }
+                        }
+
+                        // Keep lastStateSent only for first-time "QUEUED" transition, if you want:
+                        if (!"QUEUED".equals(lastStateSent.get(simulationId))) {
+                            lastStateSent.put(simulationId, "QUEUED");
+                        }
+                    }
                     case RUNNING -> {
-                        // Send a small heartbeat while running to keep intermediaries flushing
-                        emitter.send(SseEmitter.event().name("heartbeat").comment("tick"));
+                        if (!"RUNNING".equals(lastStateSent.get(simulationId))) {
+                            enqueueState(simulationId, "started", "running");
+                            lastStateSent.put(simulationId, "RUNNING");
+                        }
+                        // no longer queued; forget old position
+                        lastQueuedPos.remove(simulationId);
+                        enqueue(simulationId, "heartbeat", "tick", PRIO_HEARTBEAT);
                     }
                     case DONE, FAILED -> {
-                        var h = handle.get();
-                        if (h != null) h.cancel(false);
+                        lastStateSent.put(simulationId, status);
+                        lastQueuedPos.remove(simulationId);
+                        var h = handle.get(); if (h != null) h.cancel(false);
                     }
                 }
             } catch (Exception ignored) {}
         };
-        // fire immediately, then every 2s
-        handle.set(sseScheduler.scheduleAtFixedRate(tick, 0, 2, java.util.concurrent.TimeUnit.SECONDS));
 
-        emitter.onCompletion(() -> { emitters.remove(simulationId); var h = handle.get(); if (h != null) h.cancel(false); });
-        emitter.onTimeout(() -> { emitters.remove(simulationId); var h = handle.get(); if (h != null) h.cancel(false); });
+        handle.set(sseScheduler.scheduleAtFixedRate(tick, 0, 2, TimeUnit.SECONDS));
+
+        emitter.onCompletion(() -> {
+            removeEmitter(simulationId, emitter);
+            lastStateSent.remove(simulationId);
+            var h = handle.get(); if (h != null) h.cancel(false);
+        });
+        emitter.onTimeout(() -> {
+            removeEmitter(simulationId, emitter);
+            lastStateSent.remove(simulationId);
+            var h = handle.get(); if (h != null) h.cancel(false);
+        });
 
         return emitter;
     }
 
     @GetMapping("/export")
     public ResponseEntity<StreamingResponseBody> exportResultsAsCsv() {
-        if (lastResults == null || lastResults.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
+        if (lastResults == null || lastResults.isEmpty()) return ResponseEntity.noContent().build();
 
         long simTime = System.currentTimeMillis();
         File file;
@@ -339,21 +406,63 @@ public class FirecastingController {
             file = ConcurrentCsvExporter.exportCsv(lastResults, "simulation-results");
         } catch (IOException e) {
             log.error("Error exporting CSV", e);
-            return ResponseEntity.status(500).body(outputStream -> {
-                outputStream.write("Error exporting CSV".getBytes());
-            });
+            return ResponseEntity.status(500).body(outputStream -> outputStream.write("Error exporting CSV".getBytes()));
         }
         long exportTime = System.currentTimeMillis();
         log.info("Handling exports in {} ms", exportTime - simTime);
 
-        StreamingResponseBody stream = out -> {
-            Files.copy(file.toPath(), out);
-            out.flush();
-        };
+        StreamingResponseBody stream = out -> { Files.copy(file.toPath(), out); out.flush(); };
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(stream);
+    }
+
+    // ===== Throttled / coalesced pipeline ================================================
+
+    private void enqueueState(String simId, String name, Object data) {
+        enqueue(simId, name, data, PRIO_STATE);
+    }
+
+    private void enqueue(String simId, String name, Object data, int prio) {
+        var ref = pendingBySim.computeIfAbsent(simId, __ -> new AtomicReference<>());
+        PendingEvent next = new PendingEvent(name, data, MediaType.TEXT_PLAIN, prio);
+
+        while (true) {
+            PendingEvent cur = ref.get();
+            if (cur == null) {
+                if (ref.compareAndSet(null, next)) break;
+            } else {
+                // Keep higher priority; progress overwrites progress; state beats others
+                if (prio < cur.priority) break; // lower prio → ignore
+                if (ref.compareAndSet(cur, next)) break;
+            }
+        }
+        startFlusher(simId);
+    }
+
+    private void startFlusher(String simId) {
+        flusherBySim.computeIfAbsent(simId, id ->
+                sseScheduler.scheduleAtFixedRate(() -> flushOnce(id), 0L, sseIntervalMs, TimeUnit.MILLISECONDS)
+        );
+    }
+
+    private void stopFlusher(String simId) {
+        var f = flusherBySim.remove(simId);
+        if (f != null) f.cancel(false);
+        pendingBySim.remove(simId);
+        lastStateSent.remove(simId);
+    }
+
+    /** Sends at most one pending event for this sim (paced by scheduler). */
+    private void flushOnce(String simId) {
+        var ref = pendingBySim.get(simId);
+        if (ref == null) return;
+        PendingEvent ev = ref.getAndSet(null);
+        if (ev == null) return;
+        SseEmitter.SseEventBuilder sse = SseEmitter.event().name(ev.name);
+        if (ev.data != null) sse = sse.data(ev.data, ev.type);
+        broadcastEvent(simId, sse);
     }
 }

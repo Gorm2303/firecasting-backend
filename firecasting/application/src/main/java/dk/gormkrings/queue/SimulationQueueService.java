@@ -4,9 +4,8 @@ import lombok.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class SimulationQueueService {
@@ -17,17 +16,15 @@ public class SimulationQueueService {
     public static class TaskInfo {
         String simulationId;
         Status status;
-        Integer position; // null if not queued
+        Integer position; // 1-based when QUEUED; null otherwise
     }
 
     /** Executor wired from ExecConfig (bean name: simExecutor). */
     private final ExecutorService executor;
 
-    // track state per id
+    // status per id
     private final ConcurrentHashMap<String, Status> states = new ConcurrentHashMap<>();
-    // optional: current running id
-    private final AtomicReference<String> runningId = new AtomicReference<>(null);
-    // keep a shadow FIFO of queued ids to compute positions
+    // FIFO of queued ids to compute positions (order of arrival)
     private final ConcurrentLinkedQueue<String> shadowQueue = new ConcurrentLinkedQueue<>();
 
     public SimulationQueueService(@Qualifier("simExecutor") ExecutorService executor) {
@@ -40,33 +37,42 @@ public class SimulationQueueService {
     }
 
     /**
-     * Submit a simulation task. Returns true if accepted (queued or started),
-     * false if the queue is full (rejected).
+     * Submit a simulation task with a stable id.
+     * Returns true if accepted (queued or already known), false if the executor rejects it.
+     * Idempotent: if the id is already QUEUED/RUNNING/DONE/FAILED, we don't enqueue again.
      */
     public boolean submitWithId(String simulationId, Runnable task) {
+        Objects.requireNonNull(simulationId, "simulationId");
+        Objects.requireNonNull(task, "task");
+
+        // idempotent: if we have a record for this id, don't add it again
+        Status existing = states.putIfAbsent(simulationId, Status.QUEUED);
+        if (existing != null) {
+            // Already known (QUEUED/RUNNING/DONE/FAILED). Treat as accepted.
+            return true;
+        }
+
+        // track arrival order for position computation
+        shadowQueue.add(simulationId);
+
         Runnable wrapped = () -> {
-            // on start: pop from shadow queue head
-            shadowQueue.poll();
+            // When this task actually starts, remove *this id* (not just queue head)
+            shadowQueue.remove(simulationId);
             states.put(simulationId, Status.RUNNING);
-            runningId.set(simulationId);
             try {
                 task.run();
                 states.put(simulationId, Status.DONE);
             } catch (Throwable t) {
                 states.put(simulationId, Status.FAILED);
                 throw t;
-            } finally {
-                runningId.compareAndSet(simulationId, null);
             }
         };
 
         try {
-            states.put(simulationId, Status.QUEUED);
-            shadowQueue.add(simulationId);
             executor.execute(wrapped);
             return true;
         } catch (RejectedExecutionException ex) {
-            // queue full
+            // rollback if executor queue is full
             states.remove(simulationId);
             shadowQueue.remove(simulationId);
             return false;
@@ -78,27 +84,33 @@ public class SimulationQueueService {
         return states.get(simulationId);
     }
 
-    /** Position using shadow queue (0 = next, -1 = not queued). */
+    /**
+     * 1-based position in the waiting queue (1 = next to run).
+     * Returns -1 if not currently queued.
+     */
     public int queuedPosition(String simulationId) {
         int idx = 0;
         for (String id : shadowQueue) {
-            if (Objects.equals(id, simulationId)) return idx;
             idx++;
+            if (Objects.equals(id, simulationId)) return idx;
         }
         return -1;
     }
 
-    /** Backward-compatible alias for position; uses shadow queue. */
+    /** Backward-compatible alias for position (1-based). */
     public int position(String simulationId) {
         return queuedPosition(simulationId);
     }
 
+    /** Combined view for SSE/HTTP APIs. */
     public TaskInfo info(String simulationId) {
         Status s = status(simulationId);
+        if (s == null) return null;
+
         Integer pos = null;
         if (s == Status.QUEUED) {
             int p = queuedPosition(simulationId);
-            pos = (p >= 0) ? p : null;
+            pos = (p > 0) ? p : null; // 1-based
         }
         return new TaskInfo(simulationId, s, pos);
     }

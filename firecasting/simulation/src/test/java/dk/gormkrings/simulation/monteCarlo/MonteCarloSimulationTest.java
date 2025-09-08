@@ -3,7 +3,6 @@ package dk.gormkrings.simulation.monteCarlo;
 import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
-import dk.gormkrings.simulation.IProgressCallback;
 import dk.gormkrings.specification.ISpecification;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
