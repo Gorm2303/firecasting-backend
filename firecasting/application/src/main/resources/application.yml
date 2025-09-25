@@ -30,7 +30,7 @@ spring:
     enabled: true
     schemas: public
     default-schema: public
-    baseline-on-migrate: true   # only if DB is non-empty WITHOUT Flyway history
+    baseline-on-migrate: false   # only if DB is non-empty WITHOUT Flyway history
 
 logging:
   level:

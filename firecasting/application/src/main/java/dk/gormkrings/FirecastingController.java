@@ -143,7 +143,10 @@ public class FirecastingController {
         return ResponseEntity.ok(info);
     }
 
-    @PostMapping("/start")
+    @PostMapping(
+            value = "/start",
+            produces = MediaType.APPLICATION_JSON_VALUE // <-- force JSON
+)
     public ResponseEntity<Map<String,String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
         // 1) Dedup: if we’ve already computed this exact input, reuse that runId and DO NOT start a new run
         var existingId = statisticsService.findExistingRunIdForInput(request);
@@ -233,9 +236,7 @@ public class FirecastingController {
         if (!accepted) return ResponseEntity.status(429).body(Map.of ("Queue full", "Queue full. Try again later."));
 
         enqueueState(simulationId, "queued", "queued");
-        return ResponseEntity.accepted()
-                .header(HttpHeaders.LOCATION, "/api/simulation/runs/" + simulationId)
-                .body(Map.of("id", simulationId));
+        return ResponseEntity.accepted().body(Map.of("id", simulationId));
     }
 
     /**
