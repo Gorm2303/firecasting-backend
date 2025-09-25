@@ -155,7 +155,7 @@ public class FirecastingController {
         int totalMonths = request.getPhases().stream().mapToInt(PhaseRequest::getDurationInMonths).sum();
         if (totalMonths > 1200) {
             return ResponseEntity.badRequest()
-                    .body("Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")");
+                    .body(Map.of("Max duration exceeded", "Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")"));
         }
 
         // 2) Always mint a NEW run id
@@ -230,7 +230,7 @@ public class FirecastingController {
         });
 
 
-        if (!accepted) return ResponseEntity.status(429).body("Queue full. Try again later.");
+        if (!accepted) return ResponseEntity.status(429).body(Map.of ("Queue full", "Queue full. Try again later."));
 
         enqueueState(simulationId, "queued", "queued");
         return ResponseEntity.accepted()

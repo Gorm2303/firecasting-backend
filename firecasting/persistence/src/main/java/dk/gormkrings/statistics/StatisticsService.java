@@ -26,13 +26,18 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class StatisticsService {
+
     private final SimulationRunRepository runRepo;
     private final YearlySummaryRepository summaryRepo;
     private final @Qualifier("canonicalObjectMapper") ObjectMapper canonicalObjectMapper;
 
-    // unchanged
+    /** lookup an existing runId by input params (dedup) */
     @Transactional(readOnly = true)
-    public Optional<String> findExistingRunIdForInput(Object inputParams) { /* as before */ }
+    public Optional<String> findExistingRunIdForInput(Object inputParams) {
+        String inputJson = toCanonicalJson(inputParams);
+        String inputHash = sha256Hex(inputJson);
+        return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
+    }
 
     // NEW: insert-only path for append-only storage
     @Transactional
@@ -47,7 +52,7 @@ public class StatisticsService {
         String inputJson = toCanonicalJson(inputParams);
         String inputHash = sha256Hex(inputJson);
 
-        // Create a brand new run row
+        // Create a brand-new run row
         var run = new SimulationRunEntity();
         run.setId(simulationId);
         run.setCreatedAt(OffsetDateTime.now());
@@ -70,13 +75,22 @@ public class StatisticsService {
         return simulationId;
     }
 
-    public boolean hasCompletedSummaries(String runId) { /* as before */ }
+    public boolean hasCompletedSummaries(String runId) {
+        return summaryRepo.existsByRunId(runId);
+    }
 
     @Transactional(readOnly = true)
-    public List<YearlySummary> getSummariesForRun(String simulationId) { /* as before */ }
+    public List<YearlySummary> getSummariesForRun(String simulationId) {
+        return summaryRepo.findByRunIdOrderByPhaseNameAscYearAsc(simulationId)
+                .stream()
+                .map(YearlySummaryMapper::toDto)
+                .toList();
+    }
 
     @Transactional(readOnly = true)
-    public SimulationRunEntity getRun(String simulationId) { /* as before */ }
+    public SimulationRunEntity getRun(String simulationId) {
+        return runRepo.findById(simulationId).orElse(null);
+    }
 
     private String toCanonicalJson(Object input) {
         try {
