@@ -138,20 +138,18 @@ public class FirecastingController {
     }
 
     @GetMapping("/queue/{simulationId}")
-    public ResponseEntity<dk.gormkrings.queue.SimulationQueueService.TaskInfo> queueInfo(@PathVariable String simulationId) {
+    public ResponseEntity<SimulationQueueService.TaskInfo> queueInfo(@PathVariable String simulationId) {
         var info = simQueue.info(simulationId);
         return ResponseEntity.ok(info);
     }
 
     @PostMapping("/start")
-    public ResponseEntity<String> startSimulation(
-            @Valid @RequestBody SimulationRequest request,
-            @RequestParam(value = "simulationId", required = false) String clientId
-    ) {
+    public ResponseEntity<Map<String,String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
+        // 1) Dedup: if we’ve already computed this exact input, reuse that runId and DO NOT start a new run
         var existingId = statisticsService.findExistingRunIdForInput(request);
         if (existingId.isPresent()) {
             log.info("Dedup hit: reusing existing simulation {}", existingId.get());
-            return ResponseEntity.ok(existingId.get());
+            ResponseEntity.ok(Map.of("id", existingId.get()));
         }
 
         int totalMonths = request.getPhases().stream().mapToInt(PhaseRequest::getDurationInMonths).sum();
@@ -160,9 +158,9 @@ public class FirecastingController {
                     .body("Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")");
         }
 
-        final String simulationId = (clientId != null && !clientId.isBlank())
-                ? clientId : UUID.randomUUID().toString();
-        log.info("Starting simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
+        // 2) Always mint a NEW run id
+        final String simulationId = UUID.randomUUID().toString();
+        log.info("Starting NEW simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
 
         float taxPercentage = request.getTaxPercentage();
         ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
@@ -199,27 +197,24 @@ public class FirecastingController {
 
         boolean accepted = simQueue.submitWithId(simulationId, () -> {
             try {
-                startFlusher(simulationId); // pace all events for this run
+                startFlusher(simulationId);
 
                 var simulationResults = simulationFactory.createSimulation().runWithProgress(
-                        runs, batchSize, phases, msg -> onProgress(simulationId, msg)); // msg can be typed JSON or plain text
+                        runs, batchSize, phases, msg -> onProgress(simulationId, msg));
 
                 lastResults = simulationResults;
 
                 var summaries = aggregationService.aggregateResults(
-                        simulationResults, simulationId, msg -> onProgress(simulationId, msg)); // aggregator can keep sending text
+                        simulationResults, simulationId, msg -> onProgress(simulationId, msg));
 
                 var grids = aggregationService.buildPercentileGrids(simulationResults);
-                statisticsService.upsertRunWithSummaries(simulationId, request, summaries, grids);
 
-                // Drain any pending before "completed"
+                // ⬇️ pure inserts (no delete/clear)
+                statisticsService.insertNewRunWithSummaries(simulationId, request, summaries, grids);
+
                 flushOnce(simulationId);
-
-                // "completed" bypasses pacing
-                broadcastEvent(simulationId, SseEmitter.event()
-                        .name("completed")
+                broadcastEvent(simulationId, SseEmitter.event().name("completed")
                         .data(summaries, MediaType.APPLICATION_JSON));
-
                 stopFlusher(simulationId);
 
                 var list = emitters.remove(simulationId);
@@ -229,21 +224,18 @@ public class FirecastingController {
                 stopFlusher(simulationId);
                 var list = emitters.remove(simulationId);
                 if (list != null) for (var em : list) try { em.completeWithError(e); } catch (Exception ignore) {}
-                throw new RuntimeException(e);
+                log.error("Simulation failed {}", simulationId, e);
+                return; // IMPORTANT: do not rethrow from the background thread
             }
         });
 
+
         if (!accepted) return ResponseEntity.status(429).body("Queue full. Try again later.");
 
-        // ... after 'if (!accepted) return 429;'
-        var info = simQueue.info(simulationId);
-        String queuedData = (info != null && info.getStatus() == SimulationQueueService.Status.QUEUED
-                && info.getPosition() != null)
-                ? "position:" + info.getPosition()   // 0-based from server
-                : "queued";
-
         enqueueState(simulationId, "queued", "queued");
-        return ResponseEntity.ok(simulationId);
+        return ResponseEntity.accepted()
+                .header(HttpHeaders.LOCATION, "/api/simulation/runs/" + simulationId)
+                .body(Map.of("id", simulationId));
     }
 
     /**

@@ -4,6 +4,7 @@ package dk.gormkrings.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.PropertySource;
 
 import java.util.concurrent.*;
 
@@ -23,8 +24,11 @@ public class ExecConfig {
 
     // CPU-bound pool used inside MonteCarloSimulation
     @Bean(name = "simWorkerPool", destroyMethod = "shutdown")
-    public ExecutorService simWorkerPool(@Value("${simulation.parallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}") int p) {
-        return Executors.newFixedThreadPool(p, r -> { var t = new Thread(r, "sim-worker"); t.setDaemon(true); return t; });
+    public ExecutorService simWorkerPool(
+            @Value("${simulation.parallelism:0}") int p) {
+        int cores = Runtime.getRuntime().availableProcessors();
+        int size = (p > 0 ? p : Math.max(3, cores - 1)); // keep 1–2 cores free
+        return Executors.newFixedThreadPool(size, (ThreadFactory) PropertySource.named("sim-worker"));
     }
 
     // Scheduler for SSE/queue heartbeats
