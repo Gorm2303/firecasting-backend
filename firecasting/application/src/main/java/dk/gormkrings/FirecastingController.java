@@ -145,7 +145,8 @@ public class FirecastingController {
 
     @PostMapping(
             value = "/start",
-            produces = MediaType.APPLICATION_JSON_VALUE // <-- force JSON
+            produces = MediaType.APPLICATION_JSON_VALUE, // <-- force JSON
+            consumes = MediaType.APPLICATION_JSON_VALUE
 )
     public ResponseEntity<Map<String,String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
         // --- 0) Dedup FIRST, return immediately if hit ---
@@ -173,42 +174,42 @@ public class FirecastingController {
         final String simulationId = UUID.randomUUID().toString();
         log.info("[/start] New run -> {} - {}", simulationId, request.getOverallTaxRule());
 
-        float taxPercentage = request.getTaxPercentage();
-        ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
-
-        var specification = specificationFactory.create(request.getEpochDay(), overAllTaxRule, 1.02D);
-
-        var currentDate = dateFactory.dateOf(
-                request.getStartDate().getYear(),
-                request.getStartDate().getMonth(),
-                request.getStartDate().getDayOfMonth());
-
-        List<IPhase> phases = new LinkedList<>();
-        for (PhaseRequest pr : request.getPhases()) {
-            List<ITaxExemption> taxExemptions = new LinkedList<>();
-            for (String taxExemption : pr.getTaxRules()) {
-                taxExemptions.add(taxExemptionFactory.create(taxExemption));
-            }
-            long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
-            String phaseType = pr.getPhaseType().toLowerCase();
-
-            IAction action = switch (phaseType) {
-                case "deposit" -> actionFactory.createDepositAction(
-                        pr.getInitialDeposit(), pr.getMonthlyDeposit(), pr.getYearlyIncreaseInPercentage());
-                case "withdraw" -> actionFactory.createWithdrawAction(
-                        pr.getWithdrawAmount(), pr.getWithdrawRate(),
-                        pr.getLowerVariationPercentage(), pr.getUpperVariationPercentage());
-                case "passive" -> actionFactory.createPassiveAction();
-                default -> throw new IllegalArgumentException("Unknown phase type: " + phaseType);
-            };
-
-            phases.add(phaseFactory.create(phaseType, specification, currentDate, taxExemptions, days, action));
-            currentDate = currentDate.plusMonths(pr.getDurationInMonths());
-        }
-
         boolean accepted = simQueue.submitWithId(simulationId, () -> {
             try {
                 startFlusher(simulationId);
+
+                float taxPercentage = request.getTaxPercentage();
+                ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
+
+                var specification = specificationFactory.create(request.getEpochDay(), overAllTaxRule, 1.02D);
+
+                var currentDate = dateFactory.dateOf(
+                        request.getStartDate().getYear(),
+                        request.getStartDate().getMonth(),
+                        request.getStartDate().getDayOfMonth());
+
+                List<IPhase> phases = new LinkedList<>();
+                for (PhaseRequest pr : request.getPhases()) {
+                    List<ITaxExemption> taxExemptions = new LinkedList<>();
+                    for (String taxExemption : pr.getTaxRules()) {
+                        taxExemptions.add(taxExemptionFactory.create(taxExemption));
+                    }
+                    long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
+                    String phaseType = pr.getPhaseType().toLowerCase();
+
+                    IAction action = switch (phaseType) {
+                        case "deposit" -> actionFactory.createDepositAction(
+                                pr.getInitialDeposit(), pr.getMonthlyDeposit(), pr.getYearlyIncreaseInPercentage());
+                        case "withdraw" -> actionFactory.createWithdrawAction(
+                                pr.getWithdrawAmount(), pr.getWithdrawRate(),
+                                pr.getLowerVariationPercentage(), pr.getUpperVariationPercentage());
+                        case "passive" -> actionFactory.createPassiveAction();
+                        default -> throw new IllegalArgumentException("Unknown phase type: " + phaseType);
+                    };
+
+                    phases.add(phaseFactory.create(phaseType, specification, currentDate, taxExemptions, days, action));
+                    currentDate = currentDate.plusMonths(pr.getDurationInMonths());
+                }
 
                 var simulationResults = simulationFactory.createSimulation().runWithProgress(
                         runs, batchSize, phases, msg -> onProgress(simulationId, msg));
