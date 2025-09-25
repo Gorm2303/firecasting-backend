@@ -10,7 +10,6 @@ import dk.gormkrings.statistics.persistence.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
@@ -30,6 +29,9 @@ public class StatisticsService {
     private final SimulationRunRepository runRepo;
     private final YearlySummaryRepository summaryRepo;
     private final @Qualifier("canonicalObjectMapper") ObjectMapper canonicalObjectMapper;
+
+    @PersistenceContext
+    private EntityManager em;
 
     /** lookup an existing runId by input params (dedup) */
     @Transactional(readOnly = true)
@@ -52,25 +54,34 @@ public class StatisticsService {
         String inputJson = toCanonicalJson(inputParams);
         String inputHash = sha256Hex(inputJson);
 
-        // Create a brand-new run row
+        // 1) Persist parent RUN first
         var run = new SimulationRunEntity();
-        run.setId(simulationId);
+        run.setId(simulationId);                   // we assign the UUID ourselves
         run.setCreatedAt(OffsetDateTime.now());
         run.setInputJson(inputJson);
         run.setInputHash(inputHash);
-        runRepo.save(run); // id is provided by us
+        runRepo.save(run);
 
-        // Insert summaries (append-only); use Hibernate batching (configured) for performance
+        // IMPORTANT: flush so the row exists; then use a managed reference for children
+        em.flush();
+        final SimulationRunEntity runRef = em.getReference(SimulationRunEntity.class, simulationId);
+
+        // 2) Insert children, always setting the managed runRef
         for (int i = 0; i < summaries.size(); i++) {
-            var dto = summaries.get(i);
+            var dto  = summaries.get(i);
             var grid = percentileGrids.get(i);
             if (grid == null || grid.length != 101) {
                 throw new IllegalArgumentException("Each percentile grid must have length 101.");
             }
-            var ent = YearlySummaryMapper.toEntity(dto, run, grid);
+
+            var ent = YearlySummaryMapper.toEntity(dto, runRef, grid); // <-- pass runRef
+            // If your mapper does NOT use the given run instance, set it explicitly:
+            // ent.setRun(runRef);
+
             summaryRepo.save(ent);
-            // (Optional) flush/clear every N rows if very large:
-            // if ((i + 1) % 500 == 0) { summaryRepo.flush(); entityManager.clear(); }
+
+            // optional batching relief
+            // if ((i + 1) % 500 == 0) { em.flush(); em.clear(); }
         }
         return simulationId;
     }
