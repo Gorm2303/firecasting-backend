@@ -152,7 +152,7 @@ public class FirecastingController {
         var existingId = statisticsService.findExistingRunIdForInput(request);
         if (existingId.isPresent()) {
             log.info("Dedup hit: reusing existing simulation {}", existingId.get());
-            ResponseEntity.ok(Map.of("id", existingId.get()));
+            return ResponseEntity.ok(Map.of("id", existingId.get()));
         }
 
         int totalMonths = request.getPhases().stream().mapToInt(PhaseRequest::getDurationInMonths).sum();
