@@ -148,22 +148,30 @@ public class FirecastingController {
             produces = MediaType.APPLICATION_JSON_VALUE // <-- force JSON
 )
     public ResponseEntity<Map<String,String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
-        // 1) Dedup: if we’ve already computed this exact input, reuse that runId and DO NOT start a new run
-        var existingId = statisticsService.findExistingRunIdForInput(request);
-        if (existingId.isPresent()) {
-            log.info("Dedup hit: reusing existing simulation {}", existingId.get());
-            return ResponseEntity.ok(Map.of("id", existingId.get()));
+        // --- 0) Dedup FIRST, return immediately if hit ---
+        try {
+            var existingId = statisticsService.findExistingRunIdForInput(request);
+            if (existingId.isPresent()) {
+                log.info("[/start] Dedup hit -> {}", existingId.get());
+                return ResponseEntity.ok(Map.of("id", existingId.get())); // <-- MUST return
+            }
+            log.info("[/start] Dedup miss -> creating new run");
+        } catch (Exception e) {
+            // If something goes wrong during hashing/lookup, return a clean 400 with the message
+            log.error("[/start] Dedup check failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid input for dedup: " + e.getMessage()));
         }
 
+        // --- 1) Validate simple invariants before any heavy work ---
         int totalMonths = request.getPhases().stream().mapToInt(PhaseRequest::getDurationInMonths).sum();
         if (totalMonths > 1200) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("Max duration exceeded", "Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")"));
+                    .body(Map.of("error", "Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")"));
         }
 
-        // 2) Always mint a NEW run id
+        // --- 2) New run id, enqueue job, respond 202 with JSON {id} ---
         final String simulationId = UUID.randomUUID().toString();
-        log.info("Starting NEW simulation with id: {} - {}", simulationId, request.getOverallTaxRule());
+        log.info("[/start] New run -> {} - {}", simulationId, request.getOverallTaxRule());
 
         float taxPercentage = request.getTaxPercentage();
         ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
@@ -209,31 +217,26 @@ public class FirecastingController {
 
                 var summaries = aggregationService.aggregateResults(
                         simulationResults, simulationId, msg -> onProgress(simulationId, msg));
-
                 var grids = aggregationService.buildPercentileGrids(simulationResults);
 
-                // ⬇️ pure inserts (no delete/clear)
+                // Pure inserts (no delete/clear)
                 statisticsService.insertNewRunWithSummaries(simulationId, request, summaries, grids);
 
                 flushOnce(simulationId);
                 broadcastEvent(simulationId, SseEmitter.event().name("completed")
                         .data(summaries, MediaType.APPLICATION_JSON));
-                stopFlusher(simulationId);
-
-                var list = emitters.remove(simulationId);
-                if (list != null) for (var em : list) try { em.complete(); } catch (Exception ignore) {}
-
             } catch (Exception e) {
-                stopFlusher(simulationId);
+                log.error("Simulation failed {}", simulationId, e);
                 var list = emitters.remove(simulationId);
                 if (list != null) for (var em : list) try { em.completeWithError(e); } catch (Exception ignore) {}
-                log.error("Simulation failed {}", simulationId, e);
-                return; // IMPORTANT: do not rethrow from the background thread
+            } finally {
+                stopFlusher(simulationId);
+                var list = emitters.remove(simulationId);
+                if (list != null) for (var em : list) try { em.complete(); } catch (Exception ignore) {}
             }
         });
 
-
-        if (!accepted) return ResponseEntity.status(429).body(Map.of ("Queue full", "Queue full. Try again later."));
+        if (!accepted) return ResponseEntity.status(429).body(Map.of("error", "Queue full. Try again later."));
 
         enqueueState(simulationId, "queued", "queued");
         return ResponseEntity.accepted().body(Map.of("id", simulationId));
