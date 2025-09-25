@@ -10,8 +10,11 @@ import dk.gormkrings.statistics.persistence.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +30,9 @@ public class StatisticsService {
     private final SimulationRunRepository runRepo;
     private final YearlySummaryRepository summaryRepo;
     private final @Qualifier("canonicalObjectMapper") ObjectMapper canonicalObjectMapper;
+
+    @PersistenceContext
+    private EntityManager em;
 
     private String toCanonicalJson(Object input) {
         try {
@@ -59,7 +65,11 @@ public class StatisticsService {
         return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
     }
 
-    @Transactional
+    /**
+     * Orchestrator: NO transaction here.
+     * Does: upsert header (tiny TX), bulk-delete old summaries (tiny TX),
+     *       insert new summaries in small chunks (many tiny TXs).
+     */
     public String upsertRunWithSummaries(String simulationId,
                                          Object inputParams,
                                          List<YearlySummary> summaries,
@@ -68,10 +78,29 @@ public class StatisticsService {
             throw new IllegalArgumentException("Summaries and grids must have same size.");
         }
 
-        // 🔁 use the same canonicalization for storage
+        // Canonical input (consistent with dedup)
         String inputJson = toCanonicalJson(inputParams);
         String inputHash = sha256Hex(inputJson);
 
+        // 1) upsert header/meta in its own short TX
+        upsertRunHeader(simulationId, inputJson, inputHash);
+
+        // 2) remove existing children with ONE SQL (don’t load the collection)
+        deleteSummariesByRun(simulationId);
+
+        // 3) insert new children in chunks to keep each TX short and use JDBC batching
+        final int CHUNK = 500; // tune: 200–1000 depending on DB
+        for (int i = 0; i < summaries.size(); i += CHUNK) {
+            int j = Math.min(i + CHUNK, summaries.size());
+            insertSummariesChunk(simulationId, summaries, percentileGrids, i, j);
+        }
+
+        return simulationId;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected void upsertRunHeader(String simulationId, String inputJson, String inputHash) {
+        // get a reference to avoid loading children
         SimulationRunEntity run = runRepo.findById(simulationId).orElseGet(() -> {
             SimulationRunEntity r = new SimulationRunEntity();
             r.setId(simulationId);
@@ -80,18 +109,39 @@ public class StatisticsService {
         });
         run.setInputJson(inputJson);
         run.setInputHash(inputHash);
+        runRepo.save(run);
+    }
 
-        run.getSummaries().clear();
-        for (int i = 0; i < summaries.size(); i++) {
-            YearlySummary dto = summaries.get(i);
-            Double[] grid = percentileGrids.get(i);
-            if (grid == null || grid.length != 1001) {
-                throw new IllegalArgumentException("Each percentile grid must have length 1001.");
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected void deleteSummariesByRun(String simulationId) {
+        summaryRepo.deleteByRunId(simulationId); // bulk delete JPQL/SQL
+        // ensure delete is flushed now
+        em.flush();
+        em.clear();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected void insertSummariesChunk(String simulationId,
+                                        List<YearlySummary> summaries,
+                                        List<Double[]> grids,
+                                        int from, int to) {
+
+        // Avoid loading the parent: use a reference
+        SimulationRunEntity runRef = em.getReference(SimulationRunEntity.class, simulationId);
+
+        for (int k = from; k < to; k++) {
+            YearlySummary dto = summaries.get(k);
+            Double[] grid = grids.get(k);
+            if (grid == null || grid.length != 101) {
+                throw new IllegalArgumentException("Each percentile grid must have length 101.");
             }
-            run.getSummaries().add(YearlySummaryMapper.toEntity(dto, run, grid));
+            var ent = YearlySummaryMapper.toEntity(dto, runRef, grid);
+            summaryRepo.save(ent);
         }
 
-        return runRepo.save(run).getId();
+        // Trigger batched INSERTs now, then detach to keep persistence context small
+        em.flush();
+        em.clear();
     }
 
     public boolean hasCompletedSummaries(String runId) {

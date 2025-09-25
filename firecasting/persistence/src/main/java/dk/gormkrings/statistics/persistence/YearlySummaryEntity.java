@@ -50,7 +50,7 @@ public class YearlySummaryEntity {
     @Column(name = "cvar_value")      private double cvar;
     @Column(name = "neg_capital_pct") private double negativeCapitalPercentage;
 
-    // 1001 doubles: p0..p100 at 0.1% increments
+    // 101 doubles: p0..p100 at 1% increments
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "percentiles", columnDefinition = "double precision[]", nullable = false)
     private Double[] percentiles;   // <- use wrapper array with Hibernate 6

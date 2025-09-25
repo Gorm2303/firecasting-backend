@@ -59,7 +59,7 @@ public class SimulationAggregationService {
     }
 
     /**
-     * Build 1001-point percentile grids (0.0%..100.0%) per (phase,year), NO interpolation.
+     * Build 101-point percentile grids (0.0%..100.0%) per (phase,year), NO interpolation.
      * Order matches aggregateResults: year ASC, phaseName ASC.
      */
     public List<Double[]> buildPercentileGrids(List<IRunResult> results) {
@@ -73,7 +73,7 @@ public class SimulationAggregationService {
                     .sorted()
                     .boxed()                         // turn DoubleStream -> Stream<Double>
                     .toArray(Double[]::new);         // -> Double[]
-            grids.add(buildNoInterpolationGrid(samples)); // 1001 points
+            grids.add(buildNoInterpolationGrid(samples)); // 101 points
         }
         return grids;
     }
@@ -217,19 +217,19 @@ public class SimulationAggregationService {
     // ---------- grid builder: NO interpolation ----------
 
     /**
-     * 1001-point grid using EDF inverse (Type-1, no interpolation).
-     * For p in {0/1000..1000/1000}, index = ceil(p*n)-1 clamped to [0..n-1].
+     * 101-point grid using EDF inverse (Type-1, no interpolation).
+     * For p in {0/100..100/100}, index = ceil(p*n)-1 clamped to [0..n-1].
      * If no samples, returns an all-NaN grid.
      */
     private static Double[] buildNoInterpolationGrid(Double[] sortedAsc) {
-        Double[] grid = new Double[1001];
+        Double[] grid = new Double[101];
         int n = sortedAsc.length;
         if (n == 0) {
             Arrays.fill(grid, Double.NaN);
             return grid;
         }
-        for (int i = 0; i <= 1000; i++) {
-            double p = i / 1000.0;
+        for (int i = 0; i <= 100; i++) {
+            double p = i / 100.0;
             int idx;
             if (p <= 0.0) idx = 0;
             else if (p >= 1.0) idx = n - 1;

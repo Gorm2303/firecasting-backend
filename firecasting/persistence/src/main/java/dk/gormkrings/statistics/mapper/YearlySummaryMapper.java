@@ -23,7 +23,7 @@ public interface YearlySummaryMapper {
         d.setVar(e.getVar());
         d.setCvar(e.getCvar());
         d.setNegativeCapitalPercentage(e.getNegativeCapitalPercentage());
-        // Note: your DTO doesn't have the 1001-point grid; expose it via another DTO/endpoint if needed.
+        // Note: your DTO doesn't have the 101-point grid; expose it via another DTO/endpoint if needed.
         return d;
     }
 

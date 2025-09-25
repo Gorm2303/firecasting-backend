@@ -5,18 +5,27 @@ spring:
     compose:
       enabled: false
   datasource:
-    url: jdbc:postgresql://db:5432/appdb
+    url: jdbc:postgresql://db:5432/appdb?reWriteBatchedInserts=true
     username: appuser
     password: ${DB_PASSWORD:devpass}
-
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 5
+      connection-timeout: 30000
+      leak-detection-threshold: 20000
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
-      hibernate.format_sql: false
-      hibernate.show_sql: false
-      hibernate.default_schema: public
-
+      hibernate:
+        format_sql: false
+        show_sql: false
+        default_schema: public
+        jdbc.batch_size: 500
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+    open-in-view: false
   flyway:
     enabled: true
     schemas: public
