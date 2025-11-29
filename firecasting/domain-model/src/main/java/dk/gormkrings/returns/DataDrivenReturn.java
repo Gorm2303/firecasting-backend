@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +19,6 @@ import java.util.List;
 @Component
 @Scope("prototype")
 @Getter
-@ConfigurationProperties(prefix = "returner.data-driven")
 public class DataDrivenReturn implements IReturner {
     private IRandomVariable randomVariable;
 
@@ -28,9 +26,8 @@ public class DataDrivenReturn implements IReturner {
     private IDistributionFitter distributionFitter;
     private IRandomNumberGenerator randomNumberGenerator;
     @Setter
-    private double dt;
-    @Setter
-    private String csvFilePath;
+    private double dt = 0.003968254;
+    private final String csvFilePath = "/dk/gormkrings/returns/Historical-Prices-DJIA.csv";
 
     @Autowired
     public DataDrivenReturn(

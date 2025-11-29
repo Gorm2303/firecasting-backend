@@ -25,6 +25,7 @@ import dk.gormkrings.ui.generator.UISchemaGenerator;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +41,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
+@Profile("!local") // only active when NOT in local mode
 @RestController
 @RequestMapping("/api/simulation")
 public class FirecastingController {
@@ -181,7 +183,7 @@ public class FirecastingController {
                 float taxPercentage = request.getTaxPercentage();
                 ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
 
-                var specification = specificationFactory.create(request.getEpochDay(), overAllTaxRule, 1.02D);
+                var specification = specificationFactory.create(request.getEpochDay(), overAllTaxRule, "dataDrivenReturn", 1.02D);
 
                 var currentDate = dateFactory.dateOf(
                         request.getStartDate().getYear(),

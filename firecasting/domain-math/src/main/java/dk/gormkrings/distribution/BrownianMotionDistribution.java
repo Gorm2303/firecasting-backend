@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component("brownianMotion")
-@ConfigurationProperties(prefix = "distribution.brownian")
 @Setter
 @Getter
 public class BrownianMotionDistribution implements IDistribution {
@@ -17,9 +16,9 @@ public class BrownianMotionDistribution implements IDistribution {
      * volatility the volatility (standard deviation) for the stock
      * dt         the time step to simulate (for daily simulation, use 1/252)
      */
-    private double drift;
-    private double volatility;
-    private double dt; // time step
+    private double drift = 0.07;
+    private double volatility = 0.20;
+    private double dt = 0.003968254; // time step
 
     @Override
     public double sample(IRandomNumberGenerator rng) {

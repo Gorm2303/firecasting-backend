@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component("normal")
-@ConfigurationProperties(prefix = "distribution.normal")
 @Setter
 @Getter
 public class NormalDistribution implements IDistribution {
@@ -18,9 +17,9 @@ public class NormalDistribution implements IDistribution {
      * standardDeviation the standard deviation (annualized if dt is a fraction of a year)
      * dt                the time step (for daily simulation, use 1/252)
      */
-    private double mean;
-    private double standardDeviation;
-    private double dt; // time step
+    private double mean = 0.07;
+    private double standardDeviation = 0.20;
+    private double dt = 0.003968254; // time step
 
     @Override
     public double sample(IRandomNumberGenerator rng) {

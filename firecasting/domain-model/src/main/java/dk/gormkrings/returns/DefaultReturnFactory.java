@@ -9,9 +9,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component("defaultReturnFactory")
 public class DefaultReturnFactory implements IReturnFactory {
-    @Value("${returner.selected:simpleDailyReturn}")
-    private String returner;
-
     private final ApplicationContext context;
 
     @Autowired
@@ -20,7 +17,7 @@ public class DefaultReturnFactory implements IReturnFactory {
     }
 
     @Override
-    public IReturner createReturn() {
+    public IReturner createReturn(String returner) {
         IReturner returnerClass = switch (returner) {
             case "distributionReturn" -> context.getBean(DistributionReturn.class);
             case "dataDrivenReturn" -> context.getBean(DataDrivenReturn.class);

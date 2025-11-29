@@ -10,15 +10,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component("tDistribution")
-@ConfigurationProperties(prefix = "distribution.t")
 @Setter
 @Getter
 public class TDistributionImpl implements IDistribution {
     private TDistribution tDistribution;
-    private double mu;
-    private double sigma;
-    private double nu;
-    private double dt;
+    private double mu = 3.8;
+    private double sigma = 0.609;
+    private double nu = 3.6;
+    private double dt = 0.003968254;
 
     @PostConstruct
     public void init() {

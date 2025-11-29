@@ -12,17 +12,9 @@ public class DistributionManager implements IDistributionFactory {
 
     private final Map<String, IDistribution> distributionMap;
 
-    @Value("${distribution.selected:brownianMotion}")
-    private String distribution;
-
     // Spring will auto-wire the Map with all IDistribution beans available in the context.
     public DistributionManager(Map<String, IDistribution> distributionMap) {
         this.distributionMap = distributionMap;
-    }
-
-    @Override
-    public IDistribution createDistribution() {
-        return distributionMap.get(distribution);
     }
 
     @Override

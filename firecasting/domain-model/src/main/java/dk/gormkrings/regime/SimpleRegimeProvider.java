@@ -8,24 +8,21 @@ import org.springframework.stereotype.Component;
 import java.util.SplittableRandom;
 
 @Setter
+@Getter
 @Component
-@ConfigurationProperties(prefix = "regime")
 public class SimpleRegimeProvider implements IRegimeProvider {
 
-    private int currentRegime = 0;
-
+    private int currentRegime = 1;
     /**
      * Transition matrix can be configured from application.properties.
      * By default, it is set as:
      * state 0: 90% chance to remain in 0, 10% to switch to 1
      * state 1: 15% chance to switch to 0, 85% to remain in 1
      */
-    @Getter
     private double[][] transitionMatrix = {
             {0.90, 0.10},
             {0.15, 0.85}
     };
-    @Getter
     private SplittableRandom random = new SplittableRandom();
 
     @Override

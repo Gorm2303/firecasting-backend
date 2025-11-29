@@ -17,24 +17,8 @@ public class DistributionFactory implements IDistributionFactory {
 
     private final ApplicationContext context;
 
-    @Value("${distribution.selected:brownianMotion}")
-    private String distribution;
-
     public DistributionFactory(ApplicationContext context) {
         this.context = context;
-    }
-
-    @Override
-    public IDistribution createDistribution() {
-        IDistribution dClass = switch (distribution) {
-            case "brownianMotion" -> context.getBean(BrownianMotionDistribution.class);
-            case "tDistribution" -> context.getBean(TDistributionImpl.class);
-            case "regimeBased" -> context.getBean(RegimeBasedDistribution.class);
-            default -> context.getBean(NormalDistribution.class);
-        };
-
-        log.info("Creating new {} distribution", distribution.toUpperCase());
-        return dClass;
     }
 
     @Override

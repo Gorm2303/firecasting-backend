@@ -4,7 +4,7 @@ import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxRule;
 
 public interface ISpecificationFactory {
-    ISpecification create(long startTime, ITaxRule taxRule);
-    ISpecification create(long startTime, ITaxRule taxRule, double inflation);
+    ISpecification create(long startTime, ITaxRule taxRule, String returnType);
+    ISpecification create(long startTime, ITaxRule taxRule, String returnType, double inflation);
 
 }

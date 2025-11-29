@@ -19,12 +19,12 @@ public class DefaultSpecificationFactory implements ISpecificationFactory {
     }
 
     @Override
-    public ISpecification create(long startTime, ITaxRule taxRule) {
-        return new Specification(startTime, taxRule, returnFactory.createReturn(), inflationFactory.createInflation());
+    public ISpecification create(long startTime, ITaxRule taxRule, String returnType) {
+        return new Specification(startTime, taxRule, returnFactory.createReturn(returnType), inflationFactory.createInflation());
     }
 
     @Override
-    public ISpecification create(long startTime, ITaxRule taxRule, double inflation) {
-        return new Specification(startTime, taxRule, returnFactory.createReturn(), inflationFactory.createInflation(inflation));
+    public ISpecification create(long startTime, ITaxRule taxRule, String returnType, double inflation) {
+        return new Specification(startTime, taxRule, returnFactory.createReturn(returnType), inflationFactory.createInflation(inflation));
     }
 }

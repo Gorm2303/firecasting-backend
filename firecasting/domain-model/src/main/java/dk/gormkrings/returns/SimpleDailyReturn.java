@@ -10,9 +10,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Setter
 @Getter
-@ConfigurationProperties(prefix = "returner.simple")
 public class SimpleDailyReturn implements IReturner {
-    private float averagePercentage;
+    private float averagePercentage = 0.07F;
 
     public SimpleDailyReturn() {
         log.debug("Initializing SimpleDailyReturn: {}", averagePercentage);

@@ -14,8 +14,7 @@ import java.io.*;
 public class DataAverageInflation implements IInflation {
     private double averageInflation;
 
-    @Value("${inflation.csv-file-path}")
-    private String csvFilePath;
+    private final String csvFilePath = "/dk/gormkrings/inflation/inflation.csv";
 
     public DataAverageInflation() {
     }

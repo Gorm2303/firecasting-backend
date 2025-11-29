@@ -25,8 +25,8 @@ import static dk.gormkrings.statistics.StatisticsUtils.*;
 @Getter
 public class SimulationAggregationService {
 
-    private double lowerThresholdPercentile = 0.05;
-    private double upperThresholdPercentile = 0.95;
+    private double lowerThresholdPercentile = 0;
+    private double upperThresholdPercentile = 1;
 
     // Composite key: (phase, year)
     private record Key(String phaseName, int year) {}
