@@ -1,5 +1,6 @@
 package dk.gormkrings.returns;
 
+import dk.gormkrings.distribution.RegimeBasedDistribution;
 import dk.gormkrings.distribution.factory.HistoricalDataProcessor;
 import dk.gormkrings.math.distribution.IDistributionFitter;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
@@ -67,6 +68,13 @@ public class DataDrivenReturn implements IReturner {
     public double calculateReturn(double amount) {
         double sample = randomVariable.sample();
         return amount * Math.exp(sample) - amount;
+    }
+
+    @Override
+    public void onMonthEnd() {
+        if (randomVariable.getDistribution() instanceof RegimeBasedDistribution regimeBased) {
+            regimeBased.onMonthEnd();
+        }
     }
 
     @Override

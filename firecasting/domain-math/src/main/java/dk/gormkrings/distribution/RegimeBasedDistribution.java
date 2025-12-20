@@ -42,6 +42,16 @@ public class RegimeBasedDistribution implements IDistribution {
         return regimeDistributions[currentRegime].sample(rng);
     }
 
+    /**
+     * Advance the regime provider at the end of a month.
+     *
+     * <p>This allows the simulation to keep daily returns while switching regimes monthly.
+     * Providers that do not implement month-based switching will simply ignore this hook.</p>
+     */
+    public void onMonthEnd() {
+        regimeProvider.onMonthEnd();
+    }
+
     @Override
     public IDistribution copy() {
         // Create copies for each regime distribution.

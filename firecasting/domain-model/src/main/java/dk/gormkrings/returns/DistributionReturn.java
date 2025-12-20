@@ -1,5 +1,6 @@
 package dk.gormkrings.returns;
 
+import dk.gormkrings.distribution.RegimeBasedDistribution;
 import dk.gormkrings.math.randomVariable.IRandomVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -19,6 +20,13 @@ public class DistributionReturn implements IReturner {
     public double calculateReturn(double amount) {
         double sample = randomVariable.sample();
         return amount * Math.exp(sample) - amount;
+    }
+
+    @Override
+    public void onMonthEnd() {
+        if (randomVariable.getDistribution() instanceof RegimeBasedDistribution regimeBased) {
+            regimeBased.onMonthEnd();
+        }
     }
 
     @Override
