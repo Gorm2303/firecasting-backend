@@ -87,7 +87,8 @@ public class SimulationRunner {
                 spec.getEpochDay(),
                 overAllTaxRule,
                 spec.getReturnType(),
-                spec.getInflationFactor()
+                spec.getInflationFactor(),
+                spec.getReturnerConfig()
         );
 
         // Build phases

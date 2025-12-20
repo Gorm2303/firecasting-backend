@@ -14,14 +14,17 @@ public class DefaultRandomNumberGenerator implements IRandomNumberGenerator {
     private long seed = 1; // Negative values makes it stochastic
 
     public DefaultRandomNumberGenerator() {
+        this.seed = -1;
         this.random = new SplittableRandom();
     }
 
     private DefaultRandomNumberGenerator(SplittableRandom random) {
+        this.seed = -1;
         this.random = random.split();
     }
 
     public DefaultRandomNumberGenerator(long seed) {
+        this.seed = seed;
         this.random = new SplittableRandom(seed);
     }
 

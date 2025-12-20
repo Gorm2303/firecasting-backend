@@ -2,6 +2,7 @@ package dk.gormkrings.simulation;
 
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.simulation.data.Date;
+import dk.gormkrings.returns.ReturnerConfig;
 
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +30,9 @@ public final class SimulationRunSpec {
     /** Inflation factor used by {@code IInflationFactory} (e.g. 1.02 for 2%). */
     private final double inflationFactor;
 
+    /** Optional returner configuration (advanced-mode). */
+    private final ReturnerConfig returnerConfig;
+
     public SimulationRunSpec(
             Date startDate,
             List<PhaseRequest> phases,
@@ -42,6 +46,24 @@ public final class SimulationRunSpec {
         this.taxPercentage = taxPercentage;
         this.returnType = returnType;
         this.inflationFactor = inflationFactor;
+        this.returnerConfig = null;
+    }
+
+    public SimulationRunSpec(
+            Date startDate,
+            List<PhaseRequest> phases,
+            String overallTaxRule,
+            float taxPercentage,
+            String returnType,
+            double inflationFactor,
+            ReturnerConfig returnerConfig) {
+        this.startDate = startDate;
+        this.phases = phases;
+        this.overallTaxRule = overallTaxRule;
+        this.taxPercentage = taxPercentage;
+        this.returnType = returnType;
+        this.inflationFactor = inflationFactor;
+        this.returnerConfig = returnerConfig;
     }
 
     public Date getStartDate() {
@@ -70,6 +92,10 @@ public final class SimulationRunSpec {
 
     public double getInflationFactor() {
         return inflationFactor;
+    }
+
+    public ReturnerConfig getReturnerConfig() {
+        return returnerConfig;
     }
 
     public int getTotalMonths() {
