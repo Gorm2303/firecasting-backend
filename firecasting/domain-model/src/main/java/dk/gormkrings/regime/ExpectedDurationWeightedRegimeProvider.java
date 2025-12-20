@@ -66,19 +66,20 @@ public final class ExpectedDurationWeightedRegimeProvider implements IRegimeProv
 
     @Override
     public int getCurrentRegime() {
-        int n = expectedDurationMonths.length;
+        return currentRegime;
+    }
 
+    @Override
+    public void onMonthEnd() {
         double duration = expectedDurationMonths[currentRegime];
         double pSwitch = (duration <= 0.0) ? 1.0 : (1.0 / duration);
         pSwitch = clamp01(pSwitch);
 
         if (random.nextDouble() >= pSwitch) {
-            return currentRegime;
+            return;
         }
 
-        int next = sampleNextRegime(currentRegime);
-        currentRegime = next;
-        return currentRegime;
+        currentRegime = sampleNextRegime(currentRegime);
     }
 
     private int sampleNextRegime(int from) {
