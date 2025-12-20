@@ -6,11 +6,13 @@ import dk.gormkrings.math.distribution.IDistributionFitter;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
 import dk.gormkrings.math.randomVariable.IRandomVariable;
 import dk.gormkrings.randomVariable.DefaultRandomVariable;
+import dk.gormkrings.simulation.ReturnStep;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +30,9 @@ public class DataDrivenReturn implements IReturner {
     private IRandomNumberGenerator randomNumberGenerator;
     @Setter
     private double dt = 0.003968254;
+
+    @Value("${simulation.return.step:daily}")
+    private String returnStep;
     private final String csvFilePath = "/dk/gormkrings/returns/Historical-Prices-DJIA.csv";
 
     @Autowired
@@ -46,6 +51,8 @@ public class DataDrivenReturn implements IReturner {
 
     @PostConstruct
     public void init() {
+        // Align dt used for fitting with the configured simulation return step.
+        this.dt = ReturnStep.fromProperty(returnStep).toDt();
         fitDistribution(csvFilePath, historicalDataProcessor, distributionFitter, dt);
         randomVariable.setRandomNumberGenerator(randomNumberGenerator);
         log.info("Data Driven Return - Distribution {}", randomVariable.getDistribution().toString());

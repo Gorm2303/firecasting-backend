@@ -11,9 +11,11 @@ import dk.gormkrings.regime.ExpectedDurationWeightedRegimeProvider;
 import dk.gormkrings.regime.IRegimeProvider;
 import dk.gormkrings.randomNumberGenerator.DefaultRandomNumberGenerator;
 import dk.gormkrings.randomVariable.DefaultRandomVariable;
+import dk.gormkrings.simulation.ReturnStep;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -21,11 +23,21 @@ import org.springframework.stereotype.Component;
 public class DefaultReturnFactory implements IReturnFactory {
     private final ApplicationContext context;
     private final DistributionFactory distributionFactory;
+    private final ReturnStep returnStep;
 
     @Autowired
-    public DefaultReturnFactory(ApplicationContext context, DistributionFactory distributionFactory) {
+    public DefaultReturnFactory(
+            ApplicationContext context,
+            DistributionFactory distributionFactory,
+            @Value("${simulation.return.step:daily}") String returnStep
+    ) {
         this.context = context;
         this.distributionFactory = distributionFactory;
+        this.returnStep = ReturnStep.fromProperty(returnStep);
+    }
+
+    private double resolveDt() {
+        return returnStep.toDt();
     }
 
     @Override
@@ -94,6 +106,18 @@ public class DefaultReturnFactory implements IReturnFactory {
 
         IDistribution dist = distributionFactory.createDistribution(beanKey);
 
+        // Apply configured dt so that annualized parameters scale to the chosen return step.
+        double dt = resolveDt();
+        if (dist instanceof NormalDistribution normal) {
+            normal.setDt(dt);
+        }
+        if (dist instanceof BrownianMotionDistribution brownian) {
+            brownian.setDt(dt);
+        }
+        if (dist instanceof TDistributionImpl tDist) {
+            tDist.setDt(dt);
+        }
+
         if (dist instanceof NormalDistribution normal && config.getNormal() != null) {
             if (config.getNormal().getMean() != null) normal.setMean(config.getNormal().getMean());
             if (config.getNormal().getStandardDeviation() != null) {
@@ -123,10 +147,7 @@ public class DefaultReturnFactory implements IReturnFactory {
     private IDistribution createConfiguredRegimeBasedDistribution(ReturnerConfig.RegimeBasedParams regimeBased, Long seed) {
         // Defaults: 3 regimes, monthly tick.
         final int expectedRegimes = 3;
-        final int tickMonths = (regimeBased != null && regimeBased.getTickMonths() != null)
-                ? Math.max(1, regimeBased.getTickMonths())
-                : 1;
-        final double dt = tickMonths / 12.0;
+        final double dt = resolveDt();
 
         if (regimeBased == null || regimeBased.getRegimes() == null || regimeBased.getRegimes().size() < expectedRegimes) {
             throw new IllegalArgumentException("regimeBased.regimes must contain at least 3 regimes (0..2)");
