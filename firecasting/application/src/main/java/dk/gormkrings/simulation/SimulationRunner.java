@@ -52,30 +52,58 @@ public class SimulationRunner {
             int batchSize,
             IProgressCallback onProgress) {
 
-        // Overall tax rule for this run
-        float taxPercentage = request.getTaxPercentage();
-        ITaxRule overAllTaxRule = taxRuleFactory.create(request.getOverallTaxRule(), taxPercentage);
-
-        // Specification: currently hard-coded to "dataDrivenReturn" + 2% inflation
-        var specification = specificationFactory.create(
-                request.getEpochDay(),
-                overAllTaxRule,
+        // Preserve existing behavior for the legacy endpoint:
+        //  - returnType: dataDrivenReturn
+        //  - inflationFactor: 1.02
+        var spec = new SimulationRunSpec(
+                request.getStartDate(),
+                request.getPhases(),
+                request.getOverallTaxRule(),
+                request.getTaxPercentage(),
                 "dataDrivenReturn",
                 1.02D
+        );
+        return runSimulation(simulationId, spec, request, runs, batchSize, onProgress);
+    }
+
+    /**
+     * Runs a simulation based on an internal run spec, and persists using the provided input object.
+     *
+     * @param inputForStorage Object persisted for dedup/hash and later retrieval. For legacy flows this
+     *                        should be the original request DTO to keep behavior unchanged.
+     */
+    public List<IRunResult> runSimulation(
+            String simulationId,
+            SimulationRunSpec spec,
+            Object inputForStorage,
+            int runs,
+            int batchSize,
+            IProgressCallback onProgress) {
+
+        // Overall tax rule for this run
+        ITaxRule overAllTaxRule = taxRuleFactory.create(spec.getOverallTaxRule(), spec.getTaxPercentage());
+
+        var specification = specificationFactory.create(
+                spec.getEpochDay(),
+                overAllTaxRule,
+                spec.getReturnType(),
+                spec.getInflationFactor()
         );
 
         // Build phases
         var currentDate = dateFactory.dateOf(
-                request.getStartDate().getYear(),
-                request.getStartDate().getMonth(),
-                request.getStartDate().getDayOfMonth()
+                spec.getStartDate().getYear(),
+                spec.getStartDate().getMonth(),
+                spec.getStartDate().getDayOfMonth()
         );
 
         List<IPhase> phases = new LinkedList<>();
-        for (PhaseRequest pr : request.getPhases()) {
+        for (PhaseRequest pr : spec.getPhases()) {
             List<ITaxExemption> taxExemptions = new LinkedList<>();
-            for (String taxExemption : pr.getTaxRules()) {
-                taxExemptions.add(taxExemptionFactory.create(taxExemption));
+            if (pr.getTaxRules() != null) {
+                for (String taxExemption : pr.getTaxRules()) {
+                    taxExemptions.add(taxExemptionFactory.create(taxExemption));
+                }
             }
 
             long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
@@ -121,7 +149,7 @@ public class SimulationRunner {
         var grids = aggregationService.buildPercentileGrids(simulationResults);
 
         // Persist run + summaries
-        statisticsService.insertNewRunWithSummaries(simulationId, request, summaries, grids);
+        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids);
 
         return simulationResults;
     }
