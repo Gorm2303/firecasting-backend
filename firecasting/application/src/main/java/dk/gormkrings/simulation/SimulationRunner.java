@@ -103,7 +103,7 @@ public class SimulationRunner {
             List<ITaxExemption> taxExemptions = new LinkedList<>();
             if (pr.getTaxRules() != null) {
                 for (String taxExemption : pr.getTaxRules()) {
-                    taxExemptions.add(taxExemptionFactory.create(taxExemption));
+                                        taxExemptions.add(taxExemptionFactory.create(taxExemption, spec.getTaxExemptionConfig()));
                 }
             }
 

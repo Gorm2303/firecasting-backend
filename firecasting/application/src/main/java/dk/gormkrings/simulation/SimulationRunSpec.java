@@ -3,6 +3,7 @@ package dk.gormkrings.simulation;
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.returns.ReturnerConfig;
+import dk.gormkrings.tax.TaxExemptionConfig;
 
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +34,9 @@ public final class SimulationRunSpec {
     /** Optional returner configuration (advanced-mode). */
     private final ReturnerConfig returnerConfig;
 
+    /** Optional tax exemption overrides (advanced-mode). */
+    private final TaxExemptionConfig taxExemptionConfig;
+
     public SimulationRunSpec(
             Date startDate,
             List<PhaseRequest> phases,
@@ -47,6 +51,7 @@ public final class SimulationRunSpec {
         this.returnType = returnType;
         this.inflationFactor = inflationFactor;
         this.returnerConfig = null;
+        this.taxExemptionConfig = null;
     }
 
     public SimulationRunSpec(
@@ -56,7 +61,8 @@ public final class SimulationRunSpec {
             float taxPercentage,
             String returnType,
             double inflationFactor,
-            ReturnerConfig returnerConfig) {
+            ReturnerConfig returnerConfig,
+            TaxExemptionConfig taxExemptionConfig) {
         this.startDate = startDate;
         this.phases = phases;
         this.overallTaxRule = overallTaxRule;
@@ -64,6 +70,7 @@ public final class SimulationRunSpec {
         this.returnType = returnType;
         this.inflationFactor = inflationFactor;
         this.returnerConfig = returnerConfig;
+        this.taxExemptionConfig = taxExemptionConfig;
     }
 
     public Date getStartDate() {
@@ -96,6 +103,10 @@ public final class SimulationRunSpec {
 
     public ReturnerConfig getReturnerConfig() {
         return returnerConfig;
+    }
+
+    public TaxExemptionConfig getTaxExemptionConfig() {
+        return taxExemptionConfig;
     }
 
     public int getTotalMonths() {

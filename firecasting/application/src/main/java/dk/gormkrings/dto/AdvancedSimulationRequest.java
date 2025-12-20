@@ -3,6 +3,7 @@ package dk.gormkrings.dto;
 import dk.gormkrings.annotations.UIField;
 import dk.gormkrings.returns.ReturnerConfig;
 import dk.gormkrings.simulation.data.Date;
+import dk.gormkrings.tax.TaxExemptionConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -44,6 +45,10 @@ public class AdvancedSimulationRequest {
     /** Optional returner configuration for advanced-mode (seed, distribution parameters, etc.). */
     @Valid
     private ReturnerConfig returnerConfig;
+
+    /** Optional tax exemption overrides used when phases include tax rules (exemptioncard/stockexemption). */
+    @Valid
+    private TaxExemptionConfig taxExemptionConfig;
 
     /**
      * Inflation factor. The backend spec expects a factor (e.g. 1.02 = 2% yearly).
