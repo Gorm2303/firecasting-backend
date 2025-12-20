@@ -1,0 +1,386 @@
+{
+  "id": "advanced-simulation",
+  "title": "Advanced Simulation Setup",
+  "fields": [
+    {
+      "id": "startDate",
+      "label": "Start Date",
+      "type": "date",
+      "defaultValue": "2025-01-01"
+    },
+    {
+      "id": "taxRule",
+      "label": "Tax Rule",
+      "type": "select",
+      "options": [
+        { "value": "capital", "label": "Capital Gains" },
+        { "value": "notional", "label": "Notional Gains" }
+      ],
+      "defaultValue": "capital"
+    },
+    {
+      "id": "tax",
+      "label": "Tax Settings",
+      "type": "group",
+      "children": [
+        {
+          "id": "percentage",
+          "label": "Tax %",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "step": 0.1,
+          "defaultValue": 42
+        },
+        {
+          "id": "exemptionCard",
+          "label": "Exemption Card",
+          "type": "group",
+          "children": [
+            {
+              "id": "limit",
+              "label": "Limit",
+              "type": "number",
+              "defaultValue": 51600
+            },
+            {
+              "id": "increase",
+              "label": "Yearly Increase",
+              "type": "number",
+              "defaultValue": 1000
+            }
+          ]
+        },
+        {
+          "id": "stockExemption",
+          "label": "Stock Exemption",
+          "type": "group",
+          "children": [
+            {
+              "id": "taxRate",
+              "label": "Tax Rate",
+              "type": "number",
+              "defaultValue": 27
+            },
+            {
+              "id": "limit",
+              "label": "Limit",
+              "type": "number",
+              "defaultValue": 67500
+            },
+            {
+              "id": "increase",
+              "label": "Yearly Increase",
+              "type": "number",
+              "defaultValue": 1000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inflation",
+      "label": "Inflation",
+      "type": "group",
+      "children": [
+        {
+          "id": "averagePercentage",
+          "label": "Average Percentage",
+          "type": "number",
+          "defaultValue": 2
+        }
+      ]
+    },
+    {
+      "id": "returner",
+      "label": "Return Model",
+      "type": "group",
+      "children": [
+        {
+          "id": "type",
+          "label": "Return Type",
+          "type": "select",
+          "options": [
+            { "value": "simpleReturn", "label": "Simple Return" },
+            { "value": "dataDrivenReturn", "label": "Data-driven Return" },
+            { "value": "distributionReturn", "label": "Distribution-based Return" }
+          ],
+          "defaultValue": "simpleReturn"
+        },
+        {
+          "id": "simpleReturn",
+          "label": "Simple Return",
+          "type": "group",
+          "visibleWhen": { "path": "type", "equals": "simpleReturn" },
+          "children": [
+            {
+              "id": "averagePercentage",
+              "label": "Average Percentage",
+              "type": "number",
+              "defaultValue": 7
+            }
+          ]
+        },
+        {
+          "id": "random",
+          "label": "Randomness",
+          "type": "group",
+          "children": [
+            {
+              "id": "seed",
+              "label": "Seed (negative for stochastic)",
+              "type": "number",
+              "defaultValue": 1
+            }
+          ]
+        },
+        {
+          "id": "distribution",
+          "label": "Distribution",
+          "type": "group",
+          "visibleWhen": { "path": "type", "equals": "distributionReturn" },
+          "children": [
+            {
+              "id": "type",
+              "label": "Distribution Type",
+              "type": "select",
+              "options": [
+                { "value": "regimeBased", "label": "Regime-based" },
+                { "value": "brownianMotion", "label": "Brownian Motion" },
+                { "value": "normal", "label": "Normal" },
+                { "value": "studentT", "label": "Student-t" }
+              ],
+              "defaultValue": "normal"
+            },
+            {
+              "id": "regimeBased",
+              "label": "Regime-based Params (v1)",
+              "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "regimeBased" },
+              "children": [
+                {
+                  "id": "tickMonths",
+                  "label": "Tick (months)",
+                  "helpText": "v1 uses a fixed monthly tick (1 month).",
+                  "type": "number",
+                  "min": 1,
+                  "max": 1,
+                  "defaultValue": 1
+                },
+                {
+                  "id": "regimes",
+                  "label": "Regimes (3)",
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "defaultValue": [
+                    {
+                      "distributionType": "normal",
+                      "expectedDurationMonths": 18,
+                      "switchWeights": { "toRegime0": 0, "toRegime1": 0.5, "toRegime2": 0.5 },
+                      "normal": { "mean": 0.07, "standardDeviation": 0.15 },
+                      "studentT": { "mu": 0.07, "sigma": 0.15, "nu": 5 }
+                    },
+                    {
+                      "distributionType": "studentT",
+                      "expectedDurationMonths": 12,
+                      "switchWeights": { "toRegime0": 0.5, "toRegime1": 0, "toRegime2": 0.5 },
+                      "normal": { "mean": 0.04, "standardDeviation": 0.25 },
+                      "studentT": { "mu": 0.04, "sigma": 0.25, "nu": 4 }
+                    },
+                    {
+                      "distributionType": "normal",
+                      "expectedDurationMonths": 24,
+                      "switchWeights": { "toRegime0": 0.5, "toRegime1": 0.5, "toRegime2": 0 },
+                      "normal": { "mean": 0.02, "standardDeviation": 0.20 },
+                      "studentT": { "mu": 0.02, "sigma": 0.20, "nu": 6 }
+                    }
+                  ],
+                  "item": {
+                    "id": "regime",
+                    "label": "Regime",
+                    "type": "group",
+                    "children": [
+                      {
+                        "id": "distributionType",
+                        "label": "Distribution",
+                        "type": "select",
+                        "options": [
+                          { "value": "normal", "label": "Normal" },
+                          { "value": "studentT", "label": "Student-t" }
+                        ],
+                        "defaultValue": "normal"
+                      },
+                      {
+                        "id": "expectedDurationMonths",
+                        "label": "Expected duration (months)",
+                        "helpText": "Used to derive switch probability per month: pSwitch = 1 / duration.",
+                        "type": "number",
+                        "min": 1,
+                        "defaultValue": 12
+                      },
+                      {
+                        "id": "switchWeights",
+                        "label": "Switch weights (when leaving)",
+                        "helpText": "Weights are used only when switching away from the current regime.",
+                        "type": "group",
+                        "children": [
+                          { "id": "toRegime0", "label": "To regime 0", "type": "number", "defaultValue": 1 },
+                          { "id": "toRegime1", "label": "To regime 1", "type": "number", "defaultValue": 1 },
+                          { "id": "toRegime2", "label": "To regime 2", "type": "number", "defaultValue": 1 }
+                        ]
+                      },
+                      {
+                        "id": "normal",
+                        "label": "Normal (annualized)",
+                        "type": "group",
+                        "visibleWhen": { "path": "distributionType", "equals": "normal" },
+                        "children": [
+                          { "id": "mean", "label": "Mean", "type": "number", "defaultValue": 0.07 },
+                          { "id": "standardDeviation", "label": "Std Dev", "type": "number", "defaultValue": 0.2 }
+                        ]
+                      },
+                      {
+                        "id": "studentT",
+                        "label": "Student-t (annualized)",
+                        "type": "group",
+                        "visibleWhen": { "path": "distributionType", "equals": "studentT" },
+                        "children": [
+                          { "id": "mu", "label": "Mu", "type": "number", "defaultValue": 0.04 },
+                          { "id": "sigma", "label": "Sigma", "type": "number", "defaultValue": 0.25 },
+                          { "id": "nu", "label": "Nu", "type": "number", "defaultValue": 4 }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "brownianMotion",
+              "label": "Brownian Motion Params",
+              "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "brownianMotion" },
+              "children": [
+                { "id": "drift", "label": "Drift", "type": "number", "defaultValue": 0.07 },
+                { "id": "volatility", "label": "Volatility", "type": "number", "defaultValue": 0.2 }
+              ]
+            },
+            {
+              "id": "normal",
+              "label": "Normal Params",
+              "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "normal" },
+              "children": [
+                { "id": "mean", "label": "Mean", "type": "number", "defaultValue": 0.07 },
+                { "id": "standardDeviation", "label": "Std Dev", "type": "number", "defaultValue": 0.2 }
+              ]
+            },
+            {
+              "id": "studentT",
+              "label": "Student-t Params",
+              "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "studentT" },
+              "children": [
+                { "id": "mu", "label": "Mu", "type": "number", "defaultValue": 0.042 },
+                { "id": "sigma", "label": "Sigma", "type": "number", "defaultValue": 0.609 },
+                { "id": "nu", "label": "Nu", "type": "number", "defaultValue": 3.6 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phases",
+      "label": "Phases",
+      "type": "array",
+      "item": {
+        "id": "phase",
+        "label": "Phase",
+        "type": "group",
+        "children": [
+          {
+            "id": "phaseType",
+            "label": "Phase Type",
+            "type": "select",
+            "options": [
+              { "value": "DEPOSIT", "label": "Deposit" },
+              { "value": "PASSIVE", "label": "Passive" },
+              { "value": "WITHDRAW", "label": "Withdraw" }
+            ],
+            "defaultValue": "DEPOSIT"
+          },
+          {
+            "id": "durationInMonths",
+            "label": "Duration (months)",
+            "type": "number",
+            "defaultValue": 240
+          },
+          {
+            "id": "initialDeposit",
+            "label": "Initial Deposit",
+            "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "DEPOSIT" },
+            "defaultValue": 10000
+          },
+          {
+            "id": "monthlyDeposit",
+            "label": "Monthly Deposit",
+            "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "DEPOSIT" },
+            "defaultValue": 10000
+          },
+          {
+            "id": "yearlyIncreaseInPercentage",
+            "label": "Yearly Increase %",
+            "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "DEPOSIT" },
+            "defaultValue": 2
+          },
+          {
+            "id": "withdrawRate",
+            "label": "Withdraw Rate %",
+            "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
+            "defaultValue": 4
+          },
+          {
+            "id": "withdrawAmount",
+            "label": "Withdraw Amount",
+            "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
+            "defaultValue": 10000
+          },
+          {
+            "id": "lowerVariationPercentage",
+            "label": "Lower Variation %",
+            "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
+            "defaultValue": 10
+          },
+          {
+            "id": "upperVariationPercentage",
+            "label": "Upper Variation %",
+            "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
+            "defaultValue": 10
+          },
+          {
+            "id": "taxExemptions",
+            "label": "Tax Exemptions",
+            "type": "select",
+            "options": [
+              { "value": "NONE", "label": "None" },
+              { "value": "EXEMPTIONCARD", "label": "Exemption Card" },
+              { "value": "STOCKEXEMPTION", "label": "Stock Exemption" },
+              { "value": "BOTH", "label": "Both" }
+            ],
+            "defaultValue": "BOTH"
+          }
+        ]
+      },
+      "minItems": 1
+    }
+  ]
+}

@@ -89,9 +89,9 @@ public class FirecastingApplication implements CommandLineRunner {
 
         ITaxRule taxRule = defaultTaxRuleFactory.create("capital", 42);
 
-        ISpecification specification = specificationFactory.create(depositStartIDate.getEpochDay(), taxRule, 1.02D);
+        ISpecification specification = specificationFactory.create(depositStartIDate.getEpochDay(), taxRule, "simpleDailyReturn", 1.02D);
 
-        IAction deposit = new Deposit(10000, 10000, 0.005);
+        IAction deposit = new Deposit(10000, 10000, 0);
         IAction passive = new Passive();
         IAction withdraw = new Withdraw(0, 0.04, 0,0);
         List<ITaxExemption> depositTaxRules = new LinkedList<>(List.of(defaultTaxExemptionFactory.create("stockexemption"), defaultTaxExemptionFactory.create("exemptioncard")));

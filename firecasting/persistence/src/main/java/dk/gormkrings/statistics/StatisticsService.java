@@ -9,6 +9,7 @@ import dk.gormkrings.statistics.mapper.YearlySummaryMapper;
 import dk.gormkrings.statistics.persistence.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Profile("!local") // only active when NOT in local mode
 @RequiredArgsConstructor
 public class StatisticsService {
 

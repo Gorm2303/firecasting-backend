@@ -13,12 +13,9 @@ import org.springframework.stereotype.Component;
 @Scope("prototype")
 public class StockExemptionTax implements ITaxExemption {
     private float currentExemption = 0;
-    @Value("${tax.stock-exemption.tax-rate}")
-    private float taxRate;
-    @Value("${tax.stock-exemption.limit}")
-    private float limit = 0;
-    @Value("${tax.stock-exemption.increase}")
-    private float yearlyLimitIncrease = 0;
+    private float taxRate = 27;
+    private float limit = 67500;
+    private float yearlyLimitIncrease = 1000;
 
     public StockExemptionTax() {
     }

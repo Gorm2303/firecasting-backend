@@ -1,0 +1,103 @@
+package dk.gormkrings.simulation;
+
+import dk.gormkrings.queue.SimulationQueueService;
+import dk.gormkrings.sse.SimulationSseService;
+import dk.gormkrings.statistics.StatisticsService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class SimulationStartService {
+
+    private final SimulationQueueService simQueue;
+    private final SimulationRunner simulationRunner;
+    private final SimulationSseService sseService;
+    private final StatisticsService statisticsService;
+
+    @Value("${settings.runs}")
+    private int runs;
+
+    @Value("${settings.batch-size}")
+    private int batchSize;
+
+    /**
+     * Shared start logic used by multiple endpoints.
+     *
+     * @param inputForDedupAndStorage the object that should be serialized for dedup hashing and persisted
+     *                                as "inputJson". For the legacy endpoint this must be the legacy
+     *                                request DTO to preserve behavior.
+     */
+    public ResponseEntity<Map<String, String>> startSimulation(
+            String logPrefix,
+            SimulationRunSpec spec,
+            Object inputForDedupAndStorage) {
+
+        // 0) Dedup FIRST, return immediately if hit
+        try {
+            Optional<String> existingId = statisticsService.findExistingRunIdForInput(inputForDedupAndStorage);
+            if (existingId.isPresent()) {
+                log.info("[{}] Dedup hit -> {}", logPrefix, existingId.get());
+                return ResponseEntity.ok(Map.of("id", existingId.get()));
+            }
+            log.info("[{}] Dedup miss -> creating new run", logPrefix);
+        } catch (Exception e) {
+            log.error("[{}] Dedup check failed", logPrefix, e);
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid input for dedup: " + e.getMessage()));
+        }
+
+        // 1) Simple invariant: max duration
+        int totalMonths = spec.getTotalMonths();
+        if (totalMonths > 1200) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error",
+                            "Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")"));
+        }
+
+        // 2) New run id, enqueue job, respond 202 with JSON {id}
+        final String simulationId = UUID.randomUUID().toString();
+        log.info("[{}] New run -> {}", logPrefix, simulationId);
+
+        boolean accepted = simQueue.submitWithId(simulationId, () -> {
+            try {
+                // Start SSE flushing pipeline
+                sseService.startFlusher(simulationId);
+
+                simulationRunner.runSimulation(
+                        simulationId,
+                        spec,
+                        inputForDedupAndStorage,
+                        runs,
+                        batchSize,
+                        msg -> sseService.onProgressMessage(simulationId, msg)
+                );
+
+                // Fetch summaries from DB and emit "completed" with data
+                var summaries = statisticsService.getSummariesForRun(simulationId);
+                sseService.sendCompleted(simulationId, summaries);
+            } catch (Exception e) {
+                log.error("Simulation failed {}", simulationId, e);
+                sseService.stopFlusherWithError(simulationId, e);
+            } finally {
+                sseService.stopFlusherAndComplete(simulationId);
+            }
+        });
+
+        if (!accepted) {
+            return ResponseEntity.status(429)
+                    .body(Map.of("error", "Queue full. Try again later."));
+        }
+
+        sseService.enqueueStateQueued(simulationId, "queued");
+        return ResponseEntity.accepted().body(Map.of("id", simulationId));
+    }
+}

@@ -1,16 +1,18 @@
 package dk.gormkrings.returns;
 
+import dk.gormkrings.distribution.RegimeBasedDistribution;
 import dk.gormkrings.distribution.factory.HistoricalDataProcessor;
 import dk.gormkrings.math.distribution.IDistributionFitter;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
 import dk.gormkrings.math.randomVariable.IRandomVariable;
 import dk.gormkrings.randomVariable.DefaultRandomVariable;
+import dk.gormkrings.simulation.ReturnStep;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +22,6 @@ import java.util.List;
 @Component
 @Scope("prototype")
 @Getter
-@ConfigurationProperties(prefix = "returner.data-driven")
 public class DataDrivenReturn implements IReturner {
     private IRandomVariable randomVariable;
 
@@ -28,9 +29,11 @@ public class DataDrivenReturn implements IReturner {
     private IDistributionFitter distributionFitter;
     private IRandomNumberGenerator randomNumberGenerator;
     @Setter
-    private double dt;
-    @Setter
-    private String csvFilePath;
+    private double dt = 0.003968254;
+
+    @Value("${simulation.return.step:daily}")
+    private String returnStep;
+    private final String csvFilePath = "/dk/gormkrings/returns/Historical-Prices-DJIA.csv";
 
     @Autowired
     public DataDrivenReturn(
@@ -48,6 +51,8 @@ public class DataDrivenReturn implements IReturner {
 
     @PostConstruct
     public void init() {
+        // Align dt used for fitting with the configured simulation return step.
+        this.dt = ReturnStep.fromProperty(returnStep).toDt();
         fitDistribution(csvFilePath, historicalDataProcessor, distributionFitter, dt);
         randomVariable.setRandomNumberGenerator(randomNumberGenerator);
         log.info("Data Driven Return - Distribution {}", randomVariable.getDistribution().toString());
@@ -70,6 +75,13 @@ public class DataDrivenReturn implements IReturner {
     public double calculateReturn(double amount) {
         double sample = randomVariable.sample();
         return amount * Math.exp(sample) - amount;
+    }
+
+    @Override
+    public void onMonthEnd() {
+        if (randomVariable.getDistribution() instanceof RegimeBasedDistribution regimeBased) {
+            regimeBased.onMonthEnd();
+        }
     }
 
     @Override

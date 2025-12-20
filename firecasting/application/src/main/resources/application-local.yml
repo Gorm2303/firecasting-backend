@@ -1,0 +1,60 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+  application:
+    name: Firecasting
+  docker:
+    compose:
+      enabled: false
+  datasource:
+    # Make sure nothing accidentally tries to connect
+    url: ""
+    username: ""
+    password: ""
+  jpa:
+    open-in-view: false
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    org.hibernate: OFF
+    org.flywaydb: OFF
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: firecasting-api
+
+settings:
+  debug: true
+  runs: 1
+  batch-size: 10000
+  run-local: true
+  timeout: 600000
+  progress-interval: 1000
+
+simulation:
+  engine:
+    selected: callEngine
+  phase:
+    type: call
+  queue:
+    capacity: 1000
+  progressStep: 1000      # emit progress every N runs
+

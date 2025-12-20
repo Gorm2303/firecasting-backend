@@ -8,6 +8,8 @@ import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.simulation.ReturnStep;
+import dk.gormkrings.calendar.TradingCalendar;
 import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.NonNull;
@@ -26,7 +28,19 @@ public class PassiveEventPhase extends SimulationEventPhase implements IPassiveP
     private boolean firstTime = true;
 
     public PassiveEventPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction passive) {
-        super(specification, startDate, taxExemptions, duration, "Passive");
+        this(specification, startDate, taxExemptions, duration, passive, ReturnStep.DAILY, null);
+    }
+
+    public PassiveEventPhase(
+            ISpecification specification,
+            IDate startDate,
+            List<ITaxExemption> taxExemptions,
+            long duration,
+            IAction passive,
+            ReturnStep returnStep,
+            TradingCalendar tradingCalendar
+    ) {
+        super(specification, startDate, taxExemptions, duration, "Passive", returnStep, tradingCalendar);
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = (IPassive) passive;
     }
@@ -52,7 +66,9 @@ public class PassiveEventPhase extends SimulationEventPhase implements IPassiveP
                 getStartDate(),
                 copy,
                 getDuration(),
-                this.passive.copy()
+                this.passive.copy(),
+                getReturnStep(),
+                getTradingCalendar()
         );
     }
 }

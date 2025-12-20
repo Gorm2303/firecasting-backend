@@ -23,12 +23,6 @@ public class DefaultRandomVariable implements IRandomVariable {
 
     public DefaultRandomVariable() {}
 
-    @Autowired
-    public DefaultRandomVariable(IDistributionFactory distributionFactory) {
-        this.randomNumberGenerator = new DefaultRandomNumberGenerator();
-        distribution = distributionFactory.createDistribution();
-    }
-
     public DefaultRandomVariable(IDistribution distribution, IRandomNumberGenerator rng) {
         this.distribution = distribution;
         this.randomNumberGenerator = rng;

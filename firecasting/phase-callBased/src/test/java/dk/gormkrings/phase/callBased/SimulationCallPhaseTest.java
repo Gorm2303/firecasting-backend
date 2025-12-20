@@ -6,8 +6,10 @@ import dk.gormkrings.event.EventType;
 import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.returns.IReturner;
+import dk.gormkrings.simulation.ReturnStep;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
+import dk.gormkrings.calendar.WeekdayTradingCalendar;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -32,7 +34,15 @@ public class SimulationCallPhaseTest {
         when(startDate.plusDays(1L)).thenReturn(plusDate);
         when(plusDate.getDayOfWeek()).thenReturn(3);
 
-        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate, List.of(mock(ITaxExemption.class)), 10, "TestPhase") {
+        SimulationCallPhase phase = spy(new SimulationCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                10,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -55,7 +65,15 @@ public class SimulationCallPhaseTest {
         when(startDate.plusDays(1L)).thenReturn(plusDate);
         when(plusDate.getDayOfWeek()).thenReturn(5);
 
-        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate,  List.of(mock(ITaxExemption.class)), 10, "TestPhase") {
+        SimulationCallPhase phase = spy(new SimulationCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                10,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -67,6 +85,102 @@ public class SimulationCallPhaseTest {
     }
 
     @Test
+    public void testOnDayEnd_MonthlyStep_DoesNotAddReturn() {
+        IDate startDate = mock(IDate.class);
+        IDate plusDate = mock(IDate.class);
+        ISpecification specification = mock(ISpecification.class);
+        ILiveData liveData = mock(ILiveData.class);
+
+        when(liveData.getCapital()).thenReturn(100.0);
+        when(liveData.getSessionDuration()).thenReturn(1L);
+        when(specification.getLiveData()).thenReturn(liveData);
+        when(startDate.plusDays(1L)).thenReturn(plusDate);
+        when(plusDate.getDayOfWeek()).thenReturn(3);
+
+        SimulationCallPhase phase = spy(new SimulationCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                10,
+                "TestPhase",
+                ReturnStep.MONTHLY,
+                new WeekdayTradingCalendar()
+        ) {
+            @Override
+            public IPhase copy(ISpecification specificationCopy) {
+                return null;
+            }
+        });
+
+        phase.onDayEnd();
+        verify(phase, never()).addReturn();
+    }
+
+    @Test
+    public void testOnMonthEnd_DailyStep_DoesNotAddReturn_ButCallsReturnerHook() {
+        IDate startDate = mock(IDate.class);
+        ISpecification specification = mock(ISpecification.class);
+        ILiveData liveData = mock(ILiveData.class);
+        IReturner returner = mock(IReturner.class);
+
+        when(liveData.getCapital()).thenReturn(100.0);
+        when(specification.getLiveData()).thenReturn(liveData);
+        when(specification.getReturner()).thenReturn(returner);
+
+        SimulationCallPhase phase = spy(new SimulationCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                10,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
+            @Override
+            public IPhase copy(ISpecification specificationCopy) {
+                return null;
+            }
+        });
+
+        phase.onMonthEnd();
+
+        verify(phase, never()).addReturn();
+        verify(returner).onMonthEnd();
+    }
+
+    @Test
+    public void testOnMonthEnd_MonthlyStep_AddsReturn_AndCallsReturnerHook() {
+        IDate startDate = mock(IDate.class);
+        ISpecification specification = mock(ISpecification.class);
+        ILiveData liveData = mock(ILiveData.class);
+        IReturner returner = mock(IReturner.class);
+
+        when(liveData.getCapital()).thenReturn(100.0);
+        when(specification.getLiveData()).thenReturn(liveData);
+        when(specification.getReturner()).thenReturn(returner);
+
+        SimulationCallPhase phase = spy(new SimulationCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                10,
+                "TestPhase",
+                ReturnStep.MONTHLY,
+                new WeekdayTradingCalendar()
+        ) {
+            @Override
+            public IPhase copy(ISpecification specificationCopy) {
+                return null;
+            }
+        });
+
+        phase.onMonthEnd();
+
+        verify(phase).addReturn();
+        verify(returner).onMonthEnd();
+    }
+
+    @Test
     public void testOnYearEnd_TaxAndInflationUpdates() {
         IDate startDate = mock(IDate.class);
         ISpecification specification = mock(ISpecification.class);
@@ -75,7 +189,15 @@ public class SimulationCallPhaseTest {
         when(specification.getLiveData()).thenReturn(liveData);
         when(specification.getInflation()).thenReturn(inflation);
 
-        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = spy(new SimulationCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -96,7 +218,15 @@ public class SimulationCallPhaseTest {
 
         String phaseName = "TestPhase";
 
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, phaseName) {
+        SimulationCallPhase phase = new SimulationCallPhase(
+                specification,
+                null,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                phaseName,
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -110,7 +240,15 @@ public class SimulationCallPhaseTest {
     @Test
     public void testSupportsEvent() {
         ISpecification specification = mock(ISpecification.class);
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = new SimulationCallPhase(
+                specification,
+                null,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -119,7 +257,7 @@ public class SimulationCallPhaseTest {
 
         assertTrue(phase.supportsEvent(EventType.DAY_END), "Should support DAY_END events");
         assertTrue(phase.supportsEvent(EventType.YEAR_END), "Should support YEAR_END events");
-        assertFalse(phase.supportsEvent(EventType.MONTH_END), "Should not support MONTH_END events");
+        assertTrue(phase.supportsEvent(EventType.MONTH_END), "Should support MONTH_END events");
     }
 
     @Test
@@ -131,7 +269,15 @@ public class SimulationCallPhaseTest {
         when(liveData.toString()).thenReturn(expectedString);
         when(specification.getLiveData()).thenReturn(liveData);
 
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = new SimulationCallPhase(
+                specification,
+                null,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;

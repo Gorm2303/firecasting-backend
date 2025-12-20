@@ -13,10 +13,8 @@ import org.springframework.stereotype.Component;
 @Scope("prototype")
 public class TaxExemptionCard implements ITaxExemption {
     private float currentExemption = 0;
-    @Value("${tax.exemption-card.limit}")
-    private float limit = 0;
-    @Value("${tax.exemption-card.increase}")
-    private float yearlyLimitIncrease = 0;
+    private float limit = 51600;
+    private float yearlyLimitIncrease = 1000;
 
     public TaxExemptionCard() {
     }

@@ -7,6 +7,8 @@ import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.simulation.ReturnStep;
+import dk.gormkrings.calendar.TradingCalendar;
 import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,7 +24,19 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
     private IDeposit deposit;
 
     public DepositCallPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction deposit) {
-        super(specification, startDate, taxExemptions, duration, "Deposit");
+        this(specification, startDate, taxExemptions, duration, deposit, ReturnStep.DAILY, null);
+    }
+
+    public DepositCallPhase(
+            ISpecification specification,
+            IDate startDate,
+            List<ITaxExemption> taxExemptions,
+            long duration,
+            IAction deposit,
+            ReturnStep returnStep,
+            TradingCalendar tradingCalendar
+    ) {
+        super(specification, startDate, taxExemptions, duration, "Deposit", returnStep, tradingCalendar);
         log.debug("Initializing Deposit Phase: {}, for {} days", startDate, duration);
         this.deposit = (IDeposit) deposit;
     }
@@ -63,7 +77,9 @@ public class DepositCallPhase extends SimulationCallPhase implements IDepositPha
                 this.getStartDate(),
                 copy,
                 getDuration(),
-                this.deposit.copy()
+                this.deposit.copy(),
+                getReturnStep(),
+                getTradingCalendar()
         );
     }
 }

@@ -7,6 +7,8 @@ import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.simulation.ReturnStep;
+import dk.gormkrings.calendar.TradingCalendar;
 import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +22,19 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
     private IPassive passive;
 
     public PassiveCallPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction passive) {
-        super(specification, startDate, taxExemptions, duration, "Passive");
+        this(specification, startDate, taxExemptions, duration, passive, ReturnStep.DAILY, null);
+    }
+
+    public PassiveCallPhase(
+            ISpecification specification,
+            IDate startDate,
+            List<ITaxExemption> taxExemptions,
+            long duration,
+            IAction passive,
+            ReturnStep returnStep,
+            TradingCalendar tradingCalendar
+    ) {
+        super(specification, startDate, taxExemptions, duration, "Passive", returnStep, tradingCalendar);
         log.debug("Initializing Passive Phase: {}, for {} days", startDate, duration);
         this.passive = (IPassive) passive;
     }
@@ -33,6 +47,7 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
 
     @Override
     public void onMonthEnd() {
+        super.onMonthEnd();
         if (Formatter.debug) log.debug(prettyString());
     }
 
@@ -58,7 +73,9 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
                 getStartDate(),
                 copy,
                 getDuration(),
-                this.passive.copy()
+                this.passive.copy(),
+                getReturnStep(),
+                getTradingCalendar()
         );
     }
 }
