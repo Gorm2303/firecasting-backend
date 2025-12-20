@@ -2,10 +2,13 @@ package dk.gormkrings.returns;
 
 import dk.gormkrings.distribution.BrownianMotionDistribution;
 import dk.gormkrings.distribution.NormalDistribution;
+import dk.gormkrings.distribution.RegimeBasedDistribution;
 import dk.gormkrings.distribution.TDistributionImpl;
 import dk.gormkrings.distribution.factory.DistributionFactory;
 import dk.gormkrings.math.distribution.IDistribution;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
+import dk.gormkrings.regime.ExpectedDurationWeightedRegimeProvider;
+import dk.gormkrings.regime.IRegimeProvider;
 import dk.gormkrings.randomNumberGenerator.DefaultRandomNumberGenerator;
 import dk.gormkrings.randomVariable.DefaultRandomVariable;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +63,7 @@ public class DefaultReturnFactory implements IReturnFactory {
     }
 
     private IReturner createConfiguredDistributionReturn(ReturnerConfig config) {
-        IDistribution distribution = createConfiguredDistribution(config.getDistribution());
+        IDistribution distribution = createConfiguredDistribution(config);
         IRandomNumberGenerator rng = (config.getSeed() == null)
                 ? new DefaultRandomNumberGenerator()
                 : new DefaultRandomNumberGenerator(config.getSeed());
@@ -69,9 +72,19 @@ public class DefaultReturnFactory implements IReturnFactory {
         return new DistributionReturn(rv);
     }
 
-    private IDistribution createConfiguredDistribution(ReturnerConfig.DistributionConfig config) {
+    private IDistribution createConfiguredDistribution(ReturnerConfig returnerConfig) {
+        ReturnerConfig.DistributionConfig config = (returnerConfig == null) ? null : returnerConfig.getDistribution();
+        Long seed = (returnerConfig == null) ? null : returnerConfig.getSeed();
+        return createConfiguredDistribution(config, seed);
+    }
+
+    private IDistribution createConfiguredDistribution(ReturnerConfig.DistributionConfig config, Long seed) {
         if (config == null || config.getType() == null || config.getType().isBlank()) {
             return distributionFactory.createDistribution("normal");
+        }
+
+        if ("regimeBased".equals(config.getType())) {
+            return createConfiguredRegimeBasedDistribution(config.getRegimeBased(), seed);
         }
 
         String beanKey = switch (config.getType()) {
@@ -105,5 +118,74 @@ public class DefaultReturnFactory implements IReturnFactory {
         }
 
         return dist;
+    }
+
+    private IDistribution createConfiguredRegimeBasedDistribution(ReturnerConfig.RegimeBasedParams regimeBased, Long seed) {
+        // Defaults: 3 regimes, monthly tick.
+        final int expectedRegimes = 3;
+        final int tickMonths = (regimeBased != null && regimeBased.getTickMonths() != null)
+                ? Math.max(1, regimeBased.getTickMonths())
+                : 1;
+        final double dt = tickMonths / 12.0;
+
+        if (regimeBased == null || regimeBased.getRegimes() == null || regimeBased.getRegimes().size() < expectedRegimes) {
+            throw new IllegalArgumentException("regimeBased.regimes must contain at least 3 regimes (0..2)");
+        }
+
+        IDistribution[] regimeDistributions = new IDistribution[expectedRegimes];
+        double[] expectedDurationMonths = new double[expectedRegimes];
+        double[][] weights = new double[expectedRegimes][expectedRegimes];
+
+        for (int i = 0; i < expectedRegimes; i++) {
+            ReturnerConfig.RegimeParams r = regimeBased.getRegimes().get(i);
+            if (r == null) {
+                throw new IllegalArgumentException("regimeBased.regimes[" + i + "] must not be null");
+            }
+
+            expectedDurationMonths[i] = (r.getExpectedDurationMonths() == null) ? 12.0 : r.getExpectedDurationMonths();
+
+            // Switch weights (only used when leaving a regime)
+            ReturnerConfig.SwitchWeights w = r.getSwitchWeights();
+            weights[i][0] = (w == null || w.getToRegime0() == null) ? 0.0 : w.getToRegime0();
+            weights[i][1] = (w == null || w.getToRegime1() == null) ? 0.0 : w.getToRegime1();
+            weights[i][2] = (w == null || w.getToRegime2() == null) ? 0.0 : w.getToRegime2();
+            weights[i][i] = 0.0;
+
+            String type = (r.getDistributionType() == null) ? "normal" : r.getDistributionType();
+            String beanKey = switch (type) {
+                case "studentT" -> "tDistribution";
+                case "normal" -> "normal";
+                default -> throw new IllegalArgumentException("Unsupported regime distributionType (v1): " + type);
+            };
+
+            IDistribution dist = distributionFactory.createDistribution(beanKey);
+
+            if (dist instanceof NormalDistribution normal) {
+                normal.setDt(dt);
+                if (r.getNormal() != null) {
+                    if (r.getNormal().getMean() != null) normal.setMean(r.getNormal().getMean());
+                    if (r.getNormal().getStandardDeviation() != null) {
+                        normal.setStandardDeviation(r.getNormal().getStandardDeviation());
+                    }
+                }
+            }
+
+            if (dist instanceof TDistributionImpl tDist) {
+                tDist.setDt(dt);
+                if (r.getStudentT() != null) {
+                    if (r.getStudentT().getMu() != null) tDist.setMu(r.getStudentT().getMu());
+                    if (r.getStudentT().getSigma() != null) tDist.setSigma(r.getStudentT().getSigma());
+                    if (r.getStudentT().getNu() != null) {
+                        tDist.setNu(r.getStudentT().getNu());
+                        tDist.init();
+                    }
+                }
+            }
+
+            regimeDistributions[i] = dist;
+        }
+
+        IRegimeProvider provider = new ExpectedDurationWeightedRegimeProvider(0, expectedDurationMonths, weights, seed);
+        return context.getBean(RegimeBasedDistribution.class, regimeDistributions, provider);
     }
 }
