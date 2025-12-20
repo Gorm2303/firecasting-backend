@@ -18,7 +18,6 @@ import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,16 +26,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class EventEngineTradingDayConsistencyTest {
 
-    @AfterEach
-    void resetStaticConfig() {
-        SimulationEventPhase.configureReturnStep(ReturnStep.DAILY);
-        SimulationEventPhase.configureTradingCalendar(new WeekdayTradingCalendar());
-    }
-
     @Test
     void dailyMode_appliesReturnsOnlyOnTradingDays() {
-        SimulationEventPhase.configureReturnStep(ReturnStep.DAILY);
-        SimulationEventPhase.configureTradingCalendar(new WeekdayTradingCalendar());
+        ReturnStep step = ReturnStep.DAILY;
+        WeekdayTradingCalendar calendar = new WeekdayTradingCalendar();
 
         IDateFactory dateFactory = new DefaultDateFactory();
         IResultFactory resultFactory = new DefaultResultFactory();
@@ -50,17 +43,17 @@ class EventEngineTradingDayConsistencyTest {
         ISpecification spec = new Specification(startDate.getEpochDay(), noTax(), returner, noInflation());
         ((dk.gormkrings.data.ILiveData) spec.getLiveData()).addToCapital(100.0);
 
-        IEventPhase phase = new MinimalEventPhase(spec, startDate, durationDays);
+        IEventPhase phase = new MinimalEventPhase(spec, startDate, durationDays, step, calendar);
         engine.simulatePhases(List.of(phase));
 
-        long expectedTradingDays = countTradingDays(dateFactory, startDate, durationDays, new WeekdayTradingCalendar());
+        long expectedTradingDays = countTradingDays(dateFactory, startDate, durationDays, calendar);
         assertEquals(expectedTradingDays, returner.calls, "daily mode should apply returns only on trading days");
     }
 
     @Test
     void monthlyMode_doesNotApplyDailyReturns() {
-        SimulationEventPhase.configureReturnStep(ReturnStep.MONTHLY);
-        SimulationEventPhase.configureTradingCalendar(new WeekdayTradingCalendar());
+        ReturnStep step = ReturnStep.MONTHLY;
+        WeekdayTradingCalendar calendar = new WeekdayTradingCalendar();
 
         IDateFactory dateFactory = new DefaultDateFactory();
         IResultFactory resultFactory = new DefaultResultFactory();
@@ -75,7 +68,7 @@ class EventEngineTradingDayConsistencyTest {
         ISpecification spec = new Specification(startDate.getEpochDay(), noTax(), returner, noInflation());
         ((dk.gormkrings.data.ILiveData) spec.getLiveData()).addToCapital(100.0);
 
-        IEventPhase phase = new MinimalEventPhase(spec, startDate, durationDays);
+        IEventPhase phase = new MinimalEventPhase(spec, startDate, durationDays, step, calendar);
         engine.simulatePhases(List.of(phase));
 
         assertEquals(0, returner.calls, "monthly mode should not apply returns on day events");
@@ -135,13 +128,18 @@ class EventEngineTradingDayConsistencyTest {
     }
 
     private static final class MinimalEventPhase extends SimulationEventPhase {
-        MinimalEventPhase(ISpecification specification, IDate startDate, long duration) {
-            super(specification, startDate, List.<ITaxExemption>of(), duration, "minimal");
+        private final ReturnStep returnStep;
+        private final WeekdayTradingCalendar tradingCalendar;
+
+        MinimalEventPhase(ISpecification specification, IDate startDate, long duration, ReturnStep returnStep, WeekdayTradingCalendar tradingCalendar) {
+            super(specification, startDate, List.<ITaxExemption>of(), duration, "minimal", returnStep, tradingCalendar);
+            this.returnStep = returnStep;
+            this.tradingCalendar = tradingCalendar;
         }
 
         @Override
         public MinimalEventPhase copy(ISpecification specificationCopy) {
-            return new MinimalEventPhase(specificationCopy, getStartDate(), getDuration());
+            return new MinimalEventPhase(specificationCopy, getStartDate(), getDuration(), returnStep, tradingCalendar);
         }
     }
 }

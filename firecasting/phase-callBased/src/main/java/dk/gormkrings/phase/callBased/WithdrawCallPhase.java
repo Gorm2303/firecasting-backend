@@ -7,6 +7,8 @@ import dk.gormkrings.action.IAction;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.simulation.ReturnStep;
+import dk.gormkrings.calendar.TradingCalendar;
 import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,7 +25,19 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
     private double totalReturnLastMonth;
 
     public WithdrawCallPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, IAction withdraw) {
-        super(specification, startDate, taxExemptions, duration, "Withdraw");
+        this(specification, startDate, taxExemptions, duration, withdraw, ReturnStep.DAILY, null);
+    }
+
+    public WithdrawCallPhase(
+            ISpecification specification,
+            IDate startDate,
+            List<ITaxExemption> taxExemptions,
+            long duration,
+            IAction withdraw,
+            ReturnStep returnStep,
+            TradingCalendar tradingCalendar
+    ) {
+        super(specification, startDate, taxExemptions, duration, "Withdraw", returnStep, tradingCalendar);
         log.debug("Initializing Withdraw Phase: {}, for {} days", startDate, duration);
         this.withdraw = (IWithdraw) withdraw;
     }
@@ -77,6 +91,8 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
                 getStartDate(),
                 copy,
                 getDuration(),
-                this.withdraw.copy());
+                this.withdraw.copy(),
+                getReturnStep(),
+                getTradingCalendar());
     }
 }

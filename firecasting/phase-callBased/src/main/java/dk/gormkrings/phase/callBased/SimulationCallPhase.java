@@ -20,8 +20,8 @@ import java.util.List;
 @Getter
 @Setter
 public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhase {
-    private static volatile ReturnStep returnStep = ReturnStep.DAILY;
-    private static volatile TradingCalendar tradingCalendar = new WeekdayTradingCalendar();
+    private final ReturnStep returnStep;
+    private final TradingCalendar tradingCalendar;
 
     private IDate startDate;
     private long duration;
@@ -30,11 +30,26 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     private String name;
 
     public SimulationCallPhase(ISpecification specification, IDate startDate, List<ITaxExemption> taxExemptions, long duration, String name) {
+        this(specification, startDate, taxExemptions, duration, name, ReturnStep.DAILY, new WeekdayTradingCalendar());
+    }
+
+    public SimulationCallPhase(
+            ISpecification specification,
+            IDate startDate,
+            List<ITaxExemption> taxExemptions,
+            long duration,
+            String name,
+            ReturnStep returnStep,
+            TradingCalendar tradingCalendar
+    ) {
         this.startDate = startDate;
         this.duration = duration;
         this.specification = specification;
         this.taxExemptions = taxExemptions;
         this.name = name;
+
+        this.returnStep = (returnStep == null) ? ReturnStep.DAILY : returnStep;
+        this.tradingCalendar = (tradingCalendar == null) ? new WeekdayTradingCalendar() : tradingCalendar;
     }
 
     @Override
@@ -89,14 +104,6 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
         if (specification == null) return;
         if (specification.getReturner() == null) return;
         specification.getReturner().onMonthEnd();
-    }
-
-    public static void configureReturnStep(ReturnStep step) {
-        returnStep = (step == null) ? ReturnStep.DAILY : step;
-    }
-
-    public static void configureTradingCalendar(TradingCalendar calendar) {
-        tradingCalendar = (calendar == null) ? new WeekdayTradingCalendar() : calendar;
     }
 
     @Override

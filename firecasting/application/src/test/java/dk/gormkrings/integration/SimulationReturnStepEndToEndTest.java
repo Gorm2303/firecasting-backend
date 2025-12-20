@@ -1,6 +1,7 @@
 package dk.gormkrings.integration;
 
-import dk.gormkrings.config.SimulationReturnStepInitializer;
+import dk.gormkrings.calendar.TradingCalendar;
+import dk.gormkrings.config.SimulationRuntimeConfig;
 import dk.gormkrings.engine.IEngine;
 import dk.gormkrings.factory.IDateFactory;
 import dk.gormkrings.factory.IResultFactory;
@@ -19,9 +20,7 @@ import dk.gormkrings.simulation.specification.Specification;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,11 +30,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SimulationReturnStepEndToEndTest {
-
-    @AfterEach
-    void resetReturnStep() {
-        SimulationCallPhase.configureReturnStep(ReturnStep.DAILY);
-    }
 
     @Test
     void minimalSimulation_runsUnderDailyAndMonthly_andCadenceDiffers() {
@@ -60,23 +54,22 @@ class SimulationReturnStepEndToEndTest {
 
     private static SimulationRunStats runWithReturnStep(String step) {
         var runner = new ApplicationContextRunner()
-                .withUserConfiguration(TestConfig.class)
+                .withUserConfiguration(SimulationRuntimeConfig.class, TestConfig.class)
                 .withPropertyValues("simulation.return.step=" + step);
 
         final SimulationRunStats[] stats = new SimulationRunStats[1];
 
         runner.run(ctx -> {
-            SimulationReturnStepInitializer initializer = ctx.getBean(SimulationReturnStepInitializer.class);
-            assertNotNull(initializer);
-
+            ReturnStep configuredStep = ctx.getBean(ReturnStep.class);
+            TradingCalendar tradingCalendar = ctx.getBean(TradingCalendar.class);
             CountingDtReturner returner = ctx.getBean(CountingDtReturner.class);
-            stats[0] = runMinimalCallEngineSimulation(returner);
+            stats[0] = runMinimalCallEngineSimulation(returner, configuredStep, tradingCalendar);
         });
 
         return stats[0];
     }
 
-    private static SimulationRunStats runMinimalCallEngineSimulation(CountingDtReturner returner) {
+    private static SimulationRunStats runMinimalCallEngineSimulation(CountingDtReturner returner, ReturnStep configuredStep, TradingCalendar tradingCalendar) {
         IDateFactory dateFactory = new DefaultDateFactory();
         IResultFactory resultFactory = new DefaultResultFactory();
         ISnapshotFactory snapshotFactory = new DefaultSnapshotFactory();
@@ -113,10 +106,11 @@ class SimulationReturnStepEndToEndTest {
         ILiveData liveData = (ILiveData) specification.getLiveData();
         liveData.addToCapital(100.0);
 
-        IPhase phase = new SimulationCallPhase(specification, startDate, List.<ITaxExemption>of(), 90, "e2e") {
+        // Use per-phase config (no static global state).
+        IPhase phase = new SimulationCallPhase(specification, startDate, List.<ITaxExemption>of(), 90, "e2e", configuredStep, tradingCalendar) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
-                return new SimulationCallPhase(specificationCopy, startDate, List.<ITaxExemption>of(), 90, "e2e") {
+                return new SimulationCallPhase(specificationCopy, startDate, List.<ITaxExemption>of(), 90, "e2e", configuredStep, tradingCalendar) {
                     @Override
                     public IPhase copy(ISpecification specCopy2) {
                         return this;
@@ -174,17 +168,7 @@ class SimulationReturnStepEndToEndTest {
     @Configuration(proxyBeanMethods = false)
     static class TestConfig {
         @Bean
-        SimulationReturnStepInitializer simulationReturnStepInitializer(
-                @Value("${simulation.return.step:daily}") String configuredStep
-        ) {
-            return new SimulationReturnStepInitializer(configuredStep);
-        }
-
-        @Bean
-        CountingDtReturner countingDtReturner(
-                @Value("${simulation.return.step:daily}") String configuredStep
-        ) {
-            ReturnStep step = ReturnStep.fromProperty(configuredStep);
+        CountingDtReturner countingDtReturner(ReturnStep step) {
             // 12% annual rate, scaled by dt; per-step return is larger in monthly mode.
             return new CountingDtReturner(0.12, step.toDt());
         }
