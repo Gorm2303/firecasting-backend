@@ -6,8 +6,10 @@ import dk.gormkrings.event.EventType;
 import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.returns.IReturner;
+import dk.gormkrings.simulation.ReturnStep;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -17,8 +19,14 @@ import static org.mockito.Mockito.*;
 
 public class SimulationCallPhaseTest {
 
+    @AfterEach
+    void resetReturnStep() {
+        SimulationCallPhase.configureReturnStep(ReturnStep.DAILY);
+    }
+
     @Test
     public void testOnDayEnd_Weekday() {
+        SimulationCallPhase.configureReturnStep(ReturnStep.DAILY);
         IDate startDate = mock(IDate.class);
         IDate plusDate = mock(IDate.class);
         ISpecification specification = mock(ISpecification.class);
@@ -45,6 +53,7 @@ public class SimulationCallPhaseTest {
 
     @Test
     public void testOnDayEnd_Weekend() {
+        SimulationCallPhase.configureReturnStep(ReturnStep.DAILY);
         IDate startDate = mock(IDate.class);
         IDate plusDate = mock(IDate.class);
         ISpecification specification = mock(ISpecification.class);
@@ -64,6 +73,84 @@ public class SimulationCallPhaseTest {
 
         phase.onDayEnd();
         verify(phase, never()).addReturn();
+    }
+
+    @Test
+    public void testOnDayEnd_MonthlyStep_DoesNotAddReturn() {
+        SimulationCallPhase.configureReturnStep(ReturnStep.MONTHLY);
+
+        IDate startDate = mock(IDate.class);
+        IDate plusDate = mock(IDate.class);
+        ISpecification specification = mock(ISpecification.class);
+        ILiveData liveData = mock(ILiveData.class);
+
+        when(liveData.getCapital()).thenReturn(100.0);
+        when(liveData.getSessionDuration()).thenReturn(1L);
+        when(specification.getLiveData()).thenReturn(liveData);
+        when(startDate.plusDays(1L)).thenReturn(plusDate);
+        when(plusDate.getDayOfWeek()).thenReturn(3);
+
+        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate, List.of(mock(ITaxExemption.class)), 10, "TestPhase") {
+            @Override
+            public IPhase copy(ISpecification specificationCopy) {
+                return null;
+            }
+        });
+
+        phase.onDayEnd();
+        verify(phase, never()).addReturn();
+    }
+
+    @Test
+    public void testOnMonthEnd_DailyStep_DoesNotAddReturn_ButCallsReturnerHook() {
+        SimulationCallPhase.configureReturnStep(ReturnStep.DAILY);
+
+        IDate startDate = mock(IDate.class);
+        ISpecification specification = mock(ISpecification.class);
+        ILiveData liveData = mock(ILiveData.class);
+        IReturner returner = mock(IReturner.class);
+
+        when(liveData.getCapital()).thenReturn(100.0);
+        when(specification.getLiveData()).thenReturn(liveData);
+        when(specification.getReturner()).thenReturn(returner);
+
+        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate, List.of(mock(ITaxExemption.class)), 10, "TestPhase") {
+            @Override
+            public IPhase copy(ISpecification specificationCopy) {
+                return null;
+            }
+        });
+
+        phase.onMonthEnd();
+
+        verify(phase, never()).addReturn();
+        verify(returner).onMonthEnd();
+    }
+
+    @Test
+    public void testOnMonthEnd_MonthlyStep_AddsReturn_AndCallsReturnerHook() {
+        SimulationCallPhase.configureReturnStep(ReturnStep.MONTHLY);
+
+        IDate startDate = mock(IDate.class);
+        ISpecification specification = mock(ISpecification.class);
+        ILiveData liveData = mock(ILiveData.class);
+        IReturner returner = mock(IReturner.class);
+
+        when(liveData.getCapital()).thenReturn(100.0);
+        when(specification.getLiveData()).thenReturn(liveData);
+        when(specification.getReturner()).thenReturn(returner);
+
+        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate, List.of(mock(ITaxExemption.class)), 10, "TestPhase") {
+            @Override
+            public IPhase copy(ISpecification specificationCopy) {
+                return null;
+            }
+        });
+
+        phase.onMonthEnd();
+
+        verify(phase).addReturn();
+        verify(returner).onMonthEnd();
     }
 
     @Test
