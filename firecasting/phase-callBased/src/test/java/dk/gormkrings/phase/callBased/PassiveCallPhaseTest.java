@@ -6,6 +6,8 @@ import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.EventType;
 import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.simulation.ReturnStep;
+import dk.gormkrings.calendar.WeekdayTradingCalendar;
 import dk.gormkrings.tax.ITaxExemption;
 import dk.gormkrings.tax.ITaxRule;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +39,15 @@ public class PassiveCallPhaseTest {
     @BeforeEach
     public void setup() {
         lenient().when(specification.getLiveData()).thenReturn(liveData);
-        passiveCallPhase = new PassiveCallPhase(specification, startDate,  List.of(mock(ITaxExemption.class)), duration, passive);
+        passiveCallPhase = new PassiveCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                duration,
+                passive,
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        );
     }
 
     @Test

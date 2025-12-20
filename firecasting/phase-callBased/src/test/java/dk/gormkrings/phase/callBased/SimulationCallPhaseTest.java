@@ -189,7 +189,15 @@ public class SimulationCallPhaseTest {
         when(specification.getLiveData()).thenReturn(liveData);
         when(specification.getInflation()).thenReturn(inflation);
 
-        SimulationCallPhase phase = spy(new SimulationCallPhase(specification, startDate,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = spy(new SimulationCallPhase(
+                specification,
+                startDate,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -210,7 +218,15 @@ public class SimulationCallPhaseTest {
 
         String phaseName = "TestPhase";
 
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, phaseName) {
+        SimulationCallPhase phase = new SimulationCallPhase(
+                specification,
+                null,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                phaseName,
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -224,7 +240,15 @@ public class SimulationCallPhaseTest {
     @Test
     public void testSupportsEvent() {
         ISpecification specification = mock(ISpecification.class);
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = new SimulationCallPhase(
+                specification,
+                null,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;
@@ -245,7 +269,15 @@ public class SimulationCallPhaseTest {
         when(liveData.toString()).thenReturn(expectedString);
         when(specification.getLiveData()).thenReturn(liveData);
 
-        SimulationCallPhase phase = new SimulationCallPhase(specification, null,  List.of(mock(ITaxExemption.class)), 10L, "TestPhase") {
+        SimulationCallPhase phase = new SimulationCallPhase(
+                specification,
+                null,
+                List.of(mock(ITaxExemption.class)),
+                10L,
+                "TestPhase",
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        ) {
             @Override
             public IPhase copy(ISpecification specificationCopy) {
                 return null;

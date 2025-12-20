@@ -8,6 +8,8 @@ import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.CapitalGainsTax;
 import dk.gormkrings.tax.ITaxRule;
 import dk.gormkrings.tax.NotionalGainsTax;
+import dk.gormkrings.simulation.ReturnStep;
+import dk.gormkrings.calendar.WeekdayTradingCalendar;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +44,15 @@ public class WithdrawCallPhaseTest {
     @BeforeEach
     public void setup() {
         lenient().when(specification.getLiveData()).thenReturn(liveData);
-        withdrawCallPhase = new WithdrawCallPhase(specification, startDate,  List.of(), duration, withdraw);
+        withdrawCallPhase = new WithdrawCallPhase(
+                specification,
+                startDate,
+                List.of(),
+                duration,
+                withdraw,
+                ReturnStep.DAILY,
+                new WeekdayTradingCalendar()
+        );
     }
 
     @Test
