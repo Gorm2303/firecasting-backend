@@ -153,6 +153,110 @@
               "defaultValue": "normal"
             },
             {
+              "id": "regimeBased",
+              "label": "Regime-based Params (v1)",
+              "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "regimeBased" },
+              "children": [
+                {
+                  "id": "tickMonths",
+                  "label": "Tick (months)",
+                  "helpText": "v1 uses a fixed monthly tick (1 month).",
+                  "type": "number",
+                  "min": 1,
+                  "max": 1,
+                  "defaultValue": 1
+                },
+                {
+                  "id": "regimes",
+                  "label": "Regimes (3)",
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "defaultValue": [
+                    {
+                      "distributionType": "normal",
+                      "expectedDurationMonths": 18,
+                      "switchWeights": { "toRegime0": 0, "toRegime1": 1, "toRegime2": 1 },
+                      "normal": { "mean": 0.07, "standardDeviation": 0.15 },
+                      "studentT": { "mu": 0.07, "sigma": 0.15, "nu": 5 }
+                    },
+                    {
+                      "distributionType": "studentT",
+                      "expectedDurationMonths": 12,
+                      "switchWeights": { "toRegime0": 1, "toRegime1": 0, "toRegime2": 1 },
+                      "normal": { "mean": 0.04, "standardDeviation": 0.25 },
+                      "studentT": { "mu": 0.04, "sigma": 0.25, "nu": 4 }
+                    },
+                    {
+                      "distributionType": "normal",
+                      "expectedDurationMonths": 24,
+                      "switchWeights": { "toRegime0": 1, "toRegime1": 1, "toRegime2": 0 },
+                      "normal": { "mean": 0.02, "standardDeviation": 0.20 },
+                      "studentT": { "mu": 0.02, "sigma": 0.20, "nu": 6 }
+                    }
+                  ],
+                  "item": {
+                    "id": "regime",
+                    "label": "Regime",
+                    "type": "group",
+                    "children": [
+                      {
+                        "id": "distributionType",
+                        "label": "Distribution",
+                        "type": "select",
+                        "options": [
+                          { "value": "normal", "label": "Normal" },
+                          { "value": "studentT", "label": "Student-t" }
+                        ],
+                        "defaultValue": "normal"
+                      },
+                      {
+                        "id": "expectedDurationMonths",
+                        "label": "Expected duration (months)",
+                        "helpText": "Used to derive switch probability per month: pSwitch = 1 / duration.",
+                        "type": "number",
+                        "min": 1,
+                        "defaultValue": 12
+                      },
+                      {
+                        "id": "switchWeights",
+                        "label": "Switch weights (when leaving)",
+                        "helpText": "Weights are used only when switching away from the current regime.",
+                        "type": "group",
+                        "children": [
+                          { "id": "toRegime0", "label": "To regime 0", "type": "number", "defaultValue": 1 },
+                          { "id": "toRegime1", "label": "To regime 1", "type": "number", "defaultValue": 1 },
+                          { "id": "toRegime2", "label": "To regime 2", "type": "number", "defaultValue": 1 }
+                        ]
+                      },
+                      {
+                        "id": "normal",
+                        "label": "Normal (annualized)",
+                        "type": "group",
+                        "visibleWhen": { "path": "distributionType", "equals": "normal" },
+                        "children": [
+                          { "id": "mean", "label": "Mean", "type": "number", "defaultValue": 0.07 },
+                          { "id": "standardDeviation", "label": "Std Dev", "type": "number", "defaultValue": 0.2 }
+                        ]
+                      },
+                      {
+                        "id": "studentT",
+                        "label": "Student-t (annualized)",
+                        "type": "group",
+                        "visibleWhen": { "path": "distributionType", "equals": "studentT" },
+                        "children": [
+                          { "id": "mu", "label": "Mu", "type": "number", "defaultValue": 0.04 },
+                          { "id": "sigma", "label": "Sigma", "type": "number", "defaultValue": 0.25 },
+                          { "id": "nu", "label": "Nu", "type": "number", "defaultValue": 4 }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
               "id": "brownianMotion",
               "label": "Brownian Motion Params",
               "type": "group",
