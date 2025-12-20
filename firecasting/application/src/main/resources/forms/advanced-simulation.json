@@ -177,21 +177,21 @@
                     {
                       "distributionType": "normal",
                       "expectedDurationMonths": 18,
-                      "switchWeights": { "toRegime0": 0, "toRegime1": 1, "toRegime2": 1 },
+                      "switchWeights": { "toRegime0": 0, "toRegime1": 0.5, "toRegime2": 0.5 },
                       "normal": { "mean": 0.07, "standardDeviation": 0.15 },
                       "studentT": { "mu": 0.07, "sigma": 0.15, "nu": 5 }
                     },
                     {
                       "distributionType": "studentT",
                       "expectedDurationMonths": 12,
-                      "switchWeights": { "toRegime0": 1, "toRegime1": 0, "toRegime2": 1 },
+                      "switchWeights": { "toRegime0": 0.5, "toRegime1": 0, "toRegime2": 0.5 },
                       "normal": { "mean": 0.04, "standardDeviation": 0.25 },
                       "studentT": { "mu": 0.04, "sigma": 0.25, "nu": 4 }
                     },
                     {
                       "distributionType": "normal",
                       "expectedDurationMonths": 24,
-                      "switchWeights": { "toRegime0": 1, "toRegime1": 1, "toRegime2": 0 },
+                      "switchWeights": { "toRegime0": 0.5, "toRegime1": 0.5, "toRegime2": 0 },
                       "normal": { "mean": 0.02, "standardDeviation": 0.20 },
                       "studentT": { "mu": 0.02, "sigma": 0.20, "nu": 6 }
                     }
