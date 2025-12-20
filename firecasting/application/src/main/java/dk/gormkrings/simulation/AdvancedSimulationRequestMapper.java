@@ -32,7 +32,8 @@ public final class AdvancedSimulationRequestMapper {
                 req.getOverallTaxRule(),
                 req.getTaxPercentage(),
                 returnType,
-                inflationFactor
+            inflationFactor,
+            req.getReturnerConfig()
         );
     }
 }
