@@ -34,4 +34,43 @@ public class DefaultTaxExemptionFactory implements ITaxExemptionFactory {
                 throw new IllegalArgumentException("Unsupported exemption type: " + type);
         }
     }
+
+    @Override
+    public ITaxExemption create(String type, TaxExemptionConfig config) {
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Exemption type must not be null or empty");
+        }
+
+        String key = type.trim().toLowerCase();
+        ITaxExemption exemption = switch (key) {
+            case "exemptioncard" -> {
+                log.info("Creating Tax Exemption Card rule");
+                yield context.getBean(TaxExemptionCard.class);
+            }
+            case "stockexemption" -> {
+                log.info("Creating Stock Exemption rule");
+                yield context.getBean(StockExemptionTax.class);
+            }
+            default -> throw new IllegalArgumentException("Unsupported exemption type: " + type);
+        };
+
+        if (config == null) {
+            return exemption;
+        }
+
+        if (exemption instanceof TaxExemptionCard card && config.getExemptionCard() != null) {
+            var c = config.getExemptionCard();
+            if (c.getLimit() != null) card.setLimit(c.getLimit());
+            if (c.getYearlyIncrease() != null) card.setYearlyLimitIncrease(c.getYearlyIncrease());
+        }
+
+        if (exemption instanceof StockExemptionTax stock && config.getStockExemption() != null) {
+            var c = config.getStockExemption();
+            if (c.getTaxRate() != null) stock.setTaxRate(c.getTaxRate());
+            if (c.getLimit() != null) stock.setLimit(c.getLimit());
+            if (c.getYearlyIncrease() != null) stock.setYearlyLimitIncrease(c.getYearlyIncrease());
+        }
+
+        return exemption;
+    }
 }
