@@ -111,6 +111,7 @@
           "id": "simpleReturn",
           "label": "Simple Return",
           "type": "group",
+          "visibleWhen": { "path": "type", "equals": "simpleReturn" },
           "children": [
             {
               "id": "averagePercentage",
@@ -137,6 +138,7 @@
           "id": "distribution",
           "label": "Distribution",
           "type": "group",
+          "visibleWhen": { "path": "type", "equals": "distributionReturn" },
           "children": [
             {
               "id": "type",
@@ -154,6 +156,7 @@
               "id": "brownianMotion",
               "label": "Brownian Motion Params",
               "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "brownianMotion" },
               "children": [
                 { "id": "drift", "label": "Drift", "type": "number", "defaultValue": 0.07 },
                 { "id": "volatility", "label": "Volatility", "type": "number", "defaultValue": 0.2 }
@@ -163,6 +166,7 @@
               "id": "normal",
               "label": "Normal Params",
               "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "normal" },
               "children": [
                 { "id": "mean", "label": "Mean", "type": "number", "defaultValue": 0.07 },
                 { "id": "standardDeviation", "label": "Std Dev", "type": "number", "defaultValue": 0.2 }
@@ -172,6 +176,7 @@
               "id": "studentT",
               "label": "Student-t Params",
               "type": "group",
+              "visibleWhen": { "path": "$.returner.distribution.type", "equals": "studentT" },
               "children": [
                 { "id": "mu", "label": "Mu", "type": "number", "defaultValue": 0.042 },
                 { "id": "sigma", "label": "Sigma", "type": "number", "defaultValue": 0.609 },
@@ -203,7 +208,7 @@
             "defaultValue": "DEPOSIT"
           },
           {
-            "id": "durationMonths",
+            "id": "durationInMonths",
             "label": "Duration (months)",
             "type": "number",
             "defaultValue": 240
@@ -212,42 +217,49 @@
             "id": "initialDeposit",
             "label": "Initial Deposit",
             "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "DEPOSIT" },
             "defaultValue": 10000
           },
           {
             "id": "monthlyDeposit",
             "label": "Monthly Deposit",
             "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "DEPOSIT" },
             "defaultValue": 10000
           },
           {
-            "id": "yearlyIncreasePercentage",
+            "id": "yearlyIncreaseInPercentage",
             "label": "Yearly Increase %",
             "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "DEPOSIT" },
             "defaultValue": 2
           },
           {
             "id": "withdrawRate",
             "label": "Withdraw Rate %",
             "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
             "defaultValue": 4
           },
           {
             "id": "withdrawAmount",
             "label": "Withdraw Amount",
             "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
             "defaultValue": 10000
           },
           {
             "id": "lowerVariationPercentage",
             "label": "Lower Variation %",
             "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
             "defaultValue": 10
           },
           {
             "id": "upperVariationPercentage",
             "label": "Upper Variation %",
             "type": "number",
+            "visibleWhen": { "path": "phaseType", "equals": "WITHDRAW" },
             "defaultValue": 10
           },
           {
