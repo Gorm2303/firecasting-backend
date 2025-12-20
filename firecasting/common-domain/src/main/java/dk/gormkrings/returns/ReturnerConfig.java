@@ -21,6 +21,8 @@ import java.util.List;
 @Setter
 public class ReturnerConfig {
 
+    private static final double SWITCH_WEIGHT_SUM_TOLERANCE = 1e-6;
+
     /**
      * If negative, the RNG should be stochastic. If non-negative, it should be deterministic.
      */
@@ -89,6 +91,45 @@ public class ReturnerConfig {
                 };
 
                 if (!(offDiagSum > 0.0)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @AssertTrue(message = "for each regime, switchWeights must be finite, >= 0, and sum of weights to other regimes must be 1")
+        public boolean hasNormalizedFiniteSwitchWeights() {
+            if (regimes == null) return true; // let @NotNull handle
+
+            for (int i = 0; i < regimes.size(); i++) {
+                RegimeParams r = regimes.get(i);
+                if (r == null) return true; // let @Valid / downstream rules handle
+
+                SwitchWeights w = r.getSwitchWeights();
+                if (w == null) return true; // let @NotNull handle
+
+                Double w0 = w.getToRegime0();
+                Double w1 = w.getToRegime1();
+                Double w2 = w.getToRegime2();
+                if (w0 == null || w1 == null || w2 == null) return true; // let @NotNull handle
+
+                if (!Double.isFinite(w0) || !Double.isFinite(w1) || !Double.isFinite(w2)) {
+                    return false;
+                }
+
+                if (w0 < 0.0 || w1 < 0.0 || w2 < 0.0) {
+                    return false;
+                }
+
+                double offDiagSum = switch (i) {
+                    case 0 -> w1 + w2;
+                    case 1 -> w0 + w2;
+                    case 2 -> w0 + w1;
+                    default -> w0 + w1 + w2;
+                };
+
+                if (Math.abs(offDiagSum - 1.0) > SWITCH_WEIGHT_SUM_TOLERANCE) {
                     return false;
                 }
             }
