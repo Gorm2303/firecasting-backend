@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,6 +31,12 @@ public class ApiExceptionHandler {
             String field = fe.getField();
             String msg = fe.getDefaultMessage();
             details.add(field + ": " + (msg == null ? "invalid" : msg));
+        }
+
+        for (ObjectError oe : ex.getBindingResult().getGlobalErrors()) {
+            String obj = oe.getObjectName();
+            String msg = oe.getDefaultMessage();
+            details.add(obj + ": " + (msg == null ? "invalid" : msg));
         }
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
