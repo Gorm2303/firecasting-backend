@@ -4,7 +4,8 @@ import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.SimulationRequest;
 import dk.gormkrings.queue.SimulationQueueService;
 import dk.gormkrings.result.IRunResult;
-import dk.gormkrings.simulation.SimulationRunner;
+import dk.gormkrings.simulation.SimulationRunSpec;
+import dk.gormkrings.simulation.SimulationStartService;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.StatisticsService;
 import dk.gormkrings.statistics.YearlySummary;
@@ -36,10 +37,10 @@ import java.util.concurrent.atomic.AtomicReference;
 public class FirecastingController {
 
     private final SimulationQueueService simQueue;
-    private final SimulationRunner simulationRunner;
     private final SimulationSseService sseService;
     private final StatisticsService statisticsService;
     private final ScheduledExecutorService sseScheduler;
+    private final SimulationStartService simulationStartService;
 
     @Value("${settings.runs}")
     private int runs;
@@ -56,15 +57,15 @@ public class FirecastingController {
     private List<IRunResult> lastestResults;
 
     public FirecastingController(SimulationQueueService simQueue,
-                                 SimulationRunner simulationRunner,
                                  SimulationSseService sseService,
                                  StatisticsService statisticsService,
-                                 ScheduledExecutorService sseScheduler) {
+                                 ScheduledExecutorService sseScheduler,
+                                 SimulationStartService simulationStartService) {
         this.simQueue = simQueue;
-        this.simulationRunner = simulationRunner;
         this.sseService = sseService;
         this.statisticsService = statisticsService;
         this.sseScheduler = sseScheduler;
+        this.simulationStartService = simulationStartService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -101,68 +102,15 @@ public class FirecastingController {
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<Map<String, String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
-        // 0) Dedup FIRST, return immediately if hit
-        try {
-            var existingId = statisticsService.findExistingRunIdForInput(request);
-            if (existingId.isPresent()) {
-                log.info("[/start] Dedup hit -> {}", existingId.get());
-                return ResponseEntity.ok(Map.of("id", existingId.get()));
-            }
-            log.info("[/start] Dedup miss -> creating new run");
-        } catch (Exception e) {
-            log.error("[/start] Dedup check failed", e);
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Invalid input for dedup: " + e.getMessage()));
-        }
-
-        // 1) Simple invariant: max duration
-        int totalMonths = request.getPhases().stream()
-                .mapToInt(PhaseRequest::getDurationInMonths)
-                .sum();
-        if (totalMonths > 1200) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error",
-                            "Total duration across phases must be ≤ 1200 months (got " + totalMonths + ")"));
-        }
-
-        // 2) New run id, enqueue job, respond 202 with JSON {id}
-        final String simulationId = UUID.randomUUID().toString();
-        log.info("[/start] New run -> {} - {}", simulationId, request.getOverallTaxRule());
-
-        boolean accepted = simQueue.submitWithId(simulationId, () -> {
-            try {
-                // Start SSE flushing pipeline
-                sseService.startFlusher(simulationId);
-
-                // Run the simulation via SimulationRunner
-
-                lastestResults = simulationRunner.runSimulation(
-                        simulationId,
-                        request,
-                        runs,
-                        batchSize,
-                        msg -> sseService.onProgressMessage(simulationId, msg)
-                );
-
-                // Fetch summaries from DB and emit "completed" with data
-                var summaries = statisticsService.getSummariesForRun(simulationId);
-                sseService.sendCompleted(simulationId, summaries);
-            } catch (Exception e) {
-                log.error("Simulation failed {}", simulationId, e);
-                sseService.stopFlusherWithError(simulationId, e);
-            } finally {
-                // Ensure flusher and SSE emitters are cleaned up
-                sseService.stopFlusherAndComplete(simulationId);
-            }
-        });
-
-        if (!accepted) {
-            return ResponseEntity.status(429)
-                    .body(Map.of("error", "Queue full. Try again later."));
-        }
-
-        sseService.enqueueStateQueued(simulationId, "queued");
-        return ResponseEntity.accepted().body(Map.of("id", simulationId));
+        var spec = new SimulationRunSpec(
+                request.getStartDate(),
+                request.getPhases(),
+                request.getOverallTaxRule(),
+                request.getTaxPercentage(),
+                "dataDrivenReturn",
+                1.02D
+        );
+        return simulationStartService.startSimulation("/start", spec, request);
     }
 
     // ------------------------------------------------------------------------------------
