@@ -1,2 +1,28 @@
+* text=auto
+
+# Keep this file LF (avoid CRLF warnings/churn)
+/.gitattributes text eol=lf
+
+# Keep Unix scripts LF
 /mvnw text eol=lf
+*.sh text eol=lf
+
+# Force LF for common config/source formats (avoid CRLF churn)
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.properties text eol=lf
+*.md text eol=lf
+
+# Keep Windows scripts CRLF
 *.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Treat common binary assets as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
