@@ -34,6 +34,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     @Override
     public boolean supportsEvent(EventType eventType) {
         return eventType.equals(EventType.DAY_END)
+                || eventType.equals(EventType.MONTH_END)
                 || eventType.equals(EventType.YEAR_START)
                 || eventType.equals(EventType.YEAR_END);
     }
@@ -66,7 +67,9 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onMonthEnd() {
-
+        if (specification == null) return;
+        if (specification.getReturner() == null) return;
+        specification.getReturner().onMonthEnd();
     }
 
     @Override

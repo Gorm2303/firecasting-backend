@@ -33,6 +33,7 @@ public class PassiveCallPhase extends SimulationCallPhase implements IPassivePha
 
     @Override
     public void onMonthEnd() {
+        super.onMonthEnd();
         if (Formatter.debug) log.debug(prettyString());
     }
 

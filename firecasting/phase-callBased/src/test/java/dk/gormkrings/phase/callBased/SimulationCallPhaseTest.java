@@ -119,7 +119,7 @@ public class SimulationCallPhaseTest {
 
         assertTrue(phase.supportsEvent(EventType.DAY_END), "Should support DAY_END events");
         assertTrue(phase.supportsEvent(EventType.YEAR_END), "Should support YEAR_END events");
-        assertFalse(phase.supportsEvent(EventType.MONTH_END), "Should not support MONTH_END events");
+        assertTrue(phase.supportsEvent(EventType.MONTH_END), "Should support MONTH_END events");
     }
 
     @Test
