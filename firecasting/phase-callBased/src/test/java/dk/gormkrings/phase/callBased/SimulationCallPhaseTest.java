@@ -9,6 +9,7 @@ import dk.gormkrings.returns.IReturner;
 import dk.gormkrings.simulation.ReturnStep;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.ITaxExemption;
+import dk.gormkrings.calendar.WeekdayTradingCalendar;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,7 @@ public class SimulationCallPhaseTest {
     @AfterEach
     void resetReturnStep() {
         SimulationCallPhase.configureReturnStep(ReturnStep.DAILY);
+        SimulationCallPhase.configureTradingCalendar(new WeekdayTradingCalendar());
     }
 
     @Test

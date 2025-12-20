@@ -7,6 +7,8 @@ import dk.gormkrings.event.EventType;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.simulation.ReturnStep;
+import dk.gormkrings.calendar.TradingCalendar;
+import dk.gormkrings.calendar.WeekdayTradingCalendar;
 import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +21,7 @@ import java.util.List;
 @Setter
 public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhase {
     private static volatile ReturnStep returnStep = ReturnStep.DAILY;
+    private static volatile TradingCalendar tradingCalendar = new WeekdayTradingCalendar();
 
     private IDate startDate;
     private long duration;
@@ -51,7 +54,11 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
     public void onDayEnd() {
         if (returnStep == ReturnStep.MONTHLY) return;
         if (getLiveData().getCapital() <= 0) return;
-        if (startDate.plusDays(specification.getLiveData().getSessionDuration()).getDayOfWeek() < 5) addReturn();
+
+        IDate currentDate = startDate.plusDays(specification.getLiveData().getSessionDuration());
+        if (tradingCalendar.isTradingDay(currentDate)) {
+            addReturn();
+        }
     }
 
     @Override
@@ -86,6 +93,10 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     public static void configureReturnStep(ReturnStep step) {
         returnStep = (step == null) ? ReturnStep.DAILY : step;
+    }
+
+    public static void configureTradingCalendar(TradingCalendar calendar) {
+        tradingCalendar = (calendar == null) ? new WeekdayTradingCalendar() : calendar;
     }
 
     @Override
