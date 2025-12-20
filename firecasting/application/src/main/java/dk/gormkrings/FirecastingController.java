@@ -1,9 +1,11 @@
 package dk.gormkrings;
 
 import dk.gormkrings.dto.PhaseRequest;
+import dk.gormkrings.dto.AdvancedSimulationRequest;
 import dk.gormkrings.dto.SimulationRequest;
 import dk.gormkrings.queue.SimulationQueueService;
 import dk.gormkrings.result.IRunResult;
+import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
 import dk.gormkrings.simulation.SimulationRunSpec;
 import dk.gormkrings.simulation.SimulationStartService;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
@@ -111,6 +113,17 @@ public class FirecastingController {
                 1.02D
         );
         return simulationStartService.startSimulation("/start", spec, request);
+    }
+
+    @PostMapping(
+            value = "/start-advanced",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Map<String, String>> startAdvancedSimulation(
+            @Valid @RequestBody AdvancedSimulationRequest request) {
+        var spec = AdvancedSimulationRequestMapper.toRunSpec(request);
+        return simulationStartService.startSimulation("/start-advanced", spec, request);
     }
 
     // ------------------------------------------------------------------------------------
