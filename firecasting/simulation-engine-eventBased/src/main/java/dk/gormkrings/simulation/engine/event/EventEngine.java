@@ -78,7 +78,7 @@ public class EventEngine implements IEngine {
             currentEpochDay++; // advance one day
 
             // Publish Day Event.
-            //dispatcher.notifyListeners(dayEvent);
+            dispatcher.notifyListeners(dayEvent);
 
             // Publish Month Start Event when the current day equals the precomputed boundary.
             if (currentEpochDay == nextMonthStartEpochDay && currentEpochDay != startEpochDay) {

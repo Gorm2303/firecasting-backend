@@ -1,6 +1,7 @@
 package dk.gormkrings.config;
 
 import dk.gormkrings.phase.callBased.SimulationCallPhase;
+import dk.gormkrings.phase.eventBased.SimulationEventPhase;
 import dk.gormkrings.simulation.ReturnStep;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class SimulationReturnStepInitializer {
     public void init() {
         ReturnStep step = ReturnStep.fromProperty(configuredStep);
         SimulationCallPhase.configureReturnStep(step);
+        SimulationEventPhase.configureReturnStep(step);
         log.info("Simulation return step configured: {} (dt={})", step, step.toDt());
     }
 }
