@@ -65,6 +65,36 @@ public class ReturnerConfig {
         @Size(min = 3, max = 3, message = "regimes must have exactly 3 items (v1)")
         @Valid
         private List<RegimeParams> regimes;
+
+        @AssertTrue(message = "for each regime, at least one switch weight to another regime must be > 0")
+        public boolean hasValidOffDiagonalSwitchWeights() {
+            if (regimes == null) return true; // let @NotNull handle
+
+            for (int i = 0; i < regimes.size(); i++) {
+                RegimeParams r = regimes.get(i);
+                if (r == null) return true; // let @Valid / downstream rules handle
+
+                SwitchWeights w = r.getSwitchWeights();
+                if (w == null) return true; // let @NotNull handle
+
+                double to0 = w.getToRegime0() == null ? 0.0 : w.getToRegime0();
+                double to1 = w.getToRegime1() == null ? 0.0 : w.getToRegime1();
+                double to2 = w.getToRegime2() == null ? 0.0 : w.getToRegime2();
+
+                double offDiagSum = switch (i) {
+                    case 0 -> to1 + to2;
+                    case 1 -> to0 + to2;
+                    case 2 -> to0 + to1;
+                    default -> to0 + to1 + to2;
+                };
+
+                if (!(offDiagSum > 0.0)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 
     @Getter
