@@ -6,6 +6,7 @@ import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.event.EventType;
 import dk.gormkrings.phase.ICallPhase;
 import dk.gormkrings.specification.ISpecification;
+import dk.gormkrings.simulation.ReturnStep;
 import dk.gormkrings.tax.ITaxExemption;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,6 +18,8 @@ import java.util.List;
 @Getter
 @Setter
 public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhase {
+    private static volatile ReturnStep returnStep = ReturnStep.DAILY;
+
     private IDate startDate;
     private long duration;
     private ISpecification specification;
@@ -46,6 +49,7 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onDayEnd() {
+        if (returnStep == ReturnStep.MONTHLY) return;
         if (getLiveData().getCapital() <= 0) return;
         if (startDate.plusDays(specification.getLiveData().getSessionDuration()).getDayOfWeek() < 5) addReturn();
     }
@@ -67,9 +71,21 @@ public abstract class SimulationCallPhase implements ICallPhase, ISimulationPhas
 
     @Override
     public void onMonthEnd() {
+        if (returnStep == ReturnStep.MONTHLY) {
+            if (getLiveData().getCapital() > 0) {
+                // Apply the month's return using the regime/distribution for the month that just ended.
+                addReturn();
+            }
+        }
+
+        // Month-end hook for returners (e.g., regime switching) – may be no-op.
         if (specification == null) return;
         if (specification.getReturner() == null) return;
         specification.getReturner().onMonthEnd();
+    }
+
+    public static void configureReturnStep(ReturnStep step) {
+        returnStep = (step == null) ? ReturnStep.DAILY : step;
     }
 
     @Override
