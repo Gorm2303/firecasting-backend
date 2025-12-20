@@ -39,31 +39,44 @@ class SimulationReturnStepEndToEndTest {
 
     @Test
     void minimalSimulation_runsUnderDailyAndMonthly_andCadenceDiffers() {
-        double dailyReturned = runWithReturnStep("daily");
-        double monthlyReturned = runWithReturnStep("monthly");
+        SimulationRunStats daily = runWithReturnStep("daily");
+        SimulationRunStats monthly = runWithReturnStep("monthly");
 
-        assertTrue(monthlyReturned > 0.0, "monthly mode should apply at least one return");
-        assertTrue(dailyReturned > monthlyReturned * 10.0,
-                "daily mode should apply many more returns than monthly mode");
+        assertTrue(daily.callCount > monthly.callCount,
+                "daily mode should apply returns more often than monthly mode");
+
+        assertTrue(monthly.returnPerCall > daily.returnPerCall,
+                "per-step return should be larger in monthly mode than daily mode (positive return)");
+
+        assertTrue(daily.totalReturned > 0.0, "daily mode should apply at least one positive return");
+        assertTrue(monthly.totalReturned > 0.0, "monthly mode should apply at least one positive return");
+
+        // Over a fixed horizon, totals should be broadly comparable if the per-step return scales with dt.
+        double diff = Math.abs(daily.totalReturned - monthly.totalReturned);
+        double scale = Math.max(daily.totalReturned, monthly.totalReturned);
+        assertTrue(diff / scale < 0.20,
+                "total returns should be within 20% between daily and monthly for dt-scaled positive returns");
     }
 
-    private static double runWithReturnStep(String step) {
+    private static SimulationRunStats runWithReturnStep(String step) {
         var runner = new ApplicationContextRunner()
                 .withUserConfiguration(TestConfig.class)
                 .withPropertyValues("simulation.return.step=" + step);
 
-        final double[] returned = new double[1];
+        final SimulationRunStats[] stats = new SimulationRunStats[1];
 
         runner.run(ctx -> {
             SimulationReturnStepInitializer initializer = ctx.getBean(SimulationReturnStepInitializer.class);
             assertNotNull(initializer);
-            returned[0] = runMinimalCallEngineSimulation();
+
+            CountingDtReturner returner = ctx.getBean(CountingDtReturner.class);
+            stats[0] = runMinimalCallEngineSimulation(returner);
         });
 
-        return returned[0];
+        return stats[0];
     }
 
-    private static double runMinimalCallEngineSimulation() {
+    private static SimulationRunStats runMinimalCallEngineSimulation(CountingDtReturner returner) {
         IDateFactory dateFactory = new DefaultDateFactory();
         IResultFactory resultFactory = new DefaultResultFactory();
         ISnapshotFactory snapshotFactory = new DefaultSnapshotFactory();
@@ -84,18 +97,6 @@ class SimulationReturnStepEndToEndTest {
             }
         };
 
-        IReturner constantReturn = new IReturner() {
-            @Override
-            public double calculateReturn(double amount) {
-                return 1.0;
-            }
-
-            @Override
-            public IReturner copy() {
-                return this;
-            }
-        };
-
         IInflation noInflation = new IInflation() {
             @Override
             public double calculateInflation() {
@@ -108,7 +109,7 @@ class SimulationReturnStepEndToEndTest {
             }
         };
 
-        ISpecification specification = new Specification(startDate.getEpochDay(), noTax, constantReturn, noInflation);
+        ISpecification specification = new Specification(startDate.getEpochDay(), noTax, returner, noInflation);
         ILiveData liveData = (ILiveData) specification.getLiveData();
         liveData.addToCapital(100.0);
 
@@ -125,7 +126,49 @@ class SimulationReturnStepEndToEndTest {
         };
 
         engine.simulatePhases(List.of(phase));
-        return liveData.getReturned();
+        double totalReturned = liveData.getReturned();
+        long callCount = returner.getCalls();
+        double perCall = (callCount == 0) ? 0.0 : (totalReturned / callCount);
+        return new SimulationRunStats(totalReturned, callCount, perCall);
+    }
+
+    static final class SimulationRunStats {
+        final double totalReturned;
+        final long callCount;
+        final double returnPerCall;
+
+        SimulationRunStats(double totalReturned, long callCount, double returnPerCall) {
+            this.totalReturned = totalReturned;
+            this.callCount = callCount;
+            this.returnPerCall = returnPerCall;
+        }
+    }
+
+    static final class CountingDtReturner implements IReturner {
+        private final double annualRate;
+        private final double dt;
+        private long calls;
+
+        CountingDtReturner(double annualRate, double dt) {
+            this.annualRate = annualRate;
+            this.dt = dt;
+        }
+
+        @Override
+        public double calculateReturn(double amount) {
+            calls++;
+            // Deterministic positive return: amount * annualRate scaled by dt.
+            return amount * annualRate * dt;
+        }
+
+        long getCalls() {
+            return calls;
+        }
+
+        @Override
+        public IReturner copy() {
+            return new CountingDtReturner(annualRate, dt);
+        }
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -135,6 +178,15 @@ class SimulationReturnStepEndToEndTest {
                 @Value("${simulation.return.step:daily}") String configuredStep
         ) {
             return new SimulationReturnStepInitializer(configuredStep);
+        }
+
+        @Bean
+        CountingDtReturner countingDtReturner(
+                @Value("${simulation.return.step:daily}") String configuredStep
+        ) {
+            ReturnStep step = ReturnStep.fromProperty(configuredStep);
+            // 12% annual rate, scaled by dt; per-step return is larger in monthly mode.
+            return new CountingDtReturner(0.12, step.toDt());
         }
     }
 }
