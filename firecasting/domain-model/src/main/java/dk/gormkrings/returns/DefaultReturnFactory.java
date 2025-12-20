@@ -15,7 +15,6 @@ import dk.gormkrings.simulation.ReturnStep;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -29,11 +28,11 @@ public class DefaultReturnFactory implements IReturnFactory {
     public DefaultReturnFactory(
             ApplicationContext context,
             DistributionFactory distributionFactory,
-            @Value("${simulation.return.step:daily}") String returnStep
+            ReturnStep returnStep
     ) {
         this.context = context;
         this.distributionFactory = distributionFactory;
-        this.returnStep = ReturnStep.fromProperty(returnStep);
+        this.returnStep = (returnStep == null) ? ReturnStep.DAILY : returnStep;
     }
 
     private double resolveDt() {

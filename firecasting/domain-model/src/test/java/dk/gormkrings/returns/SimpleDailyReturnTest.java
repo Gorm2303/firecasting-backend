@@ -1,5 +1,6 @@
 package dk.gormkrings.returns;
 
+import dk.gormkrings.simulation.ReturnStep;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,17 +9,18 @@ class SimpleDailyReturnTest {
 
     @Test
     void testCalculateReturn() {
-        SimpleDailyReturn monthlyReturn = new SimpleDailyReturn();
-        monthlyReturn.setAveragePercentage(0.07F);
+        SimpleDailyReturn dailyReturn = new SimpleDailyReturn(ReturnStep.DAILY);
+        dailyReturn.setAveragePercentage(0.07F);
         double amount = 1200;
-        double expected = amount * 0.07 / 252;
-        double result = monthlyReturn.calculateReturn(amount);
-        assertEquals(expected, result, 0.0001, "The calculated monthly return should be 12");
+        double expectedPerStep = Math.pow(1.0 + 0.07, ReturnStep.DAILY.toDt()) - 1.0;
+        double expected = amount * expectedPerStep;
+        double result = dailyReturn.calculateReturn(amount);
+        assertEquals(expected, result, 1e-8);
     }
 
     @Test
     void testCopy() {
-        SimpleDailyReturn original = new SimpleDailyReturn();
+        SimpleDailyReturn original = new SimpleDailyReturn(ReturnStep.DAILY);
         original.setAveragePercentage(0.07F);
         SimpleDailyReturn copy = original.copy();
         double amount = 1000;

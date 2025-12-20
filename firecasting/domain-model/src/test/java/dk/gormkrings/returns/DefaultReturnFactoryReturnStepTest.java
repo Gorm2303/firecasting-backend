@@ -62,7 +62,7 @@ public class DefaultReturnFactoryReturnStepTest {
         NormalDistribution normal = spy(new NormalDistribution());
         when(distributionFactory.createDistribution("normal")).thenReturn(normal);
 
-        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step.name().toLowerCase());
+        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step);
         factory.createReturn("distributionReturn", buildDistributionConfig("normal"));
 
         assertEquals(step.toDt(), normal.getDt(), 1e-12);
@@ -77,7 +77,7 @@ public class DefaultReturnFactoryReturnStepTest {
         BrownianMotionDistribution brownian = spy(new BrownianMotionDistribution());
         when(distributionFactory.createDistribution("brownianMotion")).thenReturn(brownian);
 
-        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step.name().toLowerCase());
+        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step);
         factory.createReturn("distributionReturn", buildDistributionConfig("brownianMotion"));
 
         assertEquals(step.toDt(), brownian.getDt(), 1e-12);
@@ -92,7 +92,7 @@ public class DefaultReturnFactoryReturnStepTest {
         TDistributionImpl tDist = spy(new TDistributionImpl());
         when(distributionFactory.createDistribution("tDistribution")).thenReturn(tDist);
 
-        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step.name().toLowerCase());
+        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step);
         factory.createReturn("distributionReturn", buildDistributionConfig("studentT"));
 
         assertEquals(step.toDt(), tDist.getDt(), 1e-12);
@@ -116,7 +116,7 @@ public class DefaultReturnFactoryReturnStepTest {
             return new RegimeBasedDistribution(regimes, provider);
         });
 
-        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step.name().toLowerCase());
+        DefaultReturnFactory factory = new DefaultReturnFactory(ctx, distributionFactory, step);
 
         ReturnerConfig cfg = new ReturnerConfig();
         cfg.setSeed(1L);
