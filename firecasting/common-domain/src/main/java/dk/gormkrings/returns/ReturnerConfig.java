@@ -1,0 +1,63 @@
+package dk.gormkrings.returns;
+
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ * Configuration for creating returners. Used by advanced-mode requests.
+ */
+@Getter
+@Setter
+public class ReturnerConfig {
+
+    /**
+     * If negative, the RNG should be stochastic. If non-negative, it should be deterministic.
+     */
+    private Long seed;
+
+    /**
+     * Simple return config (annual percentage).
+     * Example: 7 means 7%.
+     */
+    private Double simpleAveragePercentage;
+
+    /**
+     * Distribution return config.
+     */
+    private DistributionConfig distribution;
+
+    @Getter
+    @Setter
+    public static class DistributionConfig {
+        /** Supported values: normal, brownianMotion, studentT, regimeBased */
+        private String type;
+
+        private NormalParams normal;
+        private BrownianParams brownianMotion;
+        private StudentTParams studentT;
+    }
+
+    @Getter
+    @Setter
+    public static class NormalParams {
+        /** Annualized mean (e.g. 0.07). */
+        private Double mean;
+        /** Annualized standard deviation (e.g. 0.20). */
+        private Double standardDeviation;
+    }
+
+    @Getter
+    @Setter
+    public static class BrownianParams {
+        private Double drift;
+        private Double volatility;
+    }
+
+    @Getter
+    @Setter
+    public static class StudentTParams {
+        private Double mu;
+        private Double sigma;
+        private Double nu;
+    }
+}
