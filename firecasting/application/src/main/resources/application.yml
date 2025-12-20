@@ -71,6 +71,8 @@ simulation:
     selected: callEngine
   phase:
     type: call
+  return:
+    step: daily   # daily | monthly
   queue:
     capacity: 1000
   progressStep: 1000      # emit progress every N runs
