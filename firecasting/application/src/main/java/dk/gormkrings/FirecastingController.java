@@ -9,6 +9,7 @@ import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
 import dk.gormkrings.simulation.SimulationRunSpec;
 import dk.gormkrings.simulation.SimulationStartService;
 import dk.gormkrings.simulation.SimulationResultsCache;
+import dk.gormkrings.simulation.SimulationRunner;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.StatisticsService;
 import dk.gormkrings.statistics.YearlySummary;
@@ -20,7 +21,9 @@ import dk.gormkrings.export.ReproducibilityBundleDto;
 import dk.gormkrings.reproducibility.ReplayStartResponse;
 import dk.gormkrings.reproducibility.ReplayStatusResponse;
 import dk.gormkrings.reproducibility.ReproducibilityReplayService;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +54,7 @@ public class FirecastingController {
     private final StatisticsService statisticsService;
     private final ScheduledExecutorService sseScheduler;
     private final SimulationStartService simulationStartService;
+    private final SimulationRunner simulationRunner;
     private final SimulationResultsCache resultsCache;
     private final ReproducibilityBundleService reproducibilityBundleService;
     private final ReproducibilityReplayService reproducibilityReplayService;
@@ -73,6 +77,7 @@ public class FirecastingController {
                                  StatisticsService statisticsService,
                                  ScheduledExecutorService sseScheduler,
                                  SimulationStartService simulationStartService,
+                                 SimulationRunner simulationRunner,
                                  SimulationResultsCache resultsCache,
                                  ReproducibilityBundleService reproducibilityBundleService,
                                  ReproducibilityReplayService reproducibilityReplayService,
@@ -82,6 +87,7 @@ public class FirecastingController {
         this.statisticsService = statisticsService;
         this.sseScheduler = sseScheduler;
         this.simulationStartService = simulationStartService;
+        this.simulationRunner = simulationRunner;
         this.resultsCache = resultsCache;
         this.reproducibilityBundleService = reproducibilityBundleService;
         this.reproducibilityReplayService = reproducibilityReplayService;
@@ -343,9 +349,60 @@ public class FirecastingController {
     @GetMapping("/{simulationId}/export")
     public ResponseEntity<StreamingResponseBody> exportResultsAsCsvForRun(@PathVariable String simulationId) {
         var results = resultsCache.get(simulationId);
+
+        // If this was a dedup hit (run already existed), we may not have the full results in memory.
+        // Recompute from persisted input_json on-demand so per-run CSV export still works.
+        if (results == null || results.isEmpty()) {
+            try {
+                var run = statisticsService.getRun(simulationId);
+                if (run == null || run.getInputJson() == null || run.getInputJson().isBlank()) {
+                    return ResponseEntity.notFound().build();
+                }
+
+                final ObjectMapper lenientMapper = objectMapper.copy()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+                JsonNode inputNode = lenientMapper.readTree(run.getInputJson());
+                SimulationRunSpec spec;
+
+                if (inputNode != null && inputNode.hasNonNull("returnType")) {
+                    // advanced-mode persisted request
+                    AdvancedSimulationRequest req = lenientMapper.treeToValue(inputNode, AdvancedSimulationRequest.class);
+                    spec = AdvancedSimulationRequestMapper.toRunSpec(req);
+                } else {
+                    // legacy/normal persisted request
+                    SimulationRequest req = lenientMapper.treeToValue(inputNode, SimulationRequest.class);
+                    spec = new SimulationRunSpec(
+                            req.getStartDate(),
+                            req.getPhases(),
+                            req.getOverallTaxRule(),
+                            req.getTaxPercentage(),
+                            "dataDrivenReturn",
+                            1.02D
+                    );
+                }
+
+                // Compute results without persisting (run already exists)
+                results = simulationRunner.runSimulationNoPersist(
+                        spec,
+                        runs,
+                        batchSize,
+                        msg -> {
+                        }
+                );
+
+                // Cache for subsequent exports during TTL
+                resultsCache.put(simulationId, results);
+            } catch (Exception e) {
+                log.error("Failed to recompute results for CSV export of {}", simulationId, e);
+                return ResponseEntity.status(500).build();
+            }
+        }
+
         if (results == null || results.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
         return exportCsv(results, "simulation-results-" + simulationId);
     }
 
@@ -371,6 +428,16 @@ public class FirecastingController {
                     .body(outputStream -> outputStream.write("Error exporting CSV".getBytes()));
         }
 
+        if (file == null || !file.exists() || file.length() <= 0) {
+            log.error("CSV export produced an empty file for {}", baseFileName);
+            try {
+                if (file != null) Files.deleteIfExists(file.toPath());
+            } catch (Exception ignore) {
+            }
+            return ResponseEntity.status(500)
+                    .body(outputStream -> outputStream.write("Error exporting CSV".getBytes()));
+        }
+
         long t1 = System.currentTimeMillis();
         log.info("Handling exports in {} ms", (t1 - t0));
 
@@ -386,10 +453,12 @@ public class FirecastingController {
             }
         };
 
+        String downloadFileName = baseFileName + ".csv";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + file.getName() + "\"")
-                .contentType(MediaType.parseMediaType("text/csv"))
-                .body(stream);
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + downloadFileName + "\"")
+            .contentLength(file.length())
+            .contentType(MediaType.parseMediaType("text/csv"))
+            .body(stream);
     }
 }

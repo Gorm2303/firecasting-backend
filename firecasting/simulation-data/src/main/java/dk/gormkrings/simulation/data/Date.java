@@ -1,7 +1,7 @@
 package dk.gormkrings.simulation.data;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import dk.gormkrings.data.IDate;
 import lombok.Getter;
 
@@ -12,6 +12,30 @@ public final class Date implements IDate {
 
     public Date(int epochDay) {
         this.epochDay = epochDay;
+    }
+
+    /**
+     * Constructs a Date from an ISO-8601 date string (YYYY-MM-DD). Blank/null => today.
+     * Not annotated for Jackson; used as an internal helper.
+     */
+    public Date(String dateStr) {
+        java.time.LocalDate ld = (dateStr != null && !dateStr.trim().isEmpty())
+                ? java.time.LocalDate.parse(dateStr)
+                : java.time.LocalDate.now();
+
+        int year = ld.getYear();
+        int month = ld.getMonthValue();
+        int day = ld.getDayOfMonth();
+        if (month <= 2) {
+            year--;
+            month += 12;
+        }
+        int a = year / 100;
+        int b = 2 - a + a / 4;
+        int jdn = (int) (365.25 * (year + 4716))
+                + (int) (30.6001 * (month + 1))
+                + day + b - 1524;
+        this.epochDay = jdn - 2415021;
     }
 
     public Date(int year, int month, int day) {
@@ -31,28 +55,46 @@ public final class Date implements IDate {
         new Date(epochDay);
     }
 
-    // Jackson‐friendly constructor that accepts a date string (or empty → today)
+    /**
+     * Jackson-friendly constructor that tolerates multiple formats:
+     * - {"date":"YYYY-MM-DD"}
+     * - {"epochDay":12345}
+     * - "YYYY-MM-DD"
+     * - 12345
+     */
     @JsonCreator
-    public Date(@JsonProperty("date") String dateStr) {
-        // If the client sent null or blank, we treat it as “no date” → use today
-        java.time.LocalDate ld = (dateStr != null && !dateStr.trim().isEmpty())
-                ? java.time.LocalDate.parse(dateStr)
-                : java.time.LocalDate.now();
-
-        // now compute epochDay exactly as in your year/month/day ctor
-        int year = ld.getYear();
-        int month = ld.getMonthValue();
-        int day = ld.getDayOfMonth();
-        if (month <= 2) {
-            year--;
-            month += 12;
+    public Date(JsonNode node) {
+        if (node == null || node.isNull()) {
+            this.epochDay = new Date(java.time.LocalDate.now().toString()).epochDay;
+            return;
         }
-        int a = year / 100;
-        int b = 2 - a + a / 4;
-        int jdn = (int)(365.25 * (year + 4716))
-                + (int)(30.6001 * (month + 1))
-                + day + b - 1524;
-        this.epochDay = jdn - 2415021;
+
+        if (node.isInt() || node.isLong()) {
+            this.epochDay = node.asInt();
+            return;
+        }
+
+        if (node.isTextual()) {
+            this.epochDay = new Date(node.asText()).epochDay;
+            return;
+        }
+
+        if (node.isObject()) {
+            JsonNode dateNode = node.get("date");
+            if (dateNode != null && dateNode.isTextual() && !dateNode.asText().trim().isEmpty()) {
+                this.epochDay = new Date(dateNode.asText()).epochDay;
+                return;
+            }
+
+            JsonNode epochNode = node.get("epochDay");
+            if (epochNode != null && (epochNode.isInt() || epochNode.isLong())) {
+                this.epochDay = epochNode.asInt();
+                return;
+            }
+        }
+
+        // Fallback: treat as "no date" -> today
+        this.epochDay = new Date(java.time.LocalDate.now().toString()).epochDay;
     }
 
     public Date plusDays(long days) {

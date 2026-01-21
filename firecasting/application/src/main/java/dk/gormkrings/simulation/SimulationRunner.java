@@ -79,67 +79,7 @@ public class SimulationRunner {
             int runs,
             int batchSize,
             IProgressCallback onProgress) {
-
-        // Overall tax rule for this run
-        ITaxRule overAllTaxRule = taxRuleFactory.create(spec.getOverallTaxRule(), spec.getTaxPercentage());
-
-        var specification = specificationFactory.create(
-                spec.getEpochDay(),
-                overAllTaxRule,
-                spec.getReturnType(),
-                spec.getInflationFactor(),
-                spec.getReturnerConfig()
-        );
-
-        // Build phases
-        var currentDate = dateFactory.dateOf(
-                spec.getStartDate().getYear(),
-                spec.getStartDate().getMonth(),
-                spec.getStartDate().getDayOfMonth()
-        );
-
-        List<IPhase> phases = new LinkedList<>();
-        for (PhaseRequest pr : spec.getPhases()) {
-            List<ITaxExemption> taxExemptions = new LinkedList<>();
-            if (pr.getTaxRules() != null) {
-                for (String taxExemption : pr.getTaxRules()) {
-                                        taxExemptions.add(taxExemptionFactory.create(taxExemption, spec.getTaxExemptionConfig()));
-                }
-            }
-
-            long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
-            String phaseType = pr.getPhaseType().toLowerCase();
-
-            IAction action = switch (phaseType) {
-                case "deposit" -> actionFactory.createDepositAction(
-                        pr.getInitialDeposit(),
-                        pr.getMonthlyDeposit(),
-                        pr.getYearlyIncreaseInPercentage()
-                );
-                case "withdraw" -> actionFactory.createWithdrawAction(
-                        pr.getWithdrawAmount(),
-                        pr.getWithdrawRate(),
-                        pr.getLowerVariationPercentage(),
-                        pr.getUpperVariationPercentage()
-                );
-                case "passive" -> actionFactory.createPassiveAction();
-                default -> throw new IllegalArgumentException("Unknown phase type: " + phaseType);
-            };
-
-            phases.add(phaseFactory.create(
-                    phaseType,
-                    specification,
-                    currentDate,
-                    taxExemptions,
-                    days,
-                    action
-            ));
-            currentDate = currentDate.plusMonths(pr.getDurationInMonths());
-        }
-
-        // Run Monte Carlo with progress callback
-        var simulationResults = simulationFactory.createSimulation()
-                .runWithProgress(runs, batchSize, phases, onProgress);
+        var simulationResults = computeSimulationResults(spec, runs, batchSize, onProgress);
 
         // Aggregate + grids
         var summaries = aggregationService.aggregateResults(
@@ -154,4 +94,85 @@ public class SimulationRunner {
 
         return simulationResults;
     }
+
+        /**
+         * Computes the full simulation results (snapshots) without persisting anything.
+         * Useful for export flows where the run already exists in the DB (dedup hit) but
+         * we still want to generate a full per-run CSV.
+         */
+        public List<IRunResult> runSimulationNoPersist(
+                        SimulationRunSpec spec,
+                        int runs,
+                        int batchSize,
+                        IProgressCallback onProgress) {
+                return computeSimulationResults(spec, runs, batchSize, onProgress);
+        }
+
+        private List<IRunResult> computeSimulationResults(
+                        SimulationRunSpec spec,
+                        int runs,
+                        int batchSize,
+                        IProgressCallback onProgress) {
+
+                // Overall tax rule for this run
+                ITaxRule overAllTaxRule = taxRuleFactory.create(spec.getOverallTaxRule(), spec.getTaxPercentage());
+
+                var specification = specificationFactory.create(
+                                spec.getEpochDay(),
+                                overAllTaxRule,
+                                spec.getReturnType(),
+                                spec.getInflationFactor(),
+                                spec.getReturnerConfig()
+                );
+
+                // Build phases
+                var currentDate = dateFactory.dateOf(
+                                spec.getStartDate().getYear(),
+                                spec.getStartDate().getMonth(),
+                                spec.getStartDate().getDayOfMonth()
+                );
+
+                List<IPhase> phases = new LinkedList<>();
+                for (PhaseRequest pr : spec.getPhases()) {
+                        List<ITaxExemption> taxExemptions = new LinkedList<>();
+                        if (pr.getTaxRules() != null) {
+                                for (String taxExemption : pr.getTaxRules()) {
+                                        taxExemptions.add(taxExemptionFactory.create(taxExemption, spec.getTaxExemptionConfig()));
+                                }
+                        }
+
+                        long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
+                        String phaseType = pr.getPhaseType().toLowerCase();
+
+                        IAction action = switch (phaseType) {
+                                case "deposit" -> actionFactory.createDepositAction(
+                                                pr.getInitialDeposit(),
+                                                pr.getMonthlyDeposit(),
+                                                pr.getYearlyIncreaseInPercentage()
+                                );
+                                case "withdraw" -> actionFactory.createWithdrawAction(
+                                                pr.getWithdrawAmount(),
+                                                pr.getWithdrawRate(),
+                                                pr.getLowerVariationPercentage(),
+                                                pr.getUpperVariationPercentage()
+                                );
+                                case "passive" -> actionFactory.createPassiveAction();
+                                default -> throw new IllegalArgumentException("Unknown phase type: " + phaseType);
+                        };
+
+                        phases.add(phaseFactory.create(
+                                        phaseType,
+                                        specification,
+                                        currentDate,
+                                        taxExemptions,
+                                        days,
+                                        action
+                        ));
+                        currentDate = currentDate.plusMonths(pr.getDurationInMonths());
+                }
+
+                // Run Monte Carlo with progress callback
+                return simulationFactory.createSimulation()
+                                .runWithProgress(runs, batchSize, phases, onProgress);
+        }
 }
