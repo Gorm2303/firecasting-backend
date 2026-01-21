@@ -63,19 +63,29 @@ public class SimulationStartService {
             Object inputForDedupAndStorage,
             SimulationPostProcessor postProcessor) {
 
-        // 0) Dedup FIRST, return immediately if hit
-        try {
-            Optional<String> existingId = statisticsService.findExistingRunIdForInput(inputForDedupAndStorage);
-            if (existingId.isPresent()) {
-                log.info("[{}] Dedup hit -> {}", logPrefix, existingId.get());
-                return ResponseEntity.ok(Map.of("id", existingId.get()));
+            // Negative seeds are explicitly treated as "stochastic" runs.
+            // To ensure repeating a run with the same negative seed still yields a new outcome,
+            // we must not deduplicate such requests.
+            Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
+            boolean allowDedup = (rngSeed == null || rngSeed >= 0);
+
+            // 0) Dedup FIRST (unless stochastic seed), return immediately if hit
+            if (allowDedup) {
+                try {
+                    Optional<String> existingId = statisticsService.findExistingRunIdForInput(inputForDedupAndStorage);
+                    if (existingId.isPresent()) {
+                        log.info("[{}] Dedup hit -> {}", logPrefix, existingId.get());
+                        return ResponseEntity.ok(Map.of("id", existingId.get()));
+                    }
+                    log.info("[{}] Dedup miss -> creating new run", logPrefix);
+                } catch (Exception e) {
+                    log.error("[{}] Dedup check failed", logPrefix, e);
+                    return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Invalid input for dedup: " + e.getMessage()));
+                }
+            } else {
+                log.info("[{}] Skipping dedup due to stochastic seed ({})", logPrefix, rngSeed);
             }
-            log.info("[{}] Dedup miss -> creating new run", logPrefix);
-        } catch (Exception e) {
-            log.error("[{}] Dedup check failed", logPrefix, e);
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Invalid input for dedup: " + e.getMessage()));
-        }
 
         // 1) Simple invariant: max duration
         int totalMonths = spec.getTotalMonths();

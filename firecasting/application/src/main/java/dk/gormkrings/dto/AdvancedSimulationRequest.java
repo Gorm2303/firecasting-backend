@@ -46,6 +46,14 @@ public class AdvancedSimulationRequest {
     @Valid
     private ReturnerConfig returnerConfig;
 
+    /**
+     * Optional RNG seed for the Monte Carlo run.
+     * If set, this is applied to the returner RNG stream (and regime transitions).
+     * Negative values force stochastic behavior.
+     */
+    @UIField(label = "RNG Seed", type = "number")
+    private Long seed;
+
     /** Optional tax exemption overrides used when phases include tax rules (exemptioncard/stockexemption). */
     @Valid
     private TaxExemptionConfig taxExemptionConfig;

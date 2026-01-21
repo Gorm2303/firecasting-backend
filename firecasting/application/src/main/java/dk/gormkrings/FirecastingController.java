@@ -21,6 +21,7 @@ import dk.gormkrings.export.ReproducibilityBundleDto;
 import dk.gormkrings.reproducibility.ReplayStartResponse;
 import dk.gormkrings.reproducibility.ReplayStatusResponse;
 import dk.gormkrings.reproducibility.ReproducibilityReplayService;
+import dk.gormkrings.returns.ReturnerConfig;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -128,13 +129,21 @@ public class FirecastingController {
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<Map<String, String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
+        ReturnerConfig returnerConfig = null;
+        if (request.getSeed() != null) {
+            returnerConfig = new ReturnerConfig();
+            returnerConfig.setSeed(request.getSeed());
+        }
+
         var spec = new SimulationRunSpec(
                 request.getStartDate(),
                 request.getPhases(),
                 request.getOverallTaxRule(),
                 request.getTaxPercentage(),
                 "dataDrivenReturn",
-                1.02D
+                1.02D,
+                returnerConfig,
+                null
         );
         return simulationStartService.startSimulation("/start", spec, request);
     }
