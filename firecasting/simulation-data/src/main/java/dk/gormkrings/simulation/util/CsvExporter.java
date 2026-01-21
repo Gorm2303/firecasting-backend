@@ -12,8 +12,9 @@ import java.util.Objects;
 
 public class CsvExporter {
 
-    public static File exportResultsToCsv(List<IRunResult> results, String fileName) {
+    public static File exportResultsToCsv(List<IRunResult> results, String fileName) throws IOException {
         File csvFile = new File(fileName);
+
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvFile))) {
             String header = "phase, day, month, year, date, capital, deposited, deposit, passive, returned, return, withdrawn, withdraw, taxed, tax, inflation, nettotal, net" +
                     ", y-return, y-withdraw, y-tax, y-net";
@@ -30,8 +31,6 @@ public class CsvExporter {
                 }
                 previousSnapshot = null;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         return csvFile;
     }

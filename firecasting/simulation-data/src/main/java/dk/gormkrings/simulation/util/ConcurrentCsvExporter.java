@@ -4,17 +4,21 @@ import dk.gormkrings.result.IRunResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class ConcurrentCsvExporter {
 
     public static File exportCsv(List<IRunResult> resultsList, String finalFileName) throws IOException {
-        File csvFile = new File(finalFileName + ".csv");
+        Path tempDir = Files.createTempDirectory("firecasting-csv-");
+        File csvFile = tempDir.resolve(finalFileName + ".csv").toFile();
 
         int numThreads = Runtime.getRuntime().availableProcessors();
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
@@ -32,18 +36,31 @@ public class ConcurrentCsvExporter {
             int endIndex = startIndex + partitionSize + extra;
             if (startIndex >= totalResults) break; // No more results to partition.
             List<IRunResult> partition = resultsList.subList(startIndex, Math.min(endIndex, totalResults));
-            String tmpFileName = finalFileName + "_part_" + (i + 1) + ".csv";
+            String tmpFileName = tempDir.resolve(finalFileName + "_part_" + (i + 1) + ".csv").toString();
             fileNames.add(tmpFileName);
 
-            futures.add(executor.submit(() -> CsvExporter.exportResultsToCsv(partition, tmpFileName)));
+            futures.add(executor.submit(() -> {
+                CsvExporter.exportResultsToCsv(partition, tmpFileName);
+                return null;
+            }));
             startIndex = endIndex;
         }
 
-        for (Future<?> future : futures) {
-            try {
+        try {
+            for (Future<?> future : futures) {
                 future.get();
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("CSV export interrupted", e);
+        } catch (ExecutionException e) {
+            throw new IOException("CSV export failed", e);
+        } finally {
+            executor.shutdown();
+            try {
+                executor.awaitTermination(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
 
