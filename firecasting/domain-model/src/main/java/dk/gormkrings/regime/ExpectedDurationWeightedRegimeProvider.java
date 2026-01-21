@@ -1,6 +1,7 @@
 package dk.gormkrings.regime;
 
 import java.util.SplittableRandom;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A simple regime provider intended for advanced-mode (v1) regime configuration.
@@ -49,7 +50,11 @@ public final class ExpectedDurationWeightedRegimeProvider implements IRegimeProv
         }
 
         this.currentRegime = clampIndex(initialRegime, n);
-        this.random = (seed == null) ? new SplittableRandom() : new SplittableRandom(seed);
+        if (seed == null || seed < 0) {
+            this.random = new SplittableRandom(ThreadLocalRandom.current().nextLong());
+        } else {
+            this.random = new SplittableRandom(seed);
+        }
     }
 
     private ExpectedDurationWeightedRegimeProvider(
