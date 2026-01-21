@@ -103,6 +103,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <!-- here you inherit from pluginManagement, but override skip -->
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <skip>false</skip>
                 </configuration>

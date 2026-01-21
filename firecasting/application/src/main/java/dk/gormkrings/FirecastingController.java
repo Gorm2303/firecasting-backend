@@ -14,6 +14,8 @@ import dk.gormkrings.statistics.YearlySummary;
 import dk.gormkrings.sse.SimulationSseService;
 import dk.gormkrings.ui.fields.UISchemaField;
 import dk.gormkrings.ui.generator.UISchemaGenerator;
+import dk.gormkrings.export.ReproducibilityBundleService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +45,8 @@ public class FirecastingController {
     private final StatisticsService statisticsService;
     private final ScheduledExecutorService sseScheduler;
     private final SimulationStartService simulationStartService;
+    private final ReproducibilityBundleService reproducibilityBundleService;
+    private final ObjectMapper objectMapper;
 
     @Value("${settings.runs}")
     private int runs;
@@ -62,12 +66,16 @@ public class FirecastingController {
                                  SimulationSseService sseService,
                                  StatisticsService statisticsService,
                                  ScheduledExecutorService sseScheduler,
-                                 SimulationStartService simulationStartService) {
+                                 SimulationStartService simulationStartService,
+                                 ReproducibilityBundleService reproducibilityBundleService,
+                                 ObjectMapper objectMapper) {
         this.simQueue = simQueue;
         this.sseService = sseService;
         this.statisticsService = statisticsService;
         this.sseScheduler = sseScheduler;
         this.simulationStartService = simulationStartService;
+        this.reproducibilityBundleService = reproducibilityBundleService;
+        this.objectMapper = objectMapper;
     }
 
     // ------------------------------------------------------------------------------------
@@ -139,6 +147,39 @@ public class FirecastingController {
         return summaries.isEmpty()
                 ? ResponseEntity.notFound().build()
                 : ResponseEntity.ok(summaries);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Reproducibility bundle export (single JSON file)
+    // ------------------------------------------------------------------------------------
+
+    @GetMapping(value = "/{simulationId}/bundle", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<byte[]> exportRunBundle(
+            @PathVariable String simulationId,
+            @RequestParam(value = "uiMode", required = false) String uiMode) {
+
+        if (!statisticsService.hasCompletedSummaries(simulationId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var bundle = reproducibilityBundleService.buildBundle(simulationId, uiMode);
+        if (bundle == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        byte[] json;
+        try {
+            json = objectMapper.writeValueAsBytes(bundle);
+        } catch (Exception e) {
+            log.error("Failed to serialize reproducibility bundle for {}", simulationId, e);
+            return ResponseEntity.status(500).build();
+        }
+
+        String fileName = "firecasting-run-" + simulationId + ".json";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(json);
     }
 
     // ------------------------------------------------------------------------------------
