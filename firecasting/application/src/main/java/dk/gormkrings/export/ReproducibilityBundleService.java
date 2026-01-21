@@ -9,7 +9,10 @@ import org.springframework.boot.SpringBootVersion;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +38,9 @@ public class ReproducibilityBundleService {
         var meta = new ReproducibilityBundleDto.Meta();
         meta.setSimulationId(simulationId);
         meta.setExportedAt(OffsetDateTime.now().toString());
-        meta.setUiMode(normalizeUiMode(uiMode));
+        // IMPORTANT: uiMode must reflect the persisted inputs used for this run.
+        // Never allow a client-supplied parameter to make the bundle claim a different mode.
+        meta.setUiMode("advanced".equals(inputKind) ? "advanced" : "normal");
         meta.setInputKind(inputKind);
         meta.setModelVersion(buildModelVersion());
 
@@ -75,18 +80,85 @@ public class ReproducibilityBundleService {
         var bundle = new ReproducibilityBundleDto();
         bundle.setMeta(meta);
         bundle.setInputs(inputs);
+        bundle.setTimeline(buildTimeline(inputNode));
         bundle.setOutputs(outputs);
         return bundle;
+    }
+
+    private static ReproducibilityBundleDto.Timeline buildTimeline(JsonNode inputNode) {
+        if (inputNode == null || inputNode.isNull()) return null;
+
+        String startDate = extractStartDateIso(inputNode.get("startDate"));
+        JsonNode phasesNode = inputNode.get("phases");
+        if (startDate == null || phasesNode == null || !phasesNode.isArray() || phasesNode.isEmpty()) return null;
+
+        List<String> phaseTypes = new ArrayList<>();
+        List<Integer> phaseDurations = new ArrayList<>();
+        Double firstPhaseInitialDeposit = null;
+
+        int idx = 0;
+        for (JsonNode p : phasesNode) {
+            if (p == null || p.isNull()) continue;
+            String phaseType = p.hasNonNull("phaseType") ? p.get("phaseType").asText(null) : null;
+            int duration = p.hasNonNull("durationInMonths") ? p.get("durationInMonths").asInt(0) : 0;
+            phaseTypes.add(phaseType);
+            phaseDurations.add(duration);
+
+            if (idx == 0 && p.hasNonNull("initialDeposit")) {
+                firstPhaseInitialDeposit = p.get("initialDeposit").isNumber() ? p.get("initialDeposit").asDouble() : null;
+            }
+            idx++;
+        }
+
+        var t = new ReproducibilityBundleDto.Timeline();
+        t.setStartDate(startDate);
+        t.setPhaseTypes(phaseTypes);
+        t.setPhaseDurationsInMonths(phaseDurations);
+        t.setFirstPhaseInitialDeposit(firstPhaseInitialDeposit);
+        return t;
+    }
+
+    private static String extractStartDateIso(JsonNode startDateNode) {
+        if (startDateNode == null || startDateNode.isNull()) return null;
+
+        // Frontend request format: { startDate: { date: "YYYY-MM-DD" } }
+        if (startDateNode.isObject() && startDateNode.hasNonNull("date")) {
+            String v = startDateNode.get("date").asText(null);
+            return (v != null && !v.isBlank()) ? v : null;
+        }
+
+        // Backend-persisted LocalDate-like object: {year, month, dayOfMonth, epochDay, ...}
+        if (startDateNode.isObject()
+                && startDateNode.hasNonNull("year")
+                && startDateNode.hasNonNull("month")
+                && startDateNode.hasNonNull("dayOfMonth")) {
+            int y = startDateNode.get("year").asInt(0);
+            int m = startDateNode.get("month").asInt(0);
+            int d = startDateNode.get("dayOfMonth").asInt(0);
+            if (y > 0 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                return String.format("%04d-%02d-%02d", y, m, d);
+            }
+        }
+
+        if (startDateNode.isObject() && startDateNode.hasNonNull("epochDay")) {
+            long epochDay = startDateNode.get("epochDay").asLong(Long.MIN_VALUE);
+            if (epochDay != Long.MIN_VALUE) {
+                return LocalDate.ofEpochDay(epochDay).toString();
+            }
+        }
+
+        // As a last resort, accept raw string.
+        if (startDateNode.isTextual()) {
+            String v = startDateNode.asText(null);
+            return (v != null && !v.isBlank()) ? v : null;
+        }
+
+        return null;
     }
 
     private static String inferInputKind(JsonNode input) {
         if (input != null && input.hasNonNull("returnType")) return "advanced";
         return "normal";
-    }
-
-    private static String normalizeUiMode(String uiMode) {
-        String v = String.valueOf(uiMode == null ? "" : uiMode).trim().toLowerCase();
-        return v.equals("advanced") ? "advanced" : "normal";
     }
 
     private ReproducibilityBundleDto.ModelVersion buildModelVersion() {

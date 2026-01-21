@@ -10,6 +10,8 @@ public class ReproducibilityBundleDto {
 
     private Meta meta;
     private Inputs inputs;
+    /** Optional but recommended: UI timeline context for consistent visualization on import. */
+    private Timeline timeline;
     private Outputs outputs;
 
     @Data
@@ -44,6 +46,18 @@ public class ReproducibilityBundleDto {
         private JsonNode normal;
         /** Present when kind==advanced; otherwise null. */
         private JsonNode advanced;
+    }
+
+    @Data
+    public static class Timeline {
+        /** ISO date string (YYYY-MM-DD). */
+        private String startDate;
+        /** Phase types in order (DEPOSIT/PASSIVE/WITHDRAW). */
+        private List<String> phaseTypes;
+        /** Phase durations in months, in the order entered. */
+        private List<Integer> phaseDurationsInMonths;
+        /** Used as the start anchor for Phase #1 interpolation when no previous year exists. */
+        private Double firstPhaseInitialDeposit;
     }
 
     @Data
