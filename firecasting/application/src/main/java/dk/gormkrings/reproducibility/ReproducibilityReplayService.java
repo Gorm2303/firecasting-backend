@@ -16,6 +16,7 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -175,13 +176,17 @@ public class ReproducibilityReplayService {
             }
 
             String note = versionOk ? null : ("Model version differs; exact reproduction is not guaranteed.");
-            String reportJson = objectMapper.writeValueAsString(Map.of(
-                    "exactMatch", res.exactMatch(),
-                    "withinTolerance", res.withinTolerance(),
-                    "mismatches", res.mismatches(),
-                    "maxAbsDiff", res.maxAbsDiff(),
-                    "note", note
-            ));
+
+            var report = new LinkedHashMap<String, Object>();
+            report.put("exactMatch", res.exactMatch());
+            report.put("withinTolerance", res.withinTolerance());
+            report.put("mismatches", res.mismatches());
+            report.put("maxAbsDiff", res.maxAbsDiff());
+            if (note != null) {
+                report.put("note", note);
+            }
+
+            String reportJson = objectMapper.writeValueAsString(report);
             replay.setReportJson(reportJson);
             replay.setStatus(ReproducibilityReplayEntity.Status.DONE.name());
             replayRepo.save(replay);
