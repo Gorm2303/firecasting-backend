@@ -22,6 +22,7 @@ public class SimulationStartService {
     private final SimulationRunner simulationRunner;
     private final SimulationSseService sseService;
     private final StatisticsService statisticsService;
+    private final SimulationResultsCache resultsCache;
 
     @Value("${settings.runs}")
     private int runs;
@@ -93,7 +94,7 @@ public class SimulationStartService {
                 // Start SSE flushing pipeline
                 sseService.startFlusher(simulationId);
 
-                simulationRunner.runSimulation(
+                var results = simulationRunner.runSimulation(
                         simulationId,
                         spec,
                         inputForDedupAndStorage,
@@ -101,6 +102,15 @@ public class SimulationStartService {
                         batchSize,
                         msg -> sseService.onProgressMessage(simulationId, msg)
                 );
+
+                // Cache full run results briefly to support deterministic per-run CSV export.
+                // This is intentionally in-memory only.
+                try {
+                    resultsCache.put(simulationId, results);
+                } catch (Exception e) {
+                    // Don't fail the run if caching fails; CSV export will simply be unavailable.
+                    log.warn("[{}] Failed to cache full results for {}", logPrefix, simulationId, e);
+                }
 
                 if (postProcessor != null) {
                     try {

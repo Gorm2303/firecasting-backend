@@ -8,6 +8,7 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
 import dk.gormkrings.simulation.SimulationRunSpec;
 import dk.gormkrings.simulation.SimulationStartService;
+import dk.gormkrings.simulation.SimulationResultsCache;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.StatisticsService;
 import dk.gormkrings.statistics.YearlySummary;
@@ -50,6 +51,7 @@ public class FirecastingController {
     private final StatisticsService statisticsService;
     private final ScheduledExecutorService sseScheduler;
     private final SimulationStartService simulationStartService;
+    private final SimulationResultsCache resultsCache;
     private final ReproducibilityBundleService reproducibilityBundleService;
     private final ReproducibilityReplayService reproducibilityReplayService;
     private final ObjectMapper objectMapper;
@@ -66,13 +68,12 @@ public class FirecastingController {
     @Value("${simulation.progressStep:1000}")
     private int progressStep;
 
-    private List<IRunResult> lastestResults;
-
     public FirecastingController(SimulationQueueService simQueue,
                                  SimulationSseService sseService,
                                  StatisticsService statisticsService,
                                  ScheduledExecutorService sseScheduler,
                                  SimulationStartService simulationStartService,
+                                 SimulationResultsCache resultsCache,
                                  ReproducibilityBundleService reproducibilityBundleService,
                                  ReproducibilityReplayService reproducibilityReplayService,
                                  ObjectMapper objectMapper) {
@@ -81,6 +82,7 @@ public class FirecastingController {
         this.statisticsService = statisticsService;
         this.sseScheduler = sseScheduler;
         this.simulationStartService = simulationStartService;
+        this.resultsCache = resultsCache;
         this.reproducibilityBundleService = reproducibilityBundleService;
         this.reproducibilityReplayService = reproducibilityReplayService;
         this.objectMapper = objectMapper;
@@ -338,27 +340,50 @@ public class FirecastingController {
     // Export last results as CSV
     // ------------------------------------------------------------------------------------
 
+    @GetMapping("/{simulationId}/export")
+    public ResponseEntity<StreamingResponseBody> exportResultsAsCsvForRun(@PathVariable String simulationId) {
+        var results = resultsCache.get(simulationId);
+        if (results == null || results.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return exportCsv(results, "simulation-results-" + simulationId);
+    }
+
     @GetMapping("/export")
     public ResponseEntity<StreamingResponseBody> exportResultsAsCsv() {
-        if (lastestResults == null || lastestResults.isEmpty()) {
+        var results = resultsCache.getLatest();
+        if (results == null || results.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        long simTime = System.currentTimeMillis();
+        return exportCsv(results, "simulation-results");
+    }
+
+    private ResponseEntity<StreamingResponseBody> exportCsv(List<IRunResult> results, String baseFileName) {
+        long t0 = System.currentTimeMillis();
+
         File file;
         try {
-            file = ConcurrentCsvExporter.exportCsv(lastestResults, "simulation-results");
+            file = ConcurrentCsvExporter.exportCsv(results, baseFileName);
         } catch (IOException e) {
             log.error("Error exporting CSV", e);
             return ResponseEntity.status(500)
                     .body(outputStream -> outputStream.write("Error exporting CSV".getBytes()));
         }
-        long exportTime = System.currentTimeMillis();
-        log.info("Handling exports in {} ms", exportTime - simTime);
+
+        long t1 = System.currentTimeMillis();
+        log.info("Handling exports in {} ms", (t1 - t0));
 
         StreamingResponseBody stream = out -> {
-            Files.copy(file.toPath(), out);
-            out.flush();
+            try {
+                Files.copy(file.toPath(), out);
+                out.flush();
+            } finally {
+                try {
+                    Files.deleteIfExists(file.toPath());
+                } catch (Exception ignore) {
+                }
+            }
         };
 
         return ResponseEntity.ok()
