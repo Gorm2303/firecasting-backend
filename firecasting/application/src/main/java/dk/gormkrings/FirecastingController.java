@@ -9,6 +9,7 @@ import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
 import dk.gormkrings.simulation.SimulationRunSpec;
 import dk.gormkrings.simulation.SimulationStartService;
 import dk.gormkrings.simulation.SimulationResultsCache;
+import dk.gormkrings.simulation.SimulationSummariesCache;
 import dk.gormkrings.simulation.SimulationRunner;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.StatisticsService;
@@ -57,6 +58,7 @@ public class FirecastingController {
     private final SimulationStartService simulationStartService;
     private final SimulationRunner simulationRunner;
     private final SimulationResultsCache resultsCache;
+    private final SimulationSummariesCache summariesCache;
     private final ReproducibilityBundleService reproducibilityBundleService;
     private final ReproducibilityReplayService reproducibilityReplayService;
     private final ObjectMapper objectMapper;
@@ -80,6 +82,7 @@ public class FirecastingController {
                                  SimulationStartService simulationStartService,
                                  SimulationRunner simulationRunner,
                                  SimulationResultsCache resultsCache,
+                                 SimulationSummariesCache summariesCache,
                                  ReproducibilityBundleService reproducibilityBundleService,
                                  ReproducibilityReplayService reproducibilityReplayService,
                                  ObjectMapper objectMapper) {
@@ -90,6 +93,7 @@ public class FirecastingController {
         this.simulationStartService = simulationStartService;
         this.simulationRunner = simulationRunner;
         this.resultsCache = resultsCache;
+        this.summariesCache = summariesCache;
         this.reproducibilityBundleService = reproducibilityBundleService;
         this.reproducibilityReplayService = reproducibilityReplayService;
         this.objectMapper = objectMapper;
@@ -156,7 +160,52 @@ public class FirecastingController {
     public ResponseEntity<Map<String, String>> startAdvancedSimulation(
             @Valid @RequestBody AdvancedSimulationRequest request) {
         var spec = AdvancedSimulationRequestMapper.toRunSpec(request);
+
+        // Dedup is based on hashing the serialized *input DTO*.
+        // /start hashes SimulationRequest; /start-advanced hashes AdvancedSimulationRequest.
+        // If the advanced request is semantically identical to the legacy defaults, persist/hash
+        // a legacy SimulationRequest so it deduplicates with /start.
+        if (isLegacyEquivalentAdvancedRequest(request, spec)) {
+            SimulationRequest legacy = toLegacySimulationRequest(request, spec);
+            return simulationStartService.startSimulation("/start-advanced", spec, legacy);
+        }
+
         return simulationStartService.startSimulation("/start-advanced", spec, request);
+    }
+
+    private static boolean isLegacyEquivalentAdvancedRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
+        if (request == null || spec == null) return false;
+
+        // Legacy endpoint always uses:
+        //  - returnType=dataDrivenReturn
+        //  - inflationFactor=1.02
+        //  - no taxExemptionConfig
+        //  - no returnerConfig (unless seed is present, which still becomes returnerConfig)
+        boolean returnTypeIsLegacy = "dataDrivenReturn".equals(request.getReturnType());
+        boolean noReturnerOverrides = request.getReturnerConfig() == null && request.getSeed() == null;
+        boolean noTaxExemptionOverrides = request.getTaxExemptionConfig() == null;
+
+        // Client may omit inflationFactor (0.0) and mapper defaults to 1.02.
+        double inflationFactor = request.getInflationFactor();
+        boolean inflationIsLegacy = (inflationFactor <= 0.0) || Math.abs(inflationFactor - 1.02D) < 1e-12;
+        boolean specInflationIsLegacy = Math.abs(spec.getInflationFactor() - 1.02D) < 1e-12;
+
+        return returnTypeIsLegacy && noReturnerOverrides && noTaxExemptionOverrides && inflationIsLegacy && specInflationIsLegacy;
+    }
+
+    private static SimulationRequest toLegacySimulationRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
+        SimulationRequest legacy = new SimulationRequest();
+        legacy.setStartDate(request.getStartDate());
+        legacy.setPhases(request.getPhases());
+
+        // Normalize to match typical frontend legacy requests (CAPITAL/NOTIONAL).
+        String rule = (spec.getOverallTaxRule() == null) ? null : spec.getOverallTaxRule().trim().toUpperCase();
+        legacy.setOverallTaxRule(rule);
+
+        legacy.setTaxPercentage(request.getTaxPercentage());
+        // returnPercentage intentionally left at default (0.0f)
+        // seed intentionally left null
+        return legacy;
     }
 
     // ------------------------------------------------------------------------------------
@@ -165,13 +214,17 @@ public class FirecastingController {
 
     @GetMapping(value = "/progress/{simulationId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<YearlySummary>> getProgressJson(@PathVariable String simulationId) {
-        if (!statisticsService.hasCompletedSummaries(simulationId)) {
-            return ResponseEntity.notFound().build();
+        if (statisticsService.hasCompletedSummaries(simulationId)) {
+            var summaries = statisticsService.getSummariesForRun(simulationId);
+            return summaries.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok(summaries);
         }
-        var summaries = statisticsService.getSummariesForRun(simulationId);
-        return summaries.isEmpty()
+
+        // For stochastic (negative-seed) runs, we intentionally skip DB persistence.
+        // Those runs can still be served from the in-memory summaries cache (TTL-based).
+        var cached = summariesCache.get(simulationId);
+        return (cached == null || cached.isEmpty())
                 ? ResponseEntity.notFound().build()
-                : ResponseEntity.ok(summaries);
+                : ResponseEntity.ok(cached);
     }
 
     // ------------------------------------------------------------------------------------
@@ -265,6 +318,21 @@ public class FirecastingController {
                 emitter.send(SseEmitter.event()
                         .name("completed")
                         .data(summaries, MediaType.APPLICATION_JSON));
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+            return emitter;
+        }
+
+        // Same behavior for non-persisted (negative-seed) runs, if still cached.
+        var cached = summariesCache.get(simulationId);
+        if (cached != null && !cached.isEmpty()) {
+            var emitter = new SseEmitter(0L);
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("completed")
+                        .data(cached, MediaType.APPLICATION_JSON));
                 emitter.complete();
             } catch (Exception e) {
                 emitter.completeWithError(e);
