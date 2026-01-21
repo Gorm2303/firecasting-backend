@@ -34,7 +34,7 @@ public class ReproducibilityBundleService {
 
         var meta = new ReproducibilityBundleDto.Meta();
         meta.setSimulationId(simulationId);
-        meta.setExportedAt(OffsetDateTime.now());
+        meta.setExportedAt(OffsetDateTime.now().toString());
         meta.setUiMode(normalizeUiMode(uiMode));
         meta.setInputKind(inputKind);
         meta.setModelVersion(buildModelVersion());

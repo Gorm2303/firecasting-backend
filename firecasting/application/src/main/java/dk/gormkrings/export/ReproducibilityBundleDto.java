@@ -3,7 +3,6 @@ package dk.gormkrings.export;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 
 @Data
@@ -16,7 +15,8 @@ public class ReproducibilityBundleDto {
     @Data
     public static class Meta {
         private String simulationId;
-        private OffsetDateTime exportedAt;
+        /** ISO-8601 timestamp (UTC offset included). */
+        private String exportedAt;
         /** UI mode as provided by the frontend (normal|advanced). */
         private String uiMode;
         /** Inferred from persisted input payload (normal|advanced). */
