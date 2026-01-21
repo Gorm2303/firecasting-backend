@@ -15,6 +15,10 @@ import dk.gormkrings.sse.SimulationSseService;
 import dk.gormkrings.ui.fields.UISchemaField;
 import dk.gormkrings.ui.generator.UISchemaGenerator;
 import dk.gormkrings.export.ReproducibilityBundleService;
+import dk.gormkrings.export.ReproducibilityBundleDto;
+import dk.gormkrings.reproducibility.ReplayStartResponse;
+import dk.gormkrings.reproducibility.ReplayStatusResponse;
+import dk.gormkrings.reproducibility.ReproducibilityReplayService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,6 +51,7 @@ public class FirecastingController {
     private final ScheduledExecutorService sseScheduler;
     private final SimulationStartService simulationStartService;
     private final ReproducibilityBundleService reproducibilityBundleService;
+    private final ReproducibilityReplayService reproducibilityReplayService;
     private final ObjectMapper objectMapper;
 
     @Value("${settings.runs}")
@@ -68,6 +74,7 @@ public class FirecastingController {
                                  ScheduledExecutorService sseScheduler,
                                  SimulationStartService simulationStartService,
                                  ReproducibilityBundleService reproducibilityBundleService,
+                                 ReproducibilityReplayService reproducibilityReplayService,
                                  ObjectMapper objectMapper) {
         this.simQueue = simQueue;
         this.sseService = sseService;
@@ -75,6 +82,7 @@ public class FirecastingController {
         this.sseScheduler = sseScheduler;
         this.simulationStartService = simulationStartService;
         this.reproducibilityBundleService = reproducibilityBundleService;
+        this.reproducibilityReplayService = reproducibilityReplayService;
         this.objectMapper = objectMapper;
     }
 
@@ -180,6 +188,50 @@ public class FirecastingController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(json);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Reproducibility import/replay
+    // ------------------------------------------------------------------------------------
+
+    @PostMapping(
+            value = "/import",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ReplayStartResponse> importRunBundle(@RequestPart("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            ReproducibilityBundleDto bundle = objectMapper.readValue(file.getBytes(), ReproducibilityBundleDto.class);
+            ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+            return ResponseEntity.accepted().body(resp);
+        } catch (Exception e) {
+            log.error("Failed to import bundle", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(
+            value = "/import",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ReplayStartResponse> importRunBundleJson(@RequestBody ReproducibilityBundleDto bundle) {
+        try {
+            ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+            return ResponseEntity.accepted().body(resp);
+        } catch (Exception e) {
+            log.error("Failed to import bundle", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping(value = "/replay/{replayId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ReplayStatusResponse> getReplayStatus(@PathVariable String replayId) {
+        ReplayStatusResponse status = reproducibilityReplayService.getStatus(replayId);
+        return status == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(status);
     }
 
     // ------------------------------------------------------------------------------------

@@ -29,6 +29,14 @@ public class SimulationStartService {
     @Value("${settings.batch-size}")
     private int batchSize;
 
+    @FunctionalInterface
+    public interface SimulationPostProcessor {
+        /**
+         * Runs inside the simulation queue job after persistence has completed, but before SSE "completed" is sent.
+         */
+        void afterRun(String simulationId);
+    }
+
     /**
      * Shared start logic used by multiple endpoints.
      *
@@ -40,6 +48,19 @@ public class SimulationStartService {
             String logPrefix,
             SimulationRunSpec spec,
             Object inputForDedupAndStorage) {
+
+        return startSimulation(logPrefix, spec, inputForDedupAndStorage, null);
+        }
+
+        /**
+         * Like {@link #startSimulation(String, SimulationRunSpec, Object)} but allows a post-processing hook
+         * to run after persistence.
+         */
+        public ResponseEntity<Map<String, String>> startSimulation(
+            String logPrefix,
+            SimulationRunSpec spec,
+            Object inputForDedupAndStorage,
+            SimulationPostProcessor postProcessor) {
 
         // 0) Dedup FIRST, return immediately if hit
         try {
@@ -80,6 +101,14 @@ public class SimulationStartService {
                         batchSize,
                         msg -> sseService.onProgressMessage(simulationId, msg)
                 );
+
+                if (postProcessor != null) {
+                    try {
+                        postProcessor.afterRun(simulationId);
+                    } catch (Exception e) {
+                        log.error("[{}] Post-processing failed for {}", logPrefix, simulationId, e);
+                    }
+                }
 
                 // Fetch summaries from DB and emit "completed" with data
                 var summaries = statisticsService.getSummariesForRun(simulationId);
