@@ -128,6 +128,8 @@ class MonteCarloSimulationTest {
         ISpecification copy = mock(ISpecification.class);
         when(p1.getSpecification()).thenReturn(base);
         when(base.copy()).thenReturn(copy);
+        // MonteCarloSimulation builds a task-local base spec (base.copy()), then copies that per run.
+        when(copy.copy()).thenReturn(copy);
         when(p1.copy(copy)).thenReturn(p1);
         when(p2.copy(copy)).thenReturn(p2);
         List<IPhase> phases = List.of(p1, p2);
@@ -138,8 +140,11 @@ class MonteCarloSimulationTest {
             int runs = 3;
             sim.run(runs, phases);
 
-            verify(p1, times(runs)).getSpecification();
-            verify(base, times(runs)).copy();
+            // getSpecification() is called once per worker task in the batch.
+            int tasks = Math.min(2, runs);
+            verify(p1, times(tasks)).getSpecification();
+            verify(base, times(tasks)).copy();
+            verify(copy, times(runs)).copy();
             verify(p1, times(runs)).copy(copy);
             verify(p2, times(runs)).copy(copy);
         } finally {
