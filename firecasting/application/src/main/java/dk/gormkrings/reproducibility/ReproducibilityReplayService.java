@@ -1,6 +1,7 @@
 package dk.gormkrings.reproducibility;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import dk.gormkrings.dto.AdvancedSimulationRequest;
 import dk.gormkrings.dto.SimulationRequest;
 import dk.gormkrings.export.ReproducibilityBundleDto;
@@ -55,6 +56,10 @@ public class ReproducibilityReplayService {
         replay = replayRepo.save(replay);
         final String replayId = replay.getId();
 
+        // Be tolerant of extra fields in older/newer bundle inputs (e.g. epochDay)
+        final ObjectMapper lenientMapper = objectMapper.copy()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         // Build request + spec
         Object input;
         SimulationRunSpec spec;
@@ -63,7 +68,7 @@ public class ReproducibilityReplayService {
         if ("advanced".equalsIgnoreCase(kind)) {
             AdvancedSimulationRequest req;
             try {
-                req = objectMapper.treeToValue(bundle.getInputs().getRaw(), AdvancedSimulationRequest.class);
+                req = lenientMapper.treeToValue(bundle.getInputs().getRaw(), AdvancedSimulationRequest.class);
             } catch (Exception e) {
                 throw new IllegalArgumentException("Bundle advanced input could not be parsed", e);
             }
@@ -72,7 +77,7 @@ public class ReproducibilityReplayService {
         } else {
             SimulationRequest req;
             try {
-                req = objectMapper.treeToValue(bundle.getInputs().getRaw(), SimulationRequest.class);
+                req = lenientMapper.treeToValue(bundle.getInputs().getRaw(), SimulationRequest.class);
             } catch (Exception e) {
                 throw new IllegalArgumentException("Bundle normal input could not be parsed", e);
             }
