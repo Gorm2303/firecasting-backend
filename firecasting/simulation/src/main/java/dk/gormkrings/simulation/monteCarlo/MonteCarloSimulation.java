@@ -140,9 +140,14 @@ public class MonteCarloSimulation implements ISimulation {
             tasks.add(() -> {
                 List<IRunResult> chunk = new ArrayList<>(quota);
 
+                // Important: do NOT share the same specification instance across worker threads.
+                // Spec/returner copying can mutate internal RNG state (seed increments / SplittableRandom.split),
+                // and SplittableRandom is not thread-safe.
+                final ISpecification taskSpecBase = phases.getFirst().getSpecification().copy();
+
                 for (int k = 0; k < quota; k++) {
                     // fresh copies per run for isolation
-                    ISpecification specCopy = phases.getFirst().getSpecification().copy();
+                    ISpecification specCopy = taskSpecBase.copy();
                     List<IPhase> phaseCopies = new ArrayList<>(phases.size());
                     for (IPhase p : phases) phaseCopies.add(p.copy(specCopy));
 

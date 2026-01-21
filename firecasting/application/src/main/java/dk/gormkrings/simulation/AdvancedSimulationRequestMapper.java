@@ -26,6 +26,18 @@ public final class AdvancedSimulationRequestMapper {
             inflationFactor = 1.02D;
         }
 
+        // Allow a top-level seed to drive seeding even when returnerConfig is missing.
+        // Prefer explicit top-level seed over nested returnerConfig.seed.
+        if (req.getSeed() != null) {
+            if (req.getReturnerConfig() == null) {
+                var cfg = new dk.gormkrings.returns.ReturnerConfig();
+                cfg.setSeed(req.getSeed());
+                req.setReturnerConfig(cfg);
+            } else if (req.getReturnerConfig().getSeed() == null) {
+                req.getReturnerConfig().setSeed(req.getSeed());
+            }
+        }
+
         return new SimulationRunSpec(
                 req.getStartDate(),
                 req.getPhases(),

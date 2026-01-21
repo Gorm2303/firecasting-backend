@@ -6,6 +6,7 @@ import dk.gormkrings.math.distribution.IDistributionFitter;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
 import dk.gormkrings.math.randomVariable.IRandomVariable;
 import dk.gormkrings.randomVariable.DefaultRandomVariable;
+import dk.gormkrings.randomNumberGenerator.DefaultRandomNumberGenerator;
 import dk.gormkrings.simulation.ReturnStep;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -81,6 +82,17 @@ public class DataDrivenReturn implements IReturner {
     public void onMonthEnd() {
         if (randomVariable.getDistribution() instanceof RegimeBasedDistribution regimeBased) {
             regimeBased.onMonthEnd();
+        }
+    }
+
+    /**
+     * Applies a deterministic seed to the underlying RNG used for sampling.
+     * This enables exact replay when a seed is persisted in the input bundle.
+     */
+    public void reseed(long seed) {
+        this.randomNumberGenerator = new DefaultRandomNumberGenerator(seed);
+        if (this.randomVariable != null) {
+            this.randomVariable.setRandomNumberGenerator(this.randomNumberGenerator);
         }
     }
 

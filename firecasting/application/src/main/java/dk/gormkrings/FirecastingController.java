@@ -8,12 +8,24 @@ import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
 import dk.gormkrings.simulation.SimulationRunSpec;
 import dk.gormkrings.simulation.SimulationStartService;
+import dk.gormkrings.simulation.SimulationResultsCache;
+import dk.gormkrings.simulation.SimulationSummariesCache;
+import dk.gormkrings.simulation.SimulationRunner;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
 import dk.gormkrings.statistics.StatisticsService;
 import dk.gormkrings.statistics.YearlySummary;
 import dk.gormkrings.sse.SimulationSseService;
 import dk.gormkrings.ui.fields.UISchemaField;
 import dk.gormkrings.ui.generator.UISchemaGenerator;
+import dk.gormkrings.export.ReproducibilityBundleService;
+import dk.gormkrings.export.ReproducibilityBundleDto;
+import dk.gormkrings.reproducibility.ReplayStartResponse;
+import dk.gormkrings.reproducibility.ReplayStatusResponse;
+import dk.gormkrings.reproducibility.ReproducibilityReplayService;
+import dk.gormkrings.returns.ReturnerConfig;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +36,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +56,12 @@ public class FirecastingController {
     private final StatisticsService statisticsService;
     private final ScheduledExecutorService sseScheduler;
     private final SimulationStartService simulationStartService;
+    private final SimulationRunner simulationRunner;
+    private final SimulationResultsCache resultsCache;
+    private final SimulationSummariesCache summariesCache;
+    private final ReproducibilityBundleService reproducibilityBundleService;
+    private final ReproducibilityReplayService reproducibilityReplayService;
+    private final ObjectMapper objectMapper;
 
     @Value("${settings.runs}")
     private int runs;
@@ -56,18 +75,28 @@ public class FirecastingController {
     @Value("${simulation.progressStep:1000}")
     private int progressStep;
 
-    private List<IRunResult> lastestResults;
-
     public FirecastingController(SimulationQueueService simQueue,
                                  SimulationSseService sseService,
                                  StatisticsService statisticsService,
                                  ScheduledExecutorService sseScheduler,
-                                 SimulationStartService simulationStartService) {
+                                 SimulationStartService simulationStartService,
+                                 SimulationRunner simulationRunner,
+                                 SimulationResultsCache resultsCache,
+                                 SimulationSummariesCache summariesCache,
+                                 ReproducibilityBundleService reproducibilityBundleService,
+                                 ReproducibilityReplayService reproducibilityReplayService,
+                                 ObjectMapper objectMapper) {
         this.simQueue = simQueue;
         this.sseService = sseService;
         this.statisticsService = statisticsService;
         this.sseScheduler = sseScheduler;
         this.simulationStartService = simulationStartService;
+        this.simulationRunner = simulationRunner;
+        this.resultsCache = resultsCache;
+        this.summariesCache = summariesCache;
+        this.reproducibilityBundleService = reproducibilityBundleService;
+        this.reproducibilityReplayService = reproducibilityReplayService;
+        this.objectMapper = objectMapper;
     }
 
     // ------------------------------------------------------------------------------------
@@ -104,13 +133,21 @@ public class FirecastingController {
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<Map<String, String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
+        ReturnerConfig returnerConfig = null;
+        if (request.getSeed() != null) {
+            returnerConfig = new ReturnerConfig();
+            returnerConfig.setSeed(request.getSeed());
+        }
+
         var spec = new SimulationRunSpec(
                 request.getStartDate(),
                 request.getPhases(),
                 request.getOverallTaxRule(),
                 request.getTaxPercentage(),
                 "dataDrivenReturn",
-                1.02D
+                1.02D,
+                returnerConfig,
+                null
         );
         return simulationStartService.startSimulation("/start", spec, request);
     }
@@ -123,7 +160,52 @@ public class FirecastingController {
     public ResponseEntity<Map<String, String>> startAdvancedSimulation(
             @Valid @RequestBody AdvancedSimulationRequest request) {
         var spec = AdvancedSimulationRequestMapper.toRunSpec(request);
+
+        // Dedup is based on hashing the serialized *input DTO*.
+        // /start hashes SimulationRequest; /start-advanced hashes AdvancedSimulationRequest.
+        // If the advanced request is semantically identical to the legacy defaults, persist/hash
+        // a legacy SimulationRequest so it deduplicates with /start.
+        if (isLegacyEquivalentAdvancedRequest(request, spec)) {
+            SimulationRequest legacy = toLegacySimulationRequest(request, spec);
+            return simulationStartService.startSimulation("/start-advanced", spec, legacy);
+        }
+
         return simulationStartService.startSimulation("/start-advanced", spec, request);
+    }
+
+    private static boolean isLegacyEquivalentAdvancedRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
+        if (request == null || spec == null) return false;
+
+        // Legacy endpoint always uses:
+        //  - returnType=dataDrivenReturn
+        //  - inflationFactor=1.02
+        //  - no taxExemptionConfig
+        //  - no returnerConfig (unless seed is present, which still becomes returnerConfig)
+        boolean returnTypeIsLegacy = "dataDrivenReturn".equals(request.getReturnType());
+        boolean noReturnerOverrides = request.getReturnerConfig() == null && request.getSeed() == null;
+        boolean noTaxExemptionOverrides = request.getTaxExemptionConfig() == null;
+
+        // Client may omit inflationFactor (0.0) and mapper defaults to 1.02.
+        double inflationFactor = request.getInflationFactor();
+        boolean inflationIsLegacy = (inflationFactor <= 0.0) || Math.abs(inflationFactor - 1.02D) < 1e-12;
+        boolean specInflationIsLegacy = Math.abs(spec.getInflationFactor() - 1.02D) < 1e-12;
+
+        return returnTypeIsLegacy && noReturnerOverrides && noTaxExemptionOverrides && inflationIsLegacy && specInflationIsLegacy;
+    }
+
+    private static SimulationRequest toLegacySimulationRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
+        SimulationRequest legacy = new SimulationRequest();
+        legacy.setStartDate(request.getStartDate());
+        legacy.setPhases(request.getPhases());
+
+        // Normalize to match typical frontend legacy requests (CAPITAL/NOTIONAL).
+        String rule = (spec.getOverallTaxRule() == null) ? null : spec.getOverallTaxRule().trim().toUpperCase();
+        legacy.setOverallTaxRule(rule);
+
+        legacy.setTaxPercentage(request.getTaxPercentage());
+        // returnPercentage intentionally left at default (0.0f)
+        // seed intentionally left null
+        return legacy;
     }
 
     // ------------------------------------------------------------------------------------
@@ -132,13 +214,94 @@ public class FirecastingController {
 
     @GetMapping(value = "/progress/{simulationId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<YearlySummary>> getProgressJson(@PathVariable String simulationId) {
+        if (statisticsService.hasCompletedSummaries(simulationId)) {
+            var summaries = statisticsService.getSummariesForRun(simulationId);
+            return summaries.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok(summaries);
+        }
+
+        // For stochastic (negative-seed) runs, we intentionally skip DB persistence.
+        // Those runs can still be served from the in-memory summaries cache (TTL-based).
+        var cached = summariesCache.get(simulationId);
+        return (cached == null || cached.isEmpty())
+                ? ResponseEntity.notFound().build()
+                : ResponseEntity.ok(cached);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Reproducibility bundle export (single JSON file)
+    // ------------------------------------------------------------------------------------
+
+    @GetMapping(value = "/{simulationId}/bundle", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<byte[]> exportRunBundle(
+            @PathVariable String simulationId,
+            @RequestParam(value = "uiMode", required = false) String uiMode) {
+
         if (!statisticsService.hasCompletedSummaries(simulationId)) {
             return ResponseEntity.notFound().build();
         }
-        var summaries = statisticsService.getSummariesForRun(simulationId);
-        return summaries.isEmpty()
-                ? ResponseEntity.notFound().build()
-                : ResponseEntity.ok(summaries);
+
+        var bundle = reproducibilityBundleService.buildBundle(simulationId, uiMode);
+        if (bundle == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        byte[] json;
+        try {
+            json = objectMapper.writeValueAsBytes(bundle);
+        } catch (Exception e) {
+            log.error("Failed to serialize reproducibility bundle for {}", simulationId, e);
+            return ResponseEntity.status(500).build();
+        }
+
+        String fileName = "firecasting-run-" + simulationId + ".json";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(json);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Reproducibility import/replay
+    // ------------------------------------------------------------------------------------
+
+    @PostMapping(
+            value = "/import",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ReplayStartResponse> importRunBundle(@RequestPart("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            ReproducibilityBundleDto bundle = objectMapper.readValue(file.getBytes(), ReproducibilityBundleDto.class);
+            ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+            return ResponseEntity.accepted().body(resp);
+        } catch (Exception e) {
+            log.error("Failed to import bundle", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(
+            value = "/import",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ReplayStartResponse> importRunBundleJson(@RequestBody ReproducibilityBundleDto bundle) {
+        try {
+            ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+            return ResponseEntity.accepted().body(resp);
+        } catch (Exception e) {
+            log.error("Failed to import bundle", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping(value = "/replay/{replayId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ReplayStatusResponse> getReplayStatus(@PathVariable String replayId) {
+        ReplayStatusResponse status = reproducibilityReplayService.getStatus(replayId);
+        return status == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(status);
     }
 
     // ------------------------------------------------------------------------------------
@@ -155,6 +318,21 @@ public class FirecastingController {
                 emitter.send(SseEmitter.event()
                         .name("completed")
                         .data(summaries, MediaType.APPLICATION_JSON));
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+            return emitter;
+        }
+
+        // Same behavior for non-persisted (negative-seed) runs, if still cached.
+        var cached = summariesCache.get(simulationId);
+        if (cached != null && !cached.isEmpty()) {
+            var emitter = new SseEmitter(0L);
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("completed")
+                        .data(cached, MediaType.APPLICATION_JSON));
                 emitter.complete();
             } catch (Exception e) {
                 emitter.completeWithError(e);
@@ -245,33 +423,119 @@ public class FirecastingController {
     // Export last results as CSV
     // ------------------------------------------------------------------------------------
 
+    @GetMapping("/{simulationId}/export")
+    public ResponseEntity<StreamingResponseBody> exportResultsAsCsvForRun(@PathVariable String simulationId) {
+        var results = resultsCache.get(simulationId);
+
+        // If this was a dedup hit (run already existed), we may not have the full results in memory.
+        // Recompute from persisted input_json on-demand so per-run CSV export still works.
+        if (results == null || results.isEmpty()) {
+            try {
+                var run = statisticsService.getRun(simulationId);
+                if (run == null || run.getInputJson() == null || run.getInputJson().isBlank()) {
+                    return ResponseEntity.notFound().build();
+                }
+
+                final ObjectMapper lenientMapper = objectMapper.copy()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+                JsonNode inputNode = lenientMapper.readTree(run.getInputJson());
+                SimulationRunSpec spec;
+
+                if (inputNode != null && inputNode.hasNonNull("returnType")) {
+                    // advanced-mode persisted request
+                    AdvancedSimulationRequest req = lenientMapper.treeToValue(inputNode, AdvancedSimulationRequest.class);
+                    spec = AdvancedSimulationRequestMapper.toRunSpec(req);
+                } else {
+                    // legacy/normal persisted request
+                    SimulationRequest req = lenientMapper.treeToValue(inputNode, SimulationRequest.class);
+                    spec = new SimulationRunSpec(
+                            req.getStartDate(),
+                            req.getPhases(),
+                            req.getOverallTaxRule(),
+                            req.getTaxPercentage(),
+                            "dataDrivenReturn",
+                            1.02D
+                    );
+                }
+
+                // Compute results without persisting (run already exists)
+                results = simulationRunner.runSimulationNoPersist(
+                        spec,
+                        runs,
+                        batchSize,
+                        msg -> {
+                        }
+                );
+
+                // Cache for subsequent exports during TTL
+                resultsCache.put(simulationId, results);
+            } catch (Exception e) {
+                log.error("Failed to recompute results for CSV export of {}", simulationId, e);
+                return ResponseEntity.status(500).build();
+            }
+        }
+
+        if (results == null || results.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return exportCsv(results, "simulation-results-" + simulationId);
+    }
+
     @GetMapping("/export")
     public ResponseEntity<StreamingResponseBody> exportResultsAsCsv() {
-        if (lastestResults == null || lastestResults.isEmpty()) {
+        var results = resultsCache.getLatest();
+        if (results == null || results.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        long simTime = System.currentTimeMillis();
+        return exportCsv(results, "simulation-results");
+    }
+
+    private ResponseEntity<StreamingResponseBody> exportCsv(List<IRunResult> results, String baseFileName) {
+        long t0 = System.currentTimeMillis();
+
         File file;
         try {
-            file = ConcurrentCsvExporter.exportCsv(lastestResults, "simulation-results");
+            file = ConcurrentCsvExporter.exportCsv(results, baseFileName);
         } catch (IOException e) {
             log.error("Error exporting CSV", e);
             return ResponseEntity.status(500)
                     .body(outputStream -> outputStream.write("Error exporting CSV".getBytes()));
         }
-        long exportTime = System.currentTimeMillis();
-        log.info("Handling exports in {} ms", exportTime - simTime);
+
+        if (file == null || !file.exists() || file.length() <= 0) {
+            log.error("CSV export produced an empty file for {}", baseFileName);
+            try {
+                if (file != null) Files.deleteIfExists(file.toPath());
+            } catch (Exception ignore) {
+            }
+            return ResponseEntity.status(500)
+                    .body(outputStream -> outputStream.write("Error exporting CSV".getBytes()));
+        }
+
+        long t1 = System.currentTimeMillis();
+        log.info("Handling exports in {} ms", (t1 - t0));
 
         StreamingResponseBody stream = out -> {
-            Files.copy(file.toPath(), out);
-            out.flush();
+            try {
+                Files.copy(file.toPath(), out);
+                out.flush();
+            } finally {
+                try {
+                    Files.deleteIfExists(file.toPath());
+                } catch (Exception ignore) {
+                }
+            }
         };
 
+        String downloadFileName = baseFileName + ".csv";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + file.getName() + "\"")
-                .contentType(MediaType.parseMediaType("text/csv"))
-                .body(stream);
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + downloadFileName + "\"")
+            .contentLength(file.length())
+            .contentType(MediaType.parseMediaType("text/csv"))
+            .body(stream);
     }
 }

@@ -101,6 +101,11 @@ public class StatisticsService {
     }
 
     @Transactional(readOnly = true)
+    public List<YearlySummaryEntity> getSummaryEntitiesForRun(String simulationId) {
+        return summaryRepo.findByRunIdOrderByPhaseNameAscYearAsc(simulationId);
+    }
+
+    @Transactional(readOnly = true)
     public SimulationRunEntity getRun(String simulationId) {
         return runRepo.findById(simulationId).orElse(null);
     }

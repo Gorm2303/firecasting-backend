@@ -59,7 +59,13 @@ public class DefaultReturnFactory implements IReturnFactory {
 
         return switch (returnType) {
             case "distributionReturn" -> createConfiguredDistributionReturn(config);
-            case "dataDrivenReturn" -> createReturn(returnType);
+            case "dataDrivenReturn" -> {
+                IReturner r = createReturn(returnType);
+                if (r instanceof DataDrivenReturn dd && config.getSeed() != null) {
+                    dd.reseed(config.getSeed());
+                }
+                yield r;
+            }
             default -> createConfiguredSimpleReturn(config);
         };
     }

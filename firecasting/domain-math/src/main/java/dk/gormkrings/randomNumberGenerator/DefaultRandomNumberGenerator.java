@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.SplittableRandom;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 @Scope("prototype")
@@ -24,8 +25,14 @@ public class DefaultRandomNumberGenerator implements IRandomNumberGenerator {
     }
 
     public DefaultRandomNumberGenerator(long seed) {
-        this.seed = seed;
-        this.random = new SplittableRandom(seed);
+        if (seed < 0) {
+            // Negative seed means: stochastic/unseeded (even if repeated).
+            this.seed = -1;
+            this.random = new SplittableRandom(ThreadLocalRandom.current().nextLong());
+        } else {
+            this.seed = seed;
+            this.random = new SplittableRandom(seed);
+        }
     }
 
     @Override
