@@ -83,6 +83,7 @@ public abstract class SimulationEventPhase implements IEventPhase, ISimulationPh
                 yearEvent.getType() == Type.END) {
             addNotionalTax();
             compoundInflation();
+            applyYearlyFee();
         }
     }
 

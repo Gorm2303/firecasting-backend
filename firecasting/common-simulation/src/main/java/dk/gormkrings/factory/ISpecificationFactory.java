@@ -12,13 +12,21 @@ public interface ISpecificationFactory {
      * Advanced-mode overload.
      * Implementations may ignore {@code returnerConfig} and fall back to defaults.
      */
+    ISpecification create(
+            long startTime,
+            ITaxRule taxRule,
+            String returnType,
+            double inflation,
+            double yearlyFeePercentage,
+            ReturnerConfig returnerConfig);
+
     default ISpecification create(
             long startTime,
             ITaxRule taxRule,
             String returnType,
             double inflation,
             ReturnerConfig returnerConfig) {
-        return create(startTime, taxRule, returnType, inflation);
+        return create(startTime, taxRule, returnType, inflation, 0.0, returnerConfig);
     }
 
 }
