@@ -21,6 +21,9 @@ import dk.gormkrings.ui.fields.UISchemaField;
 import dk.gormkrings.ui.generator.UISchemaGenerator;
 import dk.gormkrings.export.ReproducibilityBundleService;
 import dk.gormkrings.export.ReproducibilityBundleDto;
+import dk.gormkrings.diff.RunDiffService;
+import dk.gormkrings.diff.RunDiffResponse;
+import dk.gormkrings.diff.RunListItemDto;
 import dk.gormkrings.reproducibility.ReplayStartResponse;
 import dk.gormkrings.reproducibility.ReplayStatusResponse;
 import dk.gormkrings.reproducibility.ReproducibilityReplayService;
@@ -63,6 +66,7 @@ public class FirecastingController {
     private final SimulationSummariesCache summariesCache;
     private final ReproducibilityBundleService reproducibilityBundleService;
     private final ReproducibilityReplayService reproducibilityReplayService;
+    private final RunDiffService runDiffService;
     private final ObjectMapper objectMapper;
 
     @Value("${settings.runs}")
@@ -87,6 +91,7 @@ public class FirecastingController {
                                  SimulationSummariesCache summariesCache,
                                  ReproducibilityBundleService reproducibilityBundleService,
                                  ReproducibilityReplayService reproducibilityReplayService,
+                                 RunDiffService runDiffService,
                                  ObjectMapper objectMapper) {
         this.simQueue = simQueue;
         this.sseService = sseService;
@@ -98,7 +103,38 @@ public class FirecastingController {
         this.summariesCache = summariesCache;
         this.reproducibilityBundleService = reproducibilityBundleService;
         this.reproducibilityReplayService = reproducibilityReplayService;
+        this.runDiffService = runDiffService;
         this.objectMapper = objectMapper;
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Runs list + diff
+    // ------------------------------------------------------------------------------------
+
+    @GetMapping(value = "/runs", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<RunListItemDto>> listRuns(
+            @RequestParam(value = "limit", required = false, defaultValue = "50") int limit) {
+        var runs = statisticsService.listRecentRuns(limit)
+                .stream()
+                .map(r -> {
+                    var d = new RunListItemDto();
+                    d.setId(r.getId());
+                    d.setCreatedAt(r.getCreatedAt());
+                    d.setRngSeed(r.getRngSeed());
+                    d.setModelAppVersion(r.getModelAppVersion());
+                    d.setInputHash(r.getInputHash());
+                    return d;
+                })
+                .toList();
+        return ResponseEntity.ok(runs);
+    }
+
+    @GetMapping(value = "/diff/{runAId}/{runBId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RunDiffResponse> diffRuns(
+            @PathVariable String runAId,
+            @PathVariable String runBId) {
+        RunDiffResponse diff = runDiffService.diff(runAId, runBId);
+        return diff == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(diff);
     }
 
     // ------------------------------------------------------------------------------------
