@@ -40,6 +40,7 @@ class SimulationStartServiceSeedTest {
                 0.0f,
                 "dataDrivenReturn",
                 1.02D,
+            0.0D,
                 rc,
                 null
         );
@@ -78,6 +79,7 @@ class SimulationStartServiceSeedTest {
                 0.0f,
                 "dataDrivenReturn",
                 1.02D,
+            0.0D,
                 rc,
                 null
         );
