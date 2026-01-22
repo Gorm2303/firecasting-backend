@@ -54,9 +54,9 @@ public class CallEngine implements IEngine {
         int finalEpochDay = (int) (startEpochDay + phase.getDuration());
 
         int nextMonthStartEpochDay = startDate.computeNextMonthStart();
-        int currentMonthEndEpochDay = startDate.computeMonthEnd();
+        int currentMonthEndEpochDay = startDate.computeNextMonthEnd();
         int nextYearStartEpochDay = startDate.computeNextYearStart();
-        int currentYearEndEpochDay = startDate.computeYearEnd();
+        int currentYearEndEpochDay = startDate.computeNextYearEnd();
 
         // Sim init methods here
         phase.onPhaseStart();

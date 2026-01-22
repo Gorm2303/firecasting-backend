@@ -45,9 +45,9 @@ public class DefaultScheduleFactoryBoundaryTest {
         lenient().when(startDate.computeNextWeekStart()).thenReturn(2);
         lenient().when(startDate.computeWeekEnd()).thenReturn(3);
         lenient().when(startDate.computeNextMonthStart()).thenReturn(4);
-        lenient().when(startDate.computeMonthEnd()).thenReturn(5);
+        lenient().when(startDate.computeNextMonthEnd()).thenReturn(5);
         lenient().when(startDate.computeNextYearStart()).thenReturn(6);
-        lenient().when(startDate.computeYearEnd()).thenReturn(7);
+        lenient().when(startDate.computeNextYearEnd()).thenReturn(7);
 
         lenient().when(dateFactory.fromEpochDay(anyInt())).thenReturn(startDate);
     }
@@ -125,9 +125,9 @@ public class DefaultScheduleFactoryBoundaryTest {
         when(startDate.computeNextWeekStart()).thenReturn(60);
         when(startDate.computeWeekEnd()).thenReturn(61);
         when(startDate.computeNextMonthStart()).thenReturn(62);
-        when(startDate.computeMonthEnd()).thenReturn(63);
+        when(startDate.computeNextMonthEnd()).thenReturn(63);
         when(startDate.computeNextYearStart()).thenReturn(64);
-        when(startDate.computeYearEnd()).thenReturn(65);
+        when(startDate.computeNextYearEnd()).thenReturn(65);
 
         List<IPhase> phases = Collections.singletonList(phase);
         ISchedule schedule = scheduleFactory.build(phases);
@@ -153,9 +153,9 @@ public class DefaultScheduleFactoryBoundaryTest {
         when(startDate.computeNextWeekStart()).thenReturn(100);
         when(startDate.computeWeekEnd()).thenReturn(100);
         when(startDate.computeNextMonthStart()).thenReturn(105);
-        when(startDate.computeMonthEnd()).thenReturn(105);
+        when(startDate.computeNextMonthEnd()).thenReturn(105);
         when(startDate.computeNextYearStart()).thenReturn(500);
-        when(startDate.computeYearEnd()).thenReturn(500);
+        when(startDate.computeNextYearEnd()).thenReturn(500);
 
         when(phase.supportsEvent(EventType.DAY_START)).thenReturn(false);
         when(phase.supportsEvent(EventType.DAY_END)).thenReturn(false);
@@ -209,7 +209,7 @@ public class DefaultScheduleFactoryBoundaryTest {
         when(phase.supportsEvent(EventType.MONTH_END)).thenReturn(false);
         when(phase.supportsEvent(EventType.YEAR_START)).thenReturn(false);
 
-        when(startDate.computeYearEnd()).thenReturn(100);
+        when(startDate.computeNextYearEnd()).thenReturn(100);
 
         IDate dateFor100 = mock(IDate.class);
         when(dateFactory.fromEpochDay(100)).thenReturn(dateFor100);
@@ -226,7 +226,7 @@ public class DefaultScheduleFactoryBoundaryTest {
         lenient().when(startDate.computeNextWeekStart()).thenReturn(200);
         lenient().when(startDate.computeWeekEnd()).thenReturn(201);
         lenient().when(startDate.computeNextMonthStart()).thenReturn(202);
-        lenient().when(startDate.computeMonthEnd()).thenReturn(203);
+        lenient().when(startDate.computeNextMonthEnd()).thenReturn(203);
         lenient().when(startDate.computeNextYearStart()).thenReturn(300);
 
         List<IPhase> phases = Collections.singletonList(phase);

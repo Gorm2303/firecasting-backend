@@ -55,9 +55,9 @@ public class DefaultScheduleFactory implements IScheduleFactory {
         nextWeekStartEpoch  = startDate.computeNextWeekStart();
         weekEndEpoch        = startDate.computeWeekEnd();
         nextMonthStartEpoch = startDate.computeNextMonthStart();
-        monthEndEpoch       = startDate.computeMonthEnd();
+        monthEndEpoch       = startDate.computeNextMonthEnd();
         nextYearStartEpoch  = startDate.computeNextYearStart();
-        yearEndEpoch        = startDate.computeYearEnd();
+        yearEndEpoch        = startDate.computeNextYearEnd();
     }
 
     private void buildSchedule(ICallPhase phase) {

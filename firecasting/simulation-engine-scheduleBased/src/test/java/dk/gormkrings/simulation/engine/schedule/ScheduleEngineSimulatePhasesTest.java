@@ -67,9 +67,9 @@ public class ScheduleEngineSimulatePhasesTest {
         lenient().when(startDate.computeNextWeekStart()).thenReturn(2);
         lenient().when(startDate.computeWeekEnd()).thenReturn(3);
         lenient().when(startDate.computeNextMonthStart()).thenReturn(4);
-        lenient().when(startDate.computeMonthEnd()).thenReturn(5);
+        lenient().when(startDate.computeNextMonthEnd()).thenReturn(5);
         lenient().when(startDate.computeNextYearStart()).thenReturn(6);
-        lenient().when(startDate.computeYearEnd()).thenReturn(7);
+        lenient().when(startDate.computeNextYearEnd()).thenReturn(7);
         lenient().when(dateFactory.fromEpochDay(anyInt())).thenReturn(startDate);
 
         // Additional stubbing for phase's live data.

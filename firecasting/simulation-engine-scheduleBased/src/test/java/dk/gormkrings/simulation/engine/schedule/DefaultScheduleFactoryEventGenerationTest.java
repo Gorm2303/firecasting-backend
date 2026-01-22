@@ -45,9 +45,9 @@ public class DefaultScheduleFactoryEventGenerationTest {
         lenient().when(startDate.computeNextWeekStart()).thenReturn(2);
         lenient().when(startDate.computeWeekEnd()).thenReturn(3);
         lenient().when(startDate.computeNextMonthStart()).thenReturn(4);
-        lenient().when(startDate.computeMonthEnd()).thenReturn(5);
+        lenient().when(startDate.computeNextMonthEnd()).thenReturn(5);
         lenient().when(startDate.computeNextYearStart()).thenReturn(6);
-        lenient().when(startDate.computeYearEnd()).thenReturn(7);
+        lenient().when(startDate.computeNextYearEnd()).thenReturn(7);
 
         lenient().when(dateFactory.fromEpochDay(anyInt())).thenReturn(startDate);
     }
@@ -136,11 +136,11 @@ public class DefaultScheduleFactoryEventGenerationTest {
         when(phase.getDuration()).thenReturn(5L);
 
         lenient().when(startDate.computeNextMonthStart()).thenReturn(2);
-        lenient().when(startDate.computeMonthEnd()).thenReturn(4);
+        lenient().when(startDate.computeNextMonthEnd()).thenReturn(4);
         lenient().when(startDate.computeNextWeekStart()).thenReturn(3);
         lenient().when(startDate.computeWeekEnd()).thenReturn(5);
         lenient().when(startDate.computeNextYearStart()).thenReturn(7);
-        lenient().when(startDate.computeYearEnd()).thenReturn(8);
+        lenient().when(startDate.computeNextYearEnd()).thenReturn(8);
 
         List<IPhase> phases = Collections.singletonList(phase);
         ISchedule schedule = scheduleFactory.build(phases);
