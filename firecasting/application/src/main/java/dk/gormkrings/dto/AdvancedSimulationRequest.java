@@ -39,7 +39,6 @@ public class AdvancedSimulationRequest {
     private float taxPercentage;
 
     /** Returner type key understood by DefaultReturnFactory (e.g. simpleReturn, dataDrivenReturn, distributionReturn). */
-    @NotBlank
     private String returnType;
 
     /** Optional returner configuration for advanced-mode (seed, distribution parameters, etc.). */

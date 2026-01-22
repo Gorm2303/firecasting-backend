@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import dk.gormkrings.dto.AdvancedSimulationRequest;
 import dk.gormkrings.dto.SimulationRequest;
+import dk.gormkrings.api.ApiValidationException;
 import dk.gormkrings.export.ReproducibilityBundleDto;
 import dk.gormkrings.reproducibility.persistence.ReproducibilityReplayEntity;
 import dk.gormkrings.reproducibility.persistence.ReproducibilityReplayRepository;
@@ -11,12 +12,15 @@ import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
 import dk.gormkrings.simulation.SimulationRunSpec;
 import dk.gormkrings.simulation.SimulationStartService;
 import dk.gormkrings.statistics.StatisticsService;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -31,11 +35,15 @@ public class ReproducibilityReplayService {
     private final SimulationStartService simulationStartService;
     private final ReproducibilityReplayRepository replayRepo;
     private final Optional<BuildProperties> buildProperties;
+    private final Validator validator;
 
     public ReplayStartResponse importBundle(ReproducibilityBundleDto bundle) {
         if (bundle == null) {
-            throw new IllegalArgumentException("bundle must not be null");
+            throw new ApiValidationException("Validation failed", List.of("bundle: must not be null"));
         }
+
+        // Validate the outer envelope early so we can return clear field-level errors.
+        validateBundleEnvelope(bundle);
 
         String currentAppVersion = buildProperties.map(BuildProperties::getVersion).orElse("unknown");
         String sourceAppVersion = (bundle.getMeta() != null && bundle.getMeta().getModelVersion() != null)
@@ -65,14 +73,16 @@ public class ReproducibilityReplayService {
         Object input;
         SimulationRunSpec spec;
 
-        String kind = (bundle.getInputs() != null) ? bundle.getInputs().getKind() : null;
+        String kind = inferKind(bundle);
         if ("advanced".equalsIgnoreCase(kind)) {
             AdvancedSimulationRequest req;
             try {
                 req = lenientMapper.treeToValue(bundle.getInputs().getRaw(), AdvancedSimulationRequest.class);
             } catch (Exception e) {
-                throw new IllegalArgumentException("Bundle advanced input could not be parsed", e);
+                throw new ApiValidationException("Bundle advanced input could not be parsed", List.of("inputs.raw: invalid"), e);
             }
+
+            validateDto(req, "inputs.raw");
             spec = AdvancedSimulationRequestMapper.toRunSpec(req);
             input = req;
         } else {
@@ -80,8 +90,10 @@ public class ReproducibilityReplayService {
             try {
                 req = lenientMapper.treeToValue(bundle.getInputs().getRaw(), SimulationRequest.class);
             } catch (Exception e) {
-                throw new IllegalArgumentException("Bundle normal input could not be parsed", e);
+                throw new ApiValidationException("Bundle normal input could not be parsed", List.of("inputs.raw: invalid"), e);
             }
+
+            validateDto(req, "inputs.raw");
             spec = new SimulationRunSpec(
                     req.getStartDate(),
                     req.getPhases(),
@@ -122,6 +134,72 @@ public class ReproducibilityReplayService {
         }
         resp.setNote(note);
         return resp;
+    }
+
+    private static String inferKind(ReproducibilityBundleDto bundle) {
+        if (bundle == null) return "normal";
+        String kind = (bundle.getInputs() != null) ? bundle.getInputs().getKind() : null;
+        if (kind != null && !kind.isBlank()) return kind.trim().toLowerCase();
+
+        // Backward/forward compatible inference when kind is missing.
+        if (bundle.getInputs() != null) {
+            if (bundle.getInputs().getAdvanced() != null) return "advanced";
+            if (bundle.getInputs().getNormal() != null) return "normal";
+        }
+
+        String fromMeta = (bundle.getMeta() != null) ? bundle.getMeta().getInputKind() : null;
+        if (fromMeta != null && !fromMeta.isBlank()) return fromMeta.trim().toLowerCase();
+
+        String uiMode = (bundle.getMeta() != null) ? bundle.getMeta().getUiMode() : null;
+        if (uiMode != null && !uiMode.isBlank()) return uiMode.trim().toLowerCase();
+
+        return "normal";
+    }
+
+    private static void validateBundleEnvelope(ReproducibilityBundleDto bundle) {
+        List<String> details = new java.util.ArrayList<>();
+
+        if (bundle.getInputs() == null) {
+            details.add("inputs: is required");
+        } else {
+            // Prefer inputs.raw. If missing, fall back to kind-specific node.
+            if (bundle.getInputs().getRaw() == null) {
+                String kind = inferKind(bundle);
+                var fallback = "advanced".equalsIgnoreCase(kind)
+                        ? bundle.getInputs().getAdvanced()
+                        : bundle.getInputs().getNormal();
+                if (fallback != null) {
+                    bundle.getInputs().setRaw(fallback);
+                }
+            }
+            if (bundle.getInputs().getRaw() == null) {
+                details.add("inputs.raw: is required");
+            }
+        }
+
+        if (!details.isEmpty()) {
+            throw new ApiValidationException("Validation failed", details);
+        }
+    }
+
+    private <T> void validateDto(T dto, String prefix) {
+        if (dto == null) {
+            throw new ApiValidationException("Validation failed", List.of(prefix + ": is required"));
+        }
+        var violations = validator.validate(dto);
+        if (violations == null || violations.isEmpty()) return;
+
+        List<String> details = violations.stream()
+                .map(v -> formatViolation(prefix, v))
+                .toList();
+        throw new ApiValidationException("Validation failed", details);
+    }
+
+    private static String formatViolation(String prefix, ConstraintViolation<?> v) {
+        String p = v.getPropertyPath() == null ? "" : v.getPropertyPath().toString();
+        String full = (p == null || p.isBlank()) ? prefix : (prefix + "." + p);
+        String msg = v.getMessage() == null ? "invalid" : v.getMessage();
+        return full + ": " + msg;
     }
 
     public ReplayStatusResponse getStatus(String replayId) {
