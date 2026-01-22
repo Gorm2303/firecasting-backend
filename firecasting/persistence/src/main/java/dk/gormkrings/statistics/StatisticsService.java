@@ -10,6 +10,9 @@ import dk.gormkrings.statistics.persistence.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.SpringBootVersion;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,7 @@ public class StatisticsService {
     private final SimulationRunRepository runRepo;
     private final YearlySummaryRepository summaryRepo;
     private final @Qualifier("canonicalObjectMapper") ObjectMapper canonicalObjectMapper;
+    private final ObjectProvider<BuildProperties> buildPropertiesProvider;
 
     @PersistenceContext
     private EntityManager em;
@@ -48,7 +52,8 @@ public class StatisticsService {
     public String insertNewRunWithSummaries(String simulationId,
                                             Object inputParams,
                                             List<YearlySummary> summaries,
-                                            List<Double[]> percentileGrids) {
+                                            List<Double[]> percentileGrids,
+                                            Long rngSeed) {
         if (summaries.size() != percentileGrids.size()) {
             throw new IllegalArgumentException("Summaries and grids must have same size.");
         }
@@ -62,6 +67,14 @@ public class StatisticsService {
         run.setCreatedAt(OffsetDateTime.now());
         run.setInputJson(inputJson);
         run.setInputHash(inputHash);
+
+        BuildProperties bp = buildPropertiesProvider.getIfAvailable();
+        run.setModelAppVersion(bp != null ? bp.getVersion() : "unknown");
+        run.setModelBuildTime(bp != null && bp.getTime() != null ? bp.getTime().toString() : null);
+        run.setModelSpringBootVersion(SpringBootVersion.getVersion());
+        run.setModelJavaVersion(Runtime.version().toString());
+        run.setRngSeed(rngSeed);
+
         runRepo.save(run);
 
         // IMPORTANT: flush so the row exists; then use a managed reference for children
@@ -108,6 +121,17 @@ public class StatisticsService {
     @Transactional(readOnly = true)
     public SimulationRunEntity getRun(String simulationId) {
         return runRepo.findById(simulationId).orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SimulationRunEntity> listRecentRuns(int limit) {
+        int n = Math.max(1, Math.min(limit, 500));
+        return runRepo.findAll(org.springframework.data.domain.PageRequest.of(
+                        0,
+                        n,
+                        org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+                ))
+                .getContent();
     }
 
     private String toCanonicalJson(Object input) {

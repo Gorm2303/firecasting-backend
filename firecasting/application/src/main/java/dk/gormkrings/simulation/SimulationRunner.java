@@ -90,7 +90,8 @@ public class SimulationRunner {
         var grids = aggregationService.buildPercentileGrids(simulationResults);
 
         // Persist run + summaries
-        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids);
+        Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
+        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids, rngSeed);
 
         return simulationResults;
     }

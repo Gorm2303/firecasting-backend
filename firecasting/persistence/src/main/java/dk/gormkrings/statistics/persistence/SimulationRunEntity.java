@@ -36,6 +36,23 @@ public class SimulationRunEntity {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
+        // --- Metadata captured at run creation time (used for diff/attribution) ---
+
+        @Column(name = "model_app_version", length = 128)
+        private String modelAppVersion;
+
+        @Column(name = "model_build_time", length = 64)
+        private String modelBuildTime;
+
+        @Column(name = "model_spring_boot_version", length = 64)
+        private String modelSpringBootVersion;
+
+        @Column(name = "model_java_version", length = 64)
+        private String modelJavaVersion;
+
+        @Column(name = "rng_seed")
+        private Long rngSeed;
+
     @OneToMany(mappedBy = "run", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<YearlySummaryEntity> summaries = new ArrayList<>();
 }
