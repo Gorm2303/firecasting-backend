@@ -31,6 +31,9 @@ public final class SimulationRunSpec {
     /** Inflation factor used by {@code IInflationFactory} (e.g. 1.02 for 2%). */
     private final double inflationFactor;
 
+    /** Yearly fee percentage applied to capital at year-end (e.g. 0.5 = 0.5%). */
+    private final double yearlyFeePercentage;
+
     /** Optional returner configuration (advanced-mode). */
     private final ReturnerConfig returnerConfig;
 
@@ -50,6 +53,7 @@ public final class SimulationRunSpec {
         this.taxPercentage = taxPercentage;
         this.returnType = returnType;
         this.inflationFactor = inflationFactor;
+        this.yearlyFeePercentage = 0.0;
         this.returnerConfig = null;
         this.taxExemptionConfig = null;
     }
@@ -61,6 +65,7 @@ public final class SimulationRunSpec {
             float taxPercentage,
             String returnType,
             double inflationFactor,
+            double yearlyFeePercentage,
             ReturnerConfig returnerConfig,
             TaxExemptionConfig taxExemptionConfig) {
         this.startDate = startDate;
@@ -69,6 +74,7 @@ public final class SimulationRunSpec {
         this.taxPercentage = taxPercentage;
         this.returnType = returnType;
         this.inflationFactor = inflationFactor;
+        this.yearlyFeePercentage = yearlyFeePercentage;
         this.returnerConfig = returnerConfig;
         this.taxExemptionConfig = taxExemptionConfig;
     }
@@ -99,6 +105,10 @@ public final class SimulationRunSpec {
 
     public double getInflationFactor() {
         return inflationFactor;
+    }
+
+    public double getYearlyFeePercentage() {
+        return yearlyFeePercentage;
     }
 
     public ReturnerConfig getReturnerConfig() {

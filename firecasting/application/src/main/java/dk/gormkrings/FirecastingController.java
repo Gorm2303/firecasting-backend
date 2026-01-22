@@ -148,6 +148,7 @@ public class FirecastingController {
                 request.getTaxPercentage(),
                 "dataDrivenReturn",
                 1.02D,
+            0.0,
                 returnerConfig,
                 null
         );
@@ -193,7 +194,11 @@ public class FirecastingController {
         boolean inflationIsLegacy = (inflationFactor <= 0.0) || Math.abs(inflationFactor - 1.02D) < 1e-12;
         boolean specInflationIsLegacy = Math.abs(spec.getInflationFactor() - 1.02D) < 1e-12;
 
-        return returnTypeIsLegacy && noReturnerOverrides && noTaxExemptionOverrides && inflationIsLegacy && specInflationIsLegacy;
+        double yearlyFeePercentage = request.getYearlyFeePercentage();
+        boolean feeIsLegacy = !Double.isFinite(yearlyFeePercentage) || Math.abs(yearlyFeePercentage) < 1e-12;
+        boolean specFeeIsLegacy = Math.abs(spec.getYearlyFeePercentage()) < 1e-12;
+
+        return returnTypeIsLegacy && noReturnerOverrides && noTaxExemptionOverrides && inflationIsLegacy && specInflationIsLegacy && feeIsLegacy && specFeeIsLegacy;
     }
 
     private static SimulationRequest toLegacySimulationRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {

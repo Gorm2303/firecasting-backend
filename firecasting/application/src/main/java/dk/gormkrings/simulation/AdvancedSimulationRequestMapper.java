@@ -26,6 +26,11 @@ public final class AdvancedSimulationRequestMapper {
             inflationFactor = 1.02D;
         }
 
+        double yearlyFeePercentage = req.getYearlyFeePercentage();
+        if (!Double.isFinite(yearlyFeePercentage) || yearlyFeePercentage < 0.0) {
+            yearlyFeePercentage = 0.0;
+        }
+
         // Allow a top-level seed to drive seeding even when returnerConfig is missing.
         // Prefer explicit top-level seed over nested returnerConfig.seed.
         if (req.getSeed() != null) {
@@ -44,9 +49,10 @@ public final class AdvancedSimulationRequestMapper {
                 req.getOverallTaxRule(),
                 req.getTaxPercentage(),
                 returnType,
-            inflationFactor,
-            req.getReturnerConfig(),
-            req.getTaxExemptionConfig()
+                inflationFactor,
+                yearlyFeePercentage,
+                req.getReturnerConfig(),
+                req.getTaxExemptionConfig()
         );
     }
 }

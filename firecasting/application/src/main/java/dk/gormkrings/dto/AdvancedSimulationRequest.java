@@ -62,4 +62,10 @@ public class AdvancedSimulationRequest {
      * The frontend may send a percentage; if so, the mapping layer should convert.
      */
     private double inflationFactor;
+
+    /**
+     * Yearly fee percentage applied to current capital at year-end (e.g. 0.5 = 0.5% per year).
+     * Missing/negative values default to 0.
+     */
+    private double yearlyFeePercentage;
 }
