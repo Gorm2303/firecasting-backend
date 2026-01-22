@@ -122,6 +122,7 @@ public class SimulationRunner {
                                 overAllTaxRule,
                                 spec.getReturnType(),
                                 spec.getInflationFactor(),
+                                spec.getYearlyFeePercentage(),
                                 spec.getReturnerConfig()
                 );
 

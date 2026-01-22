@@ -1,6 +1,7 @@
 package dk.gormkrings.phase;
 
 import dk.gormkrings.data.ILiveData;
+import dk.gormkrings.fee.IYearlyFee;
 import dk.gormkrings.inflation.IInflation;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.tax.*;
@@ -88,6 +89,20 @@ public interface ISimulationPhase {
         IInflation iInflation = getSpecification().getInflation();
         double inflationAmount = iInflation.calculateInflation();
         getLiveData().compoundInflation(inflationAmount);
+    }
+
+    default void applyYearlyFee() {
+        IYearlyFee fee = getSpecification().getYearlyFee();
+        if (fee == null) return;
+
+        double capital = getLiveData().getCapital();
+        if (!Double.isFinite(capital) || capital <= 0.0) return;
+
+        double feeAmount = fee.calculateFee(capital);
+        if (!Double.isFinite(feeAmount) || feeAmount <= 0.0) return;
+        if (feeAmount > capital) feeAmount = capital;
+
+        getLiveData().subtractFromCapital(feeAmount);
     }
 }
 

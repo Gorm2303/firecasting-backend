@@ -61,9 +61,9 @@ public class EventEngine implements IEngine {
         int finalEpochDay = (int) (startEpochDay + phase.getDuration());
 
         int nextMonthStartEpochDay = startDate.computeNextMonthStart();
-        int currentMonthEndEpochDay = startDate.computeMonthEnd();
+        int currentMonthEndEpochDay = startDate.computeNextMonthEnd();
         int nextYearStartEpochDay = startDate.computeNextYearStart();
-        int currentYearEndEpochDay = startDate.computeYearEnd();
+        int currentYearEndEpochDay = startDate.computeNextYearEnd();
 
         // Create reusable event objects.
         DayEvent dayEvent = new DayEvent(this);

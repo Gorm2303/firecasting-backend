@@ -88,6 +88,13 @@
           "label": "Average Percentage",
           "type": "number",
           "defaultValue": 2
+        },
+        {
+          "id": "yearlyFeePercentage",
+          "label": "Yearly Fee (avg % / year)",
+          "type": "number",
+          "defaultValue": 0,
+          "helpText": "Annual fee charged on current capital at year-end (e.g. 0.5 means 0.5% per year)."
         }
       ]
     },

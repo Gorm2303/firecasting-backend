@@ -1,8 +1,10 @@
 package dk.gormkrings;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.AdvancedSimulationRequest;
 import dk.gormkrings.dto.SimulationRequest;
+import dk.gormkrings.api.ApiValidationException;
 import dk.gormkrings.queue.SimulationQueueService;
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
@@ -146,6 +148,7 @@ public class FirecastingController {
                 request.getTaxPercentage(),
                 "dataDrivenReturn",
                 1.02D,
+            0.0,
                 returnerConfig,
                 null
         );
@@ -181,7 +184,8 @@ public class FirecastingController {
         //  - inflationFactor=1.02
         //  - no taxExemptionConfig
         //  - no returnerConfig (unless seed is present, which still becomes returnerConfig)
-        boolean returnTypeIsLegacy = "dataDrivenReturn".equals(request.getReturnType());
+        String rt = request.getReturnType();
+        boolean returnTypeIsLegacy = (rt == null || rt.isBlank()) || "dataDrivenReturn".equals(rt);
         boolean noReturnerOverrides = request.getReturnerConfig() == null && request.getSeed() == null;
         boolean noTaxExemptionOverrides = request.getTaxExemptionConfig() == null;
 
@@ -190,7 +194,11 @@ public class FirecastingController {
         boolean inflationIsLegacy = (inflationFactor <= 0.0) || Math.abs(inflationFactor - 1.02D) < 1e-12;
         boolean specInflationIsLegacy = Math.abs(spec.getInflationFactor() - 1.02D) < 1e-12;
 
-        return returnTypeIsLegacy && noReturnerOverrides && noTaxExemptionOverrides && inflationIsLegacy && specInflationIsLegacy;
+        double yearlyFeePercentage = request.getYearlyFeePercentage();
+        boolean feeIsLegacy = !Double.isFinite(yearlyFeePercentage) || Math.abs(yearlyFeePercentage) < 1e-12;
+        boolean specFeeIsLegacy = Math.abs(spec.getYearlyFeePercentage()) < 1e-12;
+
+        return returnTypeIsLegacy && noReturnerOverrides && noTaxExemptionOverrides && inflationIsLegacy && specInflationIsLegacy && feeIsLegacy && specFeeIsLegacy;
     }
 
     private static SimulationRequest toLegacySimulationRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
@@ -271,16 +279,20 @@ public class FirecastingController {
     )
     public ResponseEntity<ReplayStartResponse> importRunBundle(@RequestPart("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest().build();
+            throw new ApiValidationException("Validation failed", List.of("file: is required"));
         }
+
+        ReproducibilityBundleDto bundle;
         try {
-            ReproducibilityBundleDto bundle = objectMapper.readValue(file.getBytes(), ReproducibilityBundleDto.class);
-            ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
-            return ResponseEntity.accepted().body(resp);
+            bundle = objectMapper.readValue(file.getBytes(), ReproducibilityBundleDto.class);
+        } catch (JsonProcessingException e) {
+            throw new ApiValidationException("Invalid JSON", List.of("file: " + e.getOriginalMessage()), e);
         } catch (Exception e) {
-            log.error("Failed to import bundle", e);
-            return ResponseEntity.badRequest().build();
+            throw new ApiValidationException("Invalid request", List.of("file: could not be read"), e);
         }
+
+        ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+        return ResponseEntity.accepted().body(resp);
     }
 
     @PostMapping(
@@ -289,13 +301,8 @@ public class FirecastingController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ReplayStartResponse> importRunBundleJson(@RequestBody ReproducibilityBundleDto bundle) {
-        try {
-            ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
-            return ResponseEntity.accepted().body(resp);
-        } catch (Exception e) {
-            log.error("Failed to import bundle", e);
-            return ResponseEntity.badRequest().build();
-        }
+        ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+        return ResponseEntity.accepted().body(resp);
     }
 
     @GetMapping(value = "/replay/{replayId}", produces = MediaType.APPLICATION_JSON_VALUE)
