@@ -137,6 +137,20 @@ public class FirecastingController {
         return ResponseEntity.ok(statisticsService.getSummariesForRun(runId));
     }
 
+    @GetMapping(value = "/runs/{runId}/input", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getRunInput(@PathVariable String runId) {
+        var run = statisticsService.getRun(runId);
+        if (run == null) return ResponseEntity.notFound().build();
+        if (run.getInputJson() == null || run.getInputJson().isBlank()) return ResponseEntity.notFound().build();
+        try {
+            JsonNode inputNode = objectMapper.readTree(run.getInputJson());
+            return ResponseEntity.ok(inputNode);
+        } catch (Exception e) {
+            log.error("Failed to parse persisted inputJson for run {}", runId, e);
+            return ResponseEntity.status(500).build();
+        }
+    }
+
     @GetMapping(value = "/diff/{runAId}/{runBId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RunDiffResponse> diffRuns(
             @PathVariable String runAId,
