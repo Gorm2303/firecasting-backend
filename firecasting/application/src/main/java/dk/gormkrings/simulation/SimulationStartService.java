@@ -39,35 +39,51 @@ public class SimulationStartService {
     }
 
     /**
-     * Shared start logic used by multiple endpoints.
+     * Shared start logic used by both /start and /start-advanced endpoints.
      *
      * @param inputForDedupAndStorage the object that should be serialized for dedup hashing and persisted
-     *                                as "inputJson". For the legacy endpoint this must be the legacy
-     *                                request DTO to preserve behavior.
+     *                                as "inputJson". For legacy dedup purposes.
+     * @param resolvedAdvanced the fully resolved AdvancedSimulationRequest with all defaults applied,
+     *                          will be persisted as resolvedInputJson for frontend transparency.
+     */
+    public ResponseEntity<Map<String, String>> startSimulation(
+            String logPrefix,
+            SimulationRunSpec spec,
+            Object inputForDedupAndStorage,
+            Object resolvedAdvanced) {
+
+        return startSimulation(logPrefix, spec, inputForDedupAndStorage, resolvedAdvanced, null);
+    }
+
+    /**
+     * Legacy overload used by older tests and code paths that only provide the
+     * input for dedup/storage. Internally delegates to the newer signature with
+     * a null resolved advanced request.
      */
     public ResponseEntity<Map<String, String>> startSimulation(
             String logPrefix,
             SimulationRunSpec spec,
             Object inputForDedupAndStorage) {
 
-        return startSimulation(logPrefix, spec, inputForDedupAndStorage, null);
-        }
+        return startSimulation(logPrefix, spec, inputForDedupAndStorage, null, null);
+    }
 
-        /**
-         * Like {@link #startSimulation(String, SimulationRunSpec, Object)} but allows a post-processing hook
-         * to run after persistence.
-         */
-        public ResponseEntity<Map<String, String>> startSimulation(
+    /**
+     * Like {@link #startSimulation(String, SimulationRunSpec, Object, Object)} but allows a post-processing hook
+     * to run after persistence.
+     */
+    public ResponseEntity<Map<String, String>> startSimulation(
             String logPrefix,
             SimulationRunSpec spec,
             Object inputForDedupAndStorage,
+            Object resolvedAdvanced,
             SimulationPostProcessor postProcessor) {
 
             // Negative seeds are explicitly treated as "stochastic" runs.
-            // To ensure repeating a run with the same negative seed still yields a new outcome,
-            // we must not deduplicate such requests.
+            // A null seed also means stochastic because the RNG defaults to an unseeded state.
+            // To ensure repeating a stochastic run yields a new outcome, we must not deduplicate.
             Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
-            boolean allowDedup = (rngSeed == null || rngSeed >= 0);
+            boolean allowDedup = (rngSeed != null && rngSeed >= 0);
 
             // 0) Dedup FIRST (unless stochastic seed), return immediately if hit
             if (allowDedup) {
@@ -108,6 +124,7 @@ public class SimulationStartService {
                         simulationId,
                         spec,
                         inputForDedupAndStorage,
+                        resolvedAdvanced,
                         runs,
                         batchSize,
                         msg -> sseService.onProgressMessage(simulationId, msg)
@@ -148,5 +165,17 @@ public class SimulationStartService {
 
         sseService.enqueueStateQueued(simulationId, "queued");
         return ResponseEntity.accepted().body(Map.of("id", simulationId));
+    }
+
+    /**
+     * Legacy overload used by tests that provide a post-processor but no resolved advanced input.
+     */
+    public ResponseEntity<Map<String, String>> startSimulation(
+            String logPrefix,
+            SimulationRunSpec spec,
+            Object inputForDedupAndStorage,
+            SimulationPostProcessor postProcessor) {
+
+        return startSimulation(logPrefix, spec, inputForDedupAndStorage, null, postProcessor);
     }
 }
