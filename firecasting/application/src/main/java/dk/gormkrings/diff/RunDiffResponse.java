@@ -19,6 +19,9 @@ public class RunDiffResponse {
         private String inputHash;
         private Long rngSeed;
         private String modelAppVersion;
+        private String modelBuildTime;
+        private String modelSpringBootVersion;
+        private String modelJavaVersion;
     }
 
     @Data
