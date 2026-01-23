@@ -151,6 +151,13 @@ public class FirecastingController {
         }
     }
 
+    @PostMapping(value = "/runs/lookup", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> findRunByInput(@RequestBody JsonNode input) {
+        var match = statisticsService.findExistingRunIdForInput(input);
+        return match.map(id -> ResponseEntity.ok(Collections.singletonMap("runId", id)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @GetMapping(value = "/diff/{runAId}/{runBId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RunDiffResponse> diffRuns(
             @PathVariable String runAId,
