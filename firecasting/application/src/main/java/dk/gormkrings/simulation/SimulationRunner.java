@@ -89,10 +89,12 @@ public class SimulationRunner {
         );
         var grids = aggregationService.buildPercentileGrids(simulationResults);
 
-        // Persist run + summaries
-        Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
-        Long storedSeed = (rngSeed == null) ? -1L : rngSeed;
-        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids, storedSeed);
+                // Persist run + summaries unless stochastic seed (negative => always new)
+                Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
+                if (rngSeed == null || rngSeed >= 0) {
+                        Long storedSeed = (rngSeed == null) ? -1L : rngSeed;
+                        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids, storedSeed);
+                }
 
         return simulationResults;
     }
