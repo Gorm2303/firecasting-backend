@@ -2,8 +2,6 @@ package dk.gormkrings.diff;
 
 import lombok.Data;
 
-import java.time.OffsetDateTime;
-
 @Data
 public class RunDiffResponse {
 
@@ -16,7 +14,8 @@ public class RunDiffResponse {
     @Data
     public static class RunInfo {
         private String id;
-        private OffsetDateTime createdAt;
+        /** ISO-8601 string (avoid requiring Jackson JavaTime module registration). */
+        private String createdAt;
         private String inputHash;
         private Long rngSeed;
         private String modelAppVersion;

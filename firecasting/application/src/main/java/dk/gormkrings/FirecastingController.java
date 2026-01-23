@@ -113,13 +113,14 @@ public class FirecastingController {
 
     @GetMapping(value = "/runs", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<RunListItemDto>> listRuns(
-            @RequestParam(value = "limit", required = false, defaultValue = "50") int limit) {
-        var runs = statisticsService.listRecentRuns(limit)
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        final int effectiveLimit = (limit == null || limit <= 0) ? 500 : limit;
+        var runs = statisticsService.listRecentRuns(effectiveLimit)
                 .stream()
                 .map(r -> {
                     var d = new RunListItemDto();
                     d.setId(r.getId());
-                    d.setCreatedAt(r.getCreatedAt());
+                    d.setCreatedAt(r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
                     d.setRngSeed(r.getRngSeed());
                     d.setModelAppVersion(r.getModelAppVersion());
                     d.setInputHash(r.getInputHash());
@@ -127,6 +128,13 @@ public class FirecastingController {
                 })
                 .toList();
         return ResponseEntity.ok(runs);
+    }
+
+    @GetMapping(value = "/runs/{runId}/summaries", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<YearlySummary>> getRunSummaries(@PathVariable String runId) {
+        var run = statisticsService.getRun(runId);
+        if (run == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(statisticsService.getSummariesForRun(runId));
     }
 
     @GetMapping(value = "/diff/{runAId}/{runBId}", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -39,7 +39,7 @@ public class RunDiffService {
     private static RunDiffResponse.RunInfo toInfo(SimulationRunEntity e) {
         var i = new RunDiffResponse.RunInfo();
         i.setId(e.getId());
-        i.setCreatedAt(e.getCreatedAt());
+        i.setCreatedAt(e.getCreatedAt() != null ? e.getCreatedAt().toString() : null);
         i.setInputHash(e.getInputHash());
         i.setRngSeed(e.getRngSeed());
         i.setModelAppVersion(e.getModelAppVersion());

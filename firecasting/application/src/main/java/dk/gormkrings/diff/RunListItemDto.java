@@ -2,12 +2,11 @@ package dk.gormkrings.diff;
 
 import lombok.Data;
 
-import java.time.OffsetDateTime;
-
 @Data
 public class RunListItemDto {
     private String id;
-    private OffsetDateTime createdAt;
+    /** ISO-8601 string (avoid requiring Jackson JavaTime module registration). */
+    private String createdAt;
     private Long rngSeed;
     private String modelAppVersion;
     private String inputHash;
