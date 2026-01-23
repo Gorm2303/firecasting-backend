@@ -31,16 +31,21 @@ public final class AdvancedSimulationRequestMapper {
             yearlyFeePercentage = 0.0;
         }
 
-        // Allow a top-level seed to drive seeding even when returnerConfig is missing.
-        // Prefer explicit top-level seed over nested returnerConfig.seed.
-        if (req.getSeed() != null) {
-            if (req.getReturnerConfig() == null) {
-                var cfg = new dk.gormkrings.returns.ReturnerConfig();
-                cfg.setSeed(req.getSeed());
-                req.setReturnerConfig(cfg);
-            } else if (req.getReturnerConfig().getSeed() == null) {
-                req.getReturnerConfig().setSeed(req.getSeed());
-            }
+        // Normalize seed: null/negative => generate positive seed.
+        Long requestedSeed = req.getSeed();
+        if (requestedSeed == null && req.getReturnerConfig() != null) {
+            requestedSeed = req.getReturnerConfig().getSeed();
+        }
+
+        long normalizedSeed = normalizeSeed(requestedSeed);
+        req.setSeed(normalizedSeed);
+
+        if (req.getReturnerConfig() == null) {
+            var cfg = new dk.gormkrings.returns.ReturnerConfig();
+            cfg.setSeed(normalizedSeed);
+            req.setReturnerConfig(cfg);
+        } else {
+            req.getReturnerConfig().setSeed(normalizedSeed);
         }
 
         return new SimulationRunSpec(
@@ -54,5 +59,12 @@ public final class AdvancedSimulationRequestMapper {
                 req.getReturnerConfig(),
                 req.getTaxExemptionConfig()
         );
+    }
+
+    private static long normalizeSeed(Long seed) {
+        if (seed == null || seed < 0) {
+            return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
+        }
+        return seed;
     }
 }

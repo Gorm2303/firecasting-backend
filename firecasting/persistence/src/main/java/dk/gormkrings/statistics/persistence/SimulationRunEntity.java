@@ -30,6 +30,10 @@ public class SimulationRunEntity {
     @Column(name = "input_json", columnDefinition = "jsonb", nullable = false)
     private String inputJson; // (or JsonNode if you prefer)
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "resolved_input_json", columnDefinition = "jsonb")
+    private String resolvedInputJson; // Resolved AdvancedSimulationRequest with all defaults applied
+
     @Column(name = "input_hash", nullable = false, length = 64)
     private String inputHash;
 

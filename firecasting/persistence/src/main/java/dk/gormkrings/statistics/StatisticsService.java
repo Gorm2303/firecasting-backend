@@ -51,6 +51,7 @@ public class StatisticsService {
     @Transactional
     public String insertNewRunWithSummaries(String simulationId,
                                             Object inputParams,
+                                            Object resolvedAdvanced,
                                             List<YearlySummary> summaries,
                                             List<Double[]> percentileGrids,
                                             Long rngSeed) {
@@ -60,12 +61,14 @@ public class StatisticsService {
 
         String inputJson = toCanonicalJson(inputParams);
         String inputHash = sha256Hex(inputJson);
+        String resolvedInputJson = resolvedAdvanced != null ? toCanonicalJson(resolvedAdvanced) : null;
 
         // 1) Persist parent RUN first
         var run = new SimulationRunEntity();
         run.setId(simulationId);                   // we assign the UUID ourselves
         run.setCreatedAt(OffsetDateTime.now());
         run.setInputJson(inputJson);
+        run.setResolvedInputJson(resolvedInputJson);
         run.setInputHash(inputHash);
 
         BuildProperties bp = buildPropertiesProvider.getIfAvailable();

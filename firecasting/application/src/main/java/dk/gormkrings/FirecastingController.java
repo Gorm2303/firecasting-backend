@@ -28,6 +28,7 @@ import dk.gormkrings.reproducibility.ReplayStartResponse;
 import dk.gormkrings.reproducibility.ReplayStatusResponse;
 import dk.gormkrings.reproducibility.ReproducibilityReplayService;
 import dk.gormkrings.returns.ReturnerConfig;
+import dk.gormkrings.tax.TaxExemptionConfig;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -65,9 +66,10 @@ public class FirecastingController {
     private final SimulationResultsCache resultsCache;
     private final SimulationSummariesCache summariesCache;
     private final ReproducibilityBundleService reproducibilityBundleService;
-    private final ReproducibilityReplayService reproducibilityReplayService;
+    private final java.util.Optional<ReproducibilityReplayService> reproducibilityReplayService;
     private final RunDiffService runDiffService;
     private final ObjectMapper objectMapper;
+    private final ObjectMapper canonicalObjectMapper;
 
     @Value("${settings.runs}")
     private int runs;
@@ -90,9 +92,10 @@ public class FirecastingController {
                                  SimulationResultsCache resultsCache,
                                  SimulationSummariesCache summariesCache,
                                  ReproducibilityBundleService reproducibilityBundleService,
-                                 ReproducibilityReplayService reproducibilityReplayService,
+                                 java.util.Optional<ReproducibilityReplayService> reproducibilityReplayService,
                                  RunDiffService runDiffService,
-                                 ObjectMapper objectMapper) {
+                                 ObjectMapper objectMapper,
+                                 @org.springframework.beans.factory.annotation.Qualifier("canonicalObjectMapper") ObjectMapper canonicalObjectMapper) {
         this.simQueue = simQueue;
         this.sseService = sseService;
         this.statisticsService = statisticsService;
@@ -105,6 +108,7 @@ public class FirecastingController {
         this.reproducibilityReplayService = reproducibilityReplayService;
         this.runDiffService = runDiffService;
         this.objectMapper = objectMapper;
+        this.canonicalObjectMapper = canonicalObjectMapper;
     }
 
     // ------------------------------------------------------------------------------------
@@ -141,12 +145,24 @@ public class FirecastingController {
     public ResponseEntity<JsonNode> getRunInput(@PathVariable String runId) {
         var run = statisticsService.getRun(runId);
         if (run == null) return ResponseEntity.notFound().build();
-        if (run.getInputJson() == null || run.getInputJson().isBlank()) return ResponseEntity.notFound().build();
+        
+        // Prefer resolved input (with all defaults applied) if available; fall back to raw input
+        String inputToReturn = null;
+        if (run.getResolvedInputJson() != null && !run.getResolvedInputJson().isBlank()) {
+            inputToReturn = run.getResolvedInputJson();
+        } else if (run.getInputJson() != null && !run.getInputJson().isBlank()) {
+            inputToReturn = run.getInputJson();
+        }
+        
+        if (inputToReturn == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
         try {
-            JsonNode inputNode = objectMapper.readTree(run.getInputJson());
+            JsonNode inputNode = objectMapper.readTree(inputToReturn);
             return ResponseEntity.ok(inputNode);
         } catch (Exception e) {
-            log.error("Failed to parse persisted inputJson for run {}", runId, e);
+            log.error("Failed to parse inputJson for run {}", runId, e);
             return ResponseEntity.status(500).build();
         }
     }
@@ -154,8 +170,53 @@ public class FirecastingController {
     @PostMapping(value = "/runs/lookup", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> findRunByInput(@RequestBody JsonNode input) {
         var match = statisticsService.findExistingRunIdForInput(input);
-        return match.map(id -> ResponseEntity.ok(Collections.singletonMap("runId", id)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        if (match.isPresent()) {
+            return ResponseEntity.ok(Collections.singletonMap("runId", match.get()));
+        }
+
+        // If the caller sent a normal-mode payload but the run was stored as advanced,
+        // fall back to the advanced-with-defaults shape for lookup.
+        try {
+            SimulationRequest normal = objectMapper.treeToValue(input, SimulationRequest.class);
+            AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(normal);
+            var advMatch = statisticsService.findExistingRunIdForInput(advanced);
+            if (advMatch.isPresent()) {
+                return ResponseEntity.ok(Collections.singletonMap("runId", advMatch.get()));
+            }
+        } catch (Exception ignored) {
+            // Not a normal-mode payload; ignore and fall through to 404.
+        }
+
+        // As a last resort, ignore randomness fields when matching templates that don't specify a seed.
+        try {
+            JsonNode normalizedInput = normalizeForLookup(input);
+            JsonNode normalizedNormal = null;
+            JsonNode normalizedAdvanced = null;
+            try {
+                SimulationRequest normal = objectMapper.treeToValue(input, SimulationRequest.class);
+                normalizedNormal = normalizeForLookup(canonicalObjectMapper.valueToTree(normal));
+                AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(normal);
+                normalizedAdvanced = normalizeForLookup(canonicalObjectMapper.valueToTree(advanced));
+            } catch (Exception ignored) {
+                // Not a normal-mode payload; ignore normal/advanced normalization.
+            }
+
+            for (var run : statisticsService.listRecentRuns(500)) {
+                String runInputJson = run.getInputJson();
+                if (runInputJson == null || runInputJson.isBlank()) continue;
+                JsonNode runNode = objectMapper.readTree(runInputJson);
+                JsonNode normalizedRun = normalizeForLookup(runNode);
+                if (Objects.equals(normalizedInput, normalizedRun)
+                        || Objects.equals(normalizedNormal, normalizedRun)
+                        || Objects.equals(normalizedAdvanced, normalizedRun)) {
+                    return ResponseEntity.ok(Collections.singletonMap("runId", run.getId()));
+                }
+            }
+        } catch (Exception ignored) {
+            // Fall through to 404.
+        }
+
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping(value = "/diff/{runAId}/{runBId}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -200,24 +261,144 @@ public class FirecastingController {
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<Map<String, String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
-        ReturnerConfig returnerConfig = null;
-        if (request.getSeed() != null) {
-            returnerConfig = new ReturnerConfig();
-            returnerConfig.setSeed(request.getSeed());
+        // Convert normal mode request to advanced mode with defaults
+        AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(request);
+        
+        // Map to internal run spec using the same mapper as advanced mode
+        var spec = AdvancedSimulationRequestMapper.toRunSpec(advanced);
+        
+        // For normal mode, we store the legacy SimulationRequest for dedup purposes
+        // but persist the resolved AdvancedSimulationRequest for frontend transparency
+        return simulationStartService.startSimulation("/start", spec, request, advanced);
+    }
+
+    /**
+     * Convert a normal SimulationRequest to AdvancedSimulationRequest with all defaults applied.
+     */
+    private static AdvancedSimulationRequest convertToAdvancedWithDefaults(SimulationRequest request) {
+        AdvancedSimulationRequest advanced = new AdvancedSimulationRequest();
+        advanced.setStartDate(request.getStartDate());
+        advanced.setPhases(request.getPhases());
+        advanced.setOverallTaxRule(request.getOverallTaxRule());
+        advanced.setTaxPercentage(request.getTaxPercentage());
+        
+        // Apply defaults for normal mode
+        advanced.setReturnType("dataDrivenReturn");
+        advanced.setInflationFactor(1.02D);
+        advanced.setYearlyFeePercentage(0.5);
+        
+        // Set up seed in returner config
+        long seed = normalizeSeed(request.getSeed());
+        ReturnerConfig returnerConfig = new ReturnerConfig();
+        returnerConfig.setSeed(seed);
+        advanced.setReturnerConfig(returnerConfig);
+        advanced.setSeed(seed);
+        
+        // Tax exemption defaults for normal mode
+        TaxExemptionConfig.ExemptionCardConfig card = new TaxExemptionConfig.ExemptionCardConfig();
+        card.setLimit(51600f);
+        card.setYearlyIncrease(1000f);
+
+        TaxExemptionConfig.StockExemptionConfig stock = new TaxExemptionConfig.StockExemptionConfig();
+        stock.setTaxRate(27f);      // percentage
+        stock.setLimit(67500f);
+        stock.setYearlyIncrease(1000f);
+
+        TaxExemptionConfig taxCfg = new TaxExemptionConfig();
+        taxCfg.setExemptionCard(card);
+        taxCfg.setStockExemption(stock);
+        advanced.setTaxExemptionConfig(taxCfg);
+        
+        return advanced;
+    }
+
+    private static long normalizeSeed(Long seed) {
+        if (seed == null || seed < 0) {
+            return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
+        }
+        return seed;
+    }
+
+    private static JsonNode stripRandomnessFields(JsonNode in) {
+        if (in == null) return null;
+        JsonNode copy = in.deepCopy();
+        if (copy.isObject()) {
+            ((com.fasterxml.jackson.databind.node.ObjectNode) copy).remove("seed");
+            JsonNode rc = copy.get("returnerConfig");
+            if (rc != null && rc.isObject()) {
+                ((com.fasterxml.jackson.databind.node.ObjectNode) rc).remove("seed");
+            }
+        }
+        return copy;
+    }
+
+    private static JsonNode normalizeForLookup(JsonNode in) {
+        JsonNode stripped = stripRandomnessFields(in);
+        if (stripped == null) return null;
+        normalizeStartDate(stripped);
+        pruneNulls(stripped);
+        return stripped;
+    }
+
+    private static void normalizeStartDate(JsonNode node) {
+        if (node == null || !node.isObject()) return;
+        var obj = (com.fasterxml.jackson.databind.node.ObjectNode) node;
+        JsonNode startDate = obj.get("startDate");
+        if (startDate != null && startDate.isObject()) {
+            var sd = (com.fasterxml.jackson.databind.node.ObjectNode) startDate;
+            String dateText = null;
+            JsonNode dateNode = sd.get("date");
+            if (dateNode != null && dateNode.isTextual()) {
+                dateText = dateNode.asText();
+            } else {
+                JsonNode year = sd.get("year");
+                JsonNode month = sd.get("month");
+                JsonNode day = sd.get("dayOfMonth");
+                if (year != null && month != null && day != null) {
+                    try {
+                        java.time.LocalDate d = java.time.LocalDate.of(year.asInt(), month.asInt(), day.asInt());
+                        dateText = d.toString();
+                    } catch (Exception ignored) {
+                        // leave as-is
+                    }
+                }
+            }
+
+            if (dateText != null) {
+                sd.removeAll();
+                sd.put("date", dateText);
+            }
         }
 
-        var spec = new SimulationRunSpec(
-                request.getStartDate(),
-                request.getPhases(),
-                request.getOverallTaxRule(),
-                request.getTaxPercentage(),
-                "dataDrivenReturn",
-                1.02D,
-            0.0,
-                returnerConfig,
-                null
-        );
-        return simulationStartService.startSimulation("/start", spec, request);
+        // Remove legacy/system fields that aren't part of the user input shape.
+        obj.remove("epochDay");
+        obj.remove("returnPercentage");
+        obj.remove("totalDurationValid");
+    }
+
+    private static void pruneNulls(JsonNode node) {
+        if (node == null) return;
+        if (node.isObject()) {
+            var obj = (com.fasterxml.jackson.databind.node.ObjectNode) node;
+            var fieldNames = new java.util.ArrayList<String>();
+            obj.fieldNames().forEachRemaining(fieldNames::add);
+            for (String name : fieldNames) {
+                JsonNode child = obj.get(name);
+                if (child == null || child.isNull()) {
+                    obj.remove(name);
+                } else {
+                    pruneNulls(child);
+                    // Remove empty objects to normalize missing vs null objects
+                    if (child.isObject() && child.size() == 0) {
+                        obj.remove(name);
+                    }
+                }
+            }
+        } else if (node.isArray()) {
+            for (JsonNode child : node) {
+                pruneNulls(child);
+            }
+        }
     }
 
     @PostMapping(
@@ -235,10 +416,11 @@ public class FirecastingController {
         // a legacy SimulationRequest so it deduplicates with /start.
         if (isLegacyEquivalentAdvancedRequest(request, spec)) {
             SimulationRequest legacy = toLegacySimulationRequest(request, spec);
-            return simulationStartService.startSimulation("/start-advanced", spec, legacy);
+            // For legacy-equivalent advanced requests, create resolved request to send to frontend
+            return simulationStartService.startSimulation("/start-advanced", spec, legacy, request);
         }
 
-        return simulationStartService.startSimulation("/start-advanced", spec, request);
+        return simulationStartService.startSimulation("/start-advanced", spec, request, request);
     }
 
     private static boolean isLegacyEquivalentAdvancedRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
@@ -343,6 +525,9 @@ public class FirecastingController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ReplayStartResponse> importRunBundle(@RequestPart("file") MultipartFile file) {
+        if (reproducibilityReplayService.isEmpty()) {
+            return ResponseEntity.status(501).body(null);
+        }
         if (file == null || file.isEmpty()) {
             throw new ApiValidationException("Validation failed", List.of("file: is required"));
         }
@@ -356,7 +541,7 @@ public class FirecastingController {
             throw new ApiValidationException("Invalid request", List.of("file: could not be read"), e);
         }
 
-        ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+        ReplayStartResponse resp = reproducibilityReplayService.get().importBundle(bundle);
         return ResponseEntity.accepted().body(resp);
     }
 
@@ -366,13 +551,19 @@ public class FirecastingController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ReplayStartResponse> importRunBundleJson(@RequestBody ReproducibilityBundleDto bundle) {
-        ReplayStartResponse resp = reproducibilityReplayService.importBundle(bundle);
+        if (reproducibilityReplayService.isEmpty()) {
+            return ResponseEntity.status(501).body(null);
+        }
+        ReplayStartResponse resp = reproducibilityReplayService.get().importBundle(bundle);
         return ResponseEntity.accepted().body(resp);
     }
 
     @GetMapping(value = "/replay/{replayId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ReplayStatusResponse> getReplayStatus(@PathVariable String replayId) {
-        ReplayStatusResponse status = reproducibilityReplayService.getStatus(replayId);
+        if (reproducibilityReplayService.isEmpty()) {
+            return ResponseEntity.status(501).build();
+        }
+        ReplayStatusResponse status = reproducibilityReplayService.get().getStatus(replayId);
         return status == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(status);
     }
 

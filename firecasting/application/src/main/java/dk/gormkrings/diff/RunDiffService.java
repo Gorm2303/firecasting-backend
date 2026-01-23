@@ -61,8 +61,8 @@ public class RunDiffService {
         if (hashChanged) {
             // Try to isolate RNG-only changes (seed / returnerConfig.seed) from general input changes.
             try {
-                JsonNode aj = objectMapper.readTree(a.getInputJson());
-                JsonNode bj = objectMapper.readTree(b.getInputJson());
+                JsonNode aj = objectMapper.readTree(selectInputForAttribution(a));
+                JsonNode bj = objectMapper.readTree(selectInputForAttribution(b));
 
                 JsonNode an = stripRandomnessFields(aj);
                 JsonNode bn = stripRandomnessFields(bj);
@@ -92,6 +92,13 @@ public class RunDiffService {
     private static String nullToUnknown(String v) {
         if (v == null || v.isBlank()) return "unknown";
         return v;
+    }
+
+    private static String selectInputForAttribution(SimulationRunEntity run) {
+        if (run.getResolvedInputJson() != null && !run.getResolvedInputJson().isBlank()) {
+            return run.getResolvedInputJson();
+        }
+        return run.getInputJson();
     }
 
     private static String buildSummary(boolean inputsChanged, boolean randomnessChanged, boolean modelVersionChanged) {

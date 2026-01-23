@@ -71,11 +71,14 @@ public class SimulationRunner {
      *
      * @param inputForStorage Object persisted for dedup/hash and later retrieval. For legacy flows this
      *                        should be the original request DTO to keep behavior unchanged.
+     * @param resolvedAdvanced Optional resolved AdvancedSimulationRequest with all defaults applied.
+     *                          Will be persisted as resolvedInputJson for frontend transparency.
      */
     public List<IRunResult> runSimulation(
             String simulationId,
             SimulationRunSpec spec,
             Object inputForStorage,
+            Object resolvedAdvanced,
             int runs,
             int batchSize,
             IProgressCallback onProgress) {
@@ -89,14 +92,26 @@ public class SimulationRunner {
         );
         var grids = aggregationService.buildPercentileGrids(simulationResults);
 
-                // Persist run + summaries unless stochastic seed (negative => always new)
+                // Persist run + summaries using the normalized seed (always positive at request mapping).
                 Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
-                if (rngSeed == null || rngSeed >= 0) {
-                        Long storedSeed = (rngSeed == null) ? -1L : rngSeed;
-                        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids, storedSeed);
+                if (rngSeed != null) {
+                        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, resolvedAdvanced, summaries, grids, rngSeed);
                 }
 
         return simulationResults;
+    }
+
+    /**
+     * Legacy overload without resolved request parameter.
+     */
+    public List<IRunResult> runSimulation(
+            String simulationId,
+            SimulationRunSpec spec,
+            Object inputForStorage,
+            int runs,
+            int batchSize,
+            IProgressCallback onProgress) {
+        return runSimulation(simulationId, spec, inputForStorage, null, runs, batchSize, onProgress);
     }
 
         /**

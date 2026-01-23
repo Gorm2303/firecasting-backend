@@ -17,6 +17,7 @@ import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.ResponseEntity;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@Profile("!local")
 @RequiredArgsConstructor
 public class ReproducibilityReplayService {
 
@@ -107,9 +109,9 @@ public class ReproducibilityReplayService {
 
         // Start replay run; when done compare actual DB summaries to expected bundle outputs
         ResponseEntity<Map<String, String>> started = simulationStartService.startSimulation(
-                "/import",
-                spec,
-                input,
+            "/import",
+            spec,
+            input,
             simId -> finalizeReplay(replayId, simId)
         );
 
