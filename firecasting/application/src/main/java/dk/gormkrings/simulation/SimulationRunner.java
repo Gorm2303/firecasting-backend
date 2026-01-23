@@ -91,7 +91,8 @@ public class SimulationRunner {
 
         // Persist run + summaries
         Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
-        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids, rngSeed);
+        Long storedSeed = (rngSeed == null) ? -1L : rngSeed;
+        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, summaries, grids, storedSeed);
 
         return simulationResults;
     }
