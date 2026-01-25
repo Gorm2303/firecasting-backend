@@ -64,6 +64,12 @@ public class SimulationSseService {
                 .data(data, MediaType.APPLICATION_JSON));
     }
 
+    public void sendMeta(String simId, Object data) {
+        flushOnce(simId);
+        broadcast(simId, SseEmitter.event().name("meta")
+                .data(data, MediaType.APPLICATION_JSON));
+    }
+
     public void onProgressMessage(String simId, String progressMessage) {
         if (progressMessage == null) return;
         String msg = progressMessage.trim();

@@ -140,11 +140,13 @@ class MonteCarloSimulationTest {
             int runs = 3;
             sim.run(runs, phases);
 
-            // getSpecification() is called once per worker task in the batch.
+            // buildTasks() fetches the base spec ONCE per batch from the first phase,
+            // then deterministically splits it into per-task bases (still on the calling thread),
+            // and finally each run copies again from its task-local base.
             int tasks = Math.min(2, runs);
-            verify(p1, times(tasks)).getSpecification();
-            verify(base, times(tasks)).copy();
-            verify(copy, times(runs)).copy();
+            verify(p1, times(1)).getSpecification();
+            verify(base, times(1)).copy();
+            verify(copy, times(runs + tasks)).copy();
             verify(p1, times(runs)).copy(copy);
             verify(p2, times(runs)).copy(copy);
         } finally {

@@ -45,7 +45,8 @@ public class DefaultRandomNumberGenerator implements IRandomNumberGenerator {
         if (seed < 0) {
             return new DefaultRandomNumberGenerator(random);
         }
-        seed++;
-        return new DefaultRandomNumberGenerator(seed);
+        // Deterministically split a new independent stream.
+        // This avoids seed++ coupling that makes results depend on copy order.
+        return new DefaultRandomNumberGenerator(random);
     }
 }

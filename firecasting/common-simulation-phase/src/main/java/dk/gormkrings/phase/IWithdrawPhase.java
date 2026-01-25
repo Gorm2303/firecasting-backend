@@ -29,6 +29,14 @@ public interface IWithdrawPhase extends ISimulationPhase {
             }
         }
 
+        // Safety: never withdraw more than the current capital, even after tax gross-up.
+        // Otherwise we can force negative capital in edge cases (e.g., high tax rate + negative returns).
+        if (!Double.isFinite(realWithdrawAmount) || realWithdrawAmount < 0.0) {
+            realWithdrawAmount = 0.0;
+        } else if (realWithdrawAmount > capital) {
+            realWithdrawAmount = capital;
+        }
+
         double depositRatio = getLiveData().getDeposited() / capital;
         getLiveData().subtractFromDeposited(depositRatio * realWithdrawAmount);
 

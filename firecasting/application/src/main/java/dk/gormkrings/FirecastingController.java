@@ -23,6 +23,7 @@ import dk.gormkrings.export.ReproducibilityBundleService;
 import dk.gormkrings.export.ReproducibilityBundleDto;
 import dk.gormkrings.diff.RunDiffService;
 import dk.gormkrings.diff.RunDiffResponse;
+import dk.gormkrings.diff.RunDetailsDto;
 import dk.gormkrings.diff.RunListItemDto;
 import dk.gormkrings.reproducibility.ReplayStartResponse;
 import dk.gormkrings.reproducibility.ReplayStatusResponse;
@@ -56,6 +57,10 @@ import java.util.concurrent.atomic.AtomicReference;
 @RestController
 @RequestMapping("/api/simulation")
 public class FirecastingController {
+
+    // Contract: when the user selects "Default" in the UI we use a fixed deterministic master seed.
+    // Negative seeds mean "Random" (generate a new positive seed each run) and are not persisted.
+    private static final long DEFAULT_MASTER_SEED = 1L;
 
     private final SimulationQueueService simQueue;
     private final SimulationSseService sseService;
@@ -134,6 +139,29 @@ public class FirecastingController {
         return ResponseEntity.ok(runs);
     }
 
+    @GetMapping(value = "/runs/{runId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RunDetailsDto> getRunDetails(@PathVariable String runId) {
+        var run = statisticsService.getRun(runId);
+        if (run == null) return ResponseEntity.notFound().build();
+
+        var d = new RunDetailsDto();
+        d.setId(run.getId());
+        d.setCreatedAt(run.getCreatedAt() != null ? run.getCreatedAt().toString() : null);
+        d.setRngSeed(run.getRngSeed());
+        d.setModelAppVersion(run.getModelAppVersion());
+        d.setModelBuildTime(run.getModelBuildTime());
+        d.setModelSpringBootVersion(run.getModelSpringBootVersion());
+        d.setModelJavaVersion(run.getModelJavaVersion());
+        d.setInputHash(run.getInputHash());
+        d.setComputeMs(run.getComputeMs());
+        d.setAggregateMs(run.getAggregateMs());
+        d.setGridsMs(run.getGridsMs());
+        d.setPersistMs(run.getPersistMs());
+        d.setTotalMs(run.getTotalMs());
+
+        return ResponseEntity.ok(d);
+    }
+
     @GetMapping(value = "/runs/{runId}/summaries", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<YearlySummary>> getRunSummaries(@PathVariable String runId) {
         var run = statisticsService.getRun(runId);
@@ -169,7 +197,19 @@ public class FirecastingController {
 
     @PostMapping(value = "/runs/lookup", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> findRunByInput(@RequestBody JsonNode input) {
-        var match = statisticsService.findExistingRunIdForInput(input);
+        final int effectivePaths = resolvePathsFromLookupInput(input);
+        final int effectiveBatchSize = resolveBatchSizeFromLookupInput(input);
+        var match = statisticsService.findExistingRunIdForSignature(
+            dk.gormkrings.simulation.SimulationSignature.of(effectivePaths, effectiveBatchSize, input)
+        );
+
+        // Backwards compatibility: older runs used a signature without batchSize.
+        if (match.isEmpty() && effectiveBatchSize == batchSize) {
+            match = statisticsService.findExistingRunIdForSignature(
+                    new LegacySimulationSignature(effectivePaths, input)
+            );
+        }
+
         if (match.isPresent()) {
             return ResponseEntity.ok(Collections.singletonMap("runId", match.get()));
         }
@@ -178,8 +218,16 @@ public class FirecastingController {
         // fall back to the advanced-with-defaults shape for lookup.
         try {
             SimulationRequest normal = objectMapper.treeToValue(input, SimulationRequest.class);
-            AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(normal);
-            var advMatch = statisticsService.findExistingRunIdForInput(advanced);
+            AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(normal, effectivePaths, effectiveBatchSize);
+            var advMatch = statisticsService.findExistingRunIdForSignature(
+                    dk.gormkrings.simulation.SimulationSignature.of(effectivePaths, effectiveBatchSize, advanced)
+            );
+
+            if (advMatch.isEmpty() && effectiveBatchSize == batchSize) {
+                advMatch = statisticsService.findExistingRunIdForSignature(
+                        new LegacySimulationSignature(effectivePaths, advanced)
+                );
+            }
             if (advMatch.isPresent()) {
                 return ResponseEntity.ok(Collections.singletonMap("runId", advMatch.get()));
             }
@@ -195,7 +243,7 @@ public class FirecastingController {
             try {
                 SimulationRequest normal = objectMapper.treeToValue(input, SimulationRequest.class);
                 normalizedNormal = normalizeForLookup(canonicalObjectMapper.valueToTree(normal));
-                AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(normal);
+                AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(normal, effectivePaths, effectiveBatchSize);
                 normalizedAdvanced = normalizeForLookup(canonicalObjectMapper.valueToTree(advanced));
             } catch (Exception ignored) {
                 // Not a normal-mode payload; ignore normal/advanced normalization.
@@ -261,22 +309,24 @@ public class FirecastingController {
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<Map<String, String>> startSimulation(@Valid @RequestBody SimulationRequest request) {
+        final Long requestedSeedForDedup = request.getSeed();
         // Convert normal mode request to advanced mode with defaults
-        AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(request);
+        AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(request, runs, batchSize);
         
         // Map to internal run spec using the same mapper as advanced mode
         var spec = AdvancedSimulationRequestMapper.toRunSpec(advanced);
         
-        // For normal mode, we store the legacy SimulationRequest for dedup purposes
-        // but persist the resolved AdvancedSimulationRequest for frontend transparency
-        return simulationStartService.startSimulation("/start", spec, request, advanced);
+        // Use the resolved advanced request as the canonical input for hashing/persistence.
+        // This keeps behavior identical between normal and advanced; only UI visibility differs.
+        return simulationStartService.startSimulation("/start", spec, advanced, advanced, null, requestedSeedForDedup);
     }
 
     /**
      * Convert a normal SimulationRequest to AdvancedSimulationRequest with all defaults applied.
      */
-    private static AdvancedSimulationRequest convertToAdvancedWithDefaults(SimulationRequest request) {
+    private static AdvancedSimulationRequest convertToAdvancedWithDefaults(SimulationRequest request, int defaultPaths) {
         AdvancedSimulationRequest advanced = new AdvancedSimulationRequest();
+        advanced.setPaths(defaultPaths);
         advanced.setStartDate(request.getStartDate());
         advanced.setPhases(request.getPhases());
         advanced.setOverallTaxRule(request.getOverallTaxRule());
@@ -285,7 +335,8 @@ public class FirecastingController {
         // Apply defaults for normal mode
         advanced.setReturnType("dataDrivenReturn");
         advanced.setInflationFactor(1.02D);
-        advanced.setYearlyFeePercentage(0.5);
+        // Legacy behavior uses no yearly fee unless explicitly enabled.
+        advanced.setYearlyFeePercentage(0.0);
         
         // Set up seed in returner config
         long seed = normalizeSeed(request.getSeed());
@@ -312,8 +363,40 @@ public class FirecastingController {
         return advanced;
     }
 
+    /**
+     * Convert a normal SimulationRequest to AdvancedSimulationRequest with all defaults applied.
+     */
+    private static AdvancedSimulationRequest convertToAdvancedWithDefaults(SimulationRequest request, int defaultPaths, int defaultBatchSize) {
+        AdvancedSimulationRequest advanced = convertToAdvancedWithDefaults(request, defaultPaths);
+        advanced.setBatchSize(defaultBatchSize);
+        return advanced;
+    }
+
+    private int resolvePathsFromLookupInput(JsonNode input) {
+        if (input != null && input.isObject()) {
+            JsonNode p = input.get("paths");
+            if (p != null && p.canConvertToInt()) {
+                int v = p.asInt();
+                if (v > 0) return Math.min(v, 100_000);
+            }
+        }
+        return runs;
+    }
+
+    private int resolveBatchSizeFromLookupInput(JsonNode input) {
+        if (input != null && input.isObject()) {
+            JsonNode b = input.get("batchSize");
+            if (b != null && b.canConvertToInt()) {
+                int v = b.asInt();
+                if (v > 0) return Math.min(v, 100_000);
+            }
+        }
+        return batchSize;
+    }
+
     private static long normalizeSeed(Long seed) {
-        if (seed == null || seed < 0) {
+        if (seed == null) return DEFAULT_MASTER_SEED;
+        if (seed < 0) {
             return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
         }
         return seed;
@@ -408,23 +491,30 @@ public class FirecastingController {
     )
     public ResponseEntity<Map<String, String>> startAdvancedSimulation(
             @Valid @RequestBody AdvancedSimulationRequest request) {
+        final Long requestedSeedForDedup = (request.getSeed() != null)
+            ? request.getSeed()
+            : (request.getReturnerConfig() != null ? request.getReturnerConfig().getSeed() : null);
+        // Ensure we always have an explicit paths value for persistence/UX consistency.
+        if (request.getPaths() == null) request.setPaths(runs);
+        if (request.getBatchSize() == null) request.setBatchSize(batchSize);
         var spec = AdvancedSimulationRequestMapper.toRunSpec(request);
 
-        // Dedup is based on hashing the serialized *input DTO*.
-        // /start hashes SimulationRequest; /start-advanced hashes AdvancedSimulationRequest.
-        // If the advanced request is semantically identical to the legacy defaults, persist/hash
-        // a legacy SimulationRequest so it deduplicates with /start.
-        if (isLegacyEquivalentAdvancedRequest(request, spec)) {
-            SimulationRequest legacy = toLegacySimulationRequest(request, spec);
-            // For legacy-equivalent advanced requests, create resolved request to send to frontend
-            return simulationStartService.startSimulation("/start-advanced", spec, legacy, request);
-        }
-
-        return simulationStartService.startSimulation("/start-advanced", spec, request, request);
+        // Canonical behavior: always hash/persist the resolved advanced request.
+        return simulationStartService.startSimulation("/start-advanced", spec, request, request, null, requestedSeedForDedup);
     }
 
-    private static boolean isLegacyEquivalentAdvancedRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
+    private static boolean isLegacyEquivalentAdvancedRequest(AdvancedSimulationRequest request, SimulationRunSpec spec, int defaultPaths, int defaultBatchSize) {
         if (request == null || spec == null) return false;
+
+        // If paths/runs is explicitly set and differs from default, it is NOT legacy-equivalent.
+        if (request.getPaths() != null && !Objects.equals(request.getPaths(), defaultPaths)) {
+            return false;
+        }
+
+        // If batchSize is explicitly set and differs from default, it is NOT legacy-equivalent.
+        if (request.getBatchSize() != null && request.getBatchSize() > 0 && request.getBatchSize() != defaultBatchSize) {
+            return false;
+        }
 
         // Legacy endpoint always uses:
         //  - returnType=dataDrivenReturn
@@ -446,6 +536,12 @@ public class FirecastingController {
         boolean specFeeIsLegacy = Math.abs(spec.getYearlyFeePercentage()) < 1e-12;
 
         return returnTypeIsLegacy && noReturnerOverrides && noTaxExemptionOverrides && inflationIsLegacy && specInflationIsLegacy && feeIsLegacy && specFeeIsLegacy;
+    }
+
+    /**
+     * Legacy signature payload used before batchSize participated in the signature.
+     */
+    private record LegacySimulationSignature(int paths, Object input) {
     }
 
     private static SimulationRequest toLegacySimulationRequest(AdvancedSimulationRequest request, SimulationRunSpec spec) {
@@ -578,6 +674,28 @@ public class FirecastingController {
             var emitter = new SseEmitter(0L);
             try {
                 var summaries = statisticsService.getSummariesForRun(simulationId);
+                var meta = new HashMap<String, Object>();
+                meta.put("dedupHit", true);
+                meta.put("source", "db");
+                meta.put("persisted", true);
+                meta.put("queueMs", 0);
+
+                try {
+                    var run = statisticsService.getRun(simulationId);
+                    if (run != null) {
+                        if (run.getComputeMs() != null) meta.put("computeMs", run.getComputeMs());
+                        if (run.getAggregateMs() != null) meta.put("aggregateMs", run.getAggregateMs());
+                        if (run.getGridsMs() != null) meta.put("gridsMs", run.getGridsMs());
+                        if (run.getPersistMs() != null) meta.put("persistMs", run.getPersistMs());
+                        if (run.getTotalMs() != null) meta.put("totalMs", run.getTotalMs());
+                    }
+                } catch (Exception ignore) {
+                    // best-effort
+                }
+
+                emitter.send(SseEmitter.event()
+                        .name("meta")
+                        .data(meta, MediaType.APPLICATION_JSON));
                 emitter.send(SseEmitter.event()
                         .name("completed")
                         .data(summaries, MediaType.APPLICATION_JSON));
@@ -593,6 +711,12 @@ public class FirecastingController {
         if (cached != null && !cached.isEmpty()) {
             var emitter = new SseEmitter(0L);
             try {
+                emitter.send(SseEmitter.event()
+                        .name("meta")
+                        .data(Map.of(
+                                "dedupHit", false,
+                                "source", "cache"
+                        ), MediaType.APPLICATION_JSON));
                 emitter.send(SseEmitter.event()
                         .name("completed")
                         .data(cached, MediaType.APPLICATION_JSON));

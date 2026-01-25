@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -82,23 +83,90 @@ public class SimulationRunner {
             int runs,
             int batchSize,
             IProgressCallback onProgress) {
+        return runSimulationOutcome(
+                simulationId,
+                spec,
+                inputForStorage,
+                resolvedAdvanced,
+                runs,
+                batchSize,
+                true,
+                onProgress
+        ).results();
+    }
+
+        public record RunTimings(long computeMs, long aggregateMs, long gridsMs, long persistMs, long totalMs) {
+        }
+
+        public record RunOutcome(List<IRunResult> results, List<dk.gormkrings.statistics.YearlySummary> summaries, Long rngSeed, RunTimings timings) {
+    }
+
+    /**
+     * Runs a simulation and returns both the raw results and the aggregated summaries.
+     *
+     * @param persistToDb when false, skips inserting the run/summaries into the DB (used for random runs).
+     */
+    public RunOutcome runSimulationOutcome(
+            String simulationId,
+            SimulationRunSpec spec,
+            Object inputForStorage,
+            Object resolvedAdvanced,
+            int runs,
+            int batchSize,
+            boolean persistToDb,
+            IProgressCallback onProgress) {
+        final long t0 = System.nanoTime();
+
+        final long tCompute0 = System.nanoTime();
         var simulationResults = computeSimulationResults(spec, runs, batchSize, onProgress);
+        final long tCompute1 = System.nanoTime();
 
         // Aggregate + grids
+        final long tAgg0 = System.nanoTime();
         var summaries = aggregationService.aggregateResults(
                 simulationResults,
                 simulationId,
                 onProgress
         );
-        var grids = aggregationService.buildPercentileGrids(simulationResults);
+        final long tAgg1 = System.nanoTime();
 
-                // Persist run + summaries using the normalized seed (always positive at request mapping).
-                Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
-                if (rngSeed != null) {
-                        statisticsService.insertNewRunWithSummaries(simulationId, inputForStorage, resolvedAdvanced, summaries, grids, rngSeed);
+        final long tGrids0 = System.nanoTime();
+        var grids = aggregationService.buildPercentileGrids(simulationResults);
+        final long tGrids1 = System.nanoTime();
+
+        // Persist run + summaries using the normalized seed (always positive at request mapping).
+        Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
+        long persistMs = 0L;
+        if (persistToDb && rngSeed != null) {
+            final long tPersist0 = System.nanoTime();
+            statisticsService.insertNewRunWithSummaries(
+                    simulationId,
+                    inputForStorage,
+                    SimulationSignature.of(runs, batchSize, inputForStorage),
+                    resolvedAdvanced,
+                    summaries,
+                    grids,
+                    rngSeed
+            );
+            final long tPersist1 = System.nanoTime();
+            persistMs = TimeUnit.NANOSECONDS.toMillis(tPersist1 - tPersist0);
+        }
+
+        final long t1 = System.nanoTime();
+        final long computeMs = TimeUnit.NANOSECONDS.toMillis(tCompute1 - tCompute0);
+        final long aggregateMs = TimeUnit.NANOSECONDS.toMillis(tAgg1 - tAgg0);
+        final long gridsMs = TimeUnit.NANOSECONDS.toMillis(tGrids1 - tGrids0);
+        final long totalMs = TimeUnit.NANOSECONDS.toMillis(t1 - t0);
+
+                if (persistToDb && rngSeed != null) {
+                        try {
+                                statisticsService.updateRunTimings(simulationId, computeMs, aggregateMs, gridsMs, persistMs, totalMs);
+                        } catch (Exception ignore) {
+                                // best-effort
+                        }
                 }
 
-        return simulationResults;
+        return new RunOutcome(simulationResults, summaries, rngSeed, new RunTimings(computeMs, aggregateMs, gridsMs, persistMs, totalMs));
     }
 
     /**

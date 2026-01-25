@@ -35,6 +35,9 @@ public class LiveData implements ILiveData {
     private double currentTax;
     private double tax;
     @Setter
+    private double currentFee;
+    private double fee;
+    @Setter
     private double currentNet;
     private double net;
 
@@ -59,6 +62,8 @@ public class LiveData implements ILiveData {
         this.withdrawn = liveData.withdrawn;
         this.currentTax = liveData.currentTax;
         this.tax = liveData.tax;
+        this.currentFee = liveData.currentFee;
+        this.fee = liveData.fee;
         this.net = liveData.net;
         this.currentNet = liveData.currentNet;
     }
@@ -100,6 +105,8 @@ public class LiveData implements ILiveData {
                 Formatter.formatField("Withdraw", withdraw) +
                 Formatter.formatField("Taxed", tax) +
                 Formatter.formatField("Tax", currentTax) +
+                Formatter.formatField("Fee", currentFee) +
+                Formatter.formatField("Fees", fee) +
                 Formatter.formatField("Inflation", inflation) +
                 Formatter.formatField("NetTotal", net) +
                 Formatter.formatField("Net", currentNet) +
@@ -150,6 +157,10 @@ public class LiveData implements ILiveData {
         this.tax += tax;
     }
 
+    public void addToFee(double fee) {
+        this.fee += fee;
+    }
+
     public void compoundInflation(double inflation) {
         this.inflation *= inflation;
     }
@@ -185,6 +196,8 @@ public class LiveData implements ILiveData {
                 Formatter.numberToString(withdraw) + "," +
                 Formatter.numberToString(tax) + "," +
                 Formatter.numberToString(currentTax) + "," +
+            Formatter.numberToString(fee) + "," +
+            Formatter.numberToString(currentFee) + "," +
                 Formatter.numberToString(inflation) + "," +
                 Formatter.numberToString(net) + "," +
                 Formatter.numberToString(currentNet);
@@ -215,6 +228,8 @@ public class LiveData implements ILiveData {
         map.put("withdraw", withdraw);
         map.put("tax", tax);
         map.put("currentTax", currentTax);
+        map.put("fee", fee);
+        map.put("currentFee", currentFee);
         map.put("inflation", inflation);
         map.put("net", net);
         map.put("currentNet", currentNet);

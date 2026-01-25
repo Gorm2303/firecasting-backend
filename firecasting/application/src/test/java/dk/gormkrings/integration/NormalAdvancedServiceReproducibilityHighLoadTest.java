@@ -80,18 +80,27 @@ class NormalAdvancedServiceReproducibilityHighLoadTest {
 
     @Test
     void normalAndAdvancedWithSameSeed_ProduceIdenticalResults_UnderHighLoad() {
-        when(statisticsService.findExistingRunIdForInput(any())).thenReturn(Optional.empty());
+        when(statisticsService.findExistingRunIdForSignature(any())).thenReturn(Optional.empty());
         stubQueueToRunInline();
 
         var normalReq = createNormalRequest(SEED);
-        var normalSpec = createNormalModeSpec(SEED, normalReq);
-        var normalId = simulationStartService.startSimulation("/start", normalSpec, normalReq).getBody().get("id");
+        var normalAdv = toAdvancedEquivalentOfNormal(SEED, normalReq);
+        var normalSpec = AdvancedSimulationRequestMapper.toRunSpec(normalAdv);
+        var normalId = simulationStartService
+            .startSimulation("/start", normalSpec, normalAdv, normalAdv, null, SEED)
+            .getBody()
+            .get("id");
         var normalResults = resultsCache.get(normalId);
         assertNotNull(normalResults, "Normal-mode results not found in cache");
 
         var advReq = createAdvancedRequest(SEED);
+        advReq.setPaths(1000);
+        advReq.setBatchSize(1000);
         var advSpec = AdvancedSimulationRequestMapper.toRunSpec(advReq);
-        var advId = simulationStartService.startSimulation("/start-advanced", advSpec, advReq).getBody().get("id");
+        var advId = simulationStartService
+            .startSimulation("/start-advanced", advSpec, advReq, advReq, null, SEED)
+            .getBody()
+            .get("id");
         var advResults = resultsCache.get(advId);
         assertNotNull(advResults, "Advanced-mode results not found in cache");
 
@@ -123,20 +132,24 @@ class NormalAdvancedServiceReproducibilityHighLoadTest {
         return request;
     }
 
-    private SimulationRunSpec createNormalModeSpec(long seed, SimulationRequest request) {
-        ReturnerConfig returnerConfig = new ReturnerConfig();
-        returnerConfig.setSeed(seed);
-        return new SimulationRunSpec(
-                request.getStartDate(),
-                request.getPhases(),
-                request.getOverallTaxRule(),
-                request.getTaxPercentage(),
-                "dataDrivenReturn",
-                1.02D,
-                0.0D,
-                returnerConfig,
-                null
-        );
+    private AdvancedSimulationRequest toAdvancedEquivalentOfNormal(long seed, SimulationRequest request) {
+        AdvancedSimulationRequest advanced = new AdvancedSimulationRequest();
+        advanced.setPaths(1000);
+        advanced.setBatchSize(1000);
+        advanced.setStartDate(request.getStartDate());
+        advanced.setPhases(request.getPhases());
+        advanced.setOverallTaxRule(request.getOverallTaxRule());
+        advanced.setTaxPercentage(request.getTaxPercentage());
+
+        advanced.setReturnType("dataDrivenReturn");
+        advanced.setInflationFactor(1.02D);
+        advanced.setYearlyFeePercentage(0.0D);
+
+        ReturnerConfig rc = new ReturnerConfig();
+        rc.setSeed(seed);
+        advanced.setReturnerConfig(rc);
+        advanced.setSeed(seed);
+        return advanced;
     }
 
     private AdvancedSimulationRequest createAdvancedRequest(long seed) {
