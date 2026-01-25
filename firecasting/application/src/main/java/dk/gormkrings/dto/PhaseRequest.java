@@ -1,6 +1,7 @@
 package dk.gormkrings.dto;
 
 import dk.gormkrings.annotations.UIField;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,6 +10,11 @@ import lombok.Setter;
 public class PhaseRequest {
 
     @UIField(label = "Phase Type", type = "dropdown", options = {"DEPOSIT", "PASSIVE", "WITHDRAW"}, required = true)
+        @Schema(
+            description = "Phase type.",
+            allowableValues = {"DEPOSIT", "PASSIVE", "WITHDRAW"},
+            example = "DEPOSIT"
+        )
     private String phaseType;
 
     @UIField(label = "Duration (months)", type = "number", required = true)

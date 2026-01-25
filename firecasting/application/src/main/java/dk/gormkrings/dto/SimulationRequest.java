@@ -2,6 +2,7 @@ package dk.gormkrings.dto;
 
 import dk.gormkrings.annotations.UIField;
 import dk.gormkrings.simulation.data.Date;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,6 +25,11 @@ public class SimulationRequest {
     private List<@Valid PhaseRequest> phases;
 
     @UIField(label = "Overall Tax Rule", type = "dropdown", options = {"Capital", "Notional"}, required = true)
+        @Schema(
+            description = "Overall tax rule used by the simulation.",
+            allowableValues = {"Capital", "Notional"},
+            example = "Capital"
+        )
     @NotBlank
     private String overallTaxRule;
 

@@ -30,6 +30,7 @@ import dk.gormkrings.reproducibility.ReplayStatusResponse;
 import dk.gormkrings.reproducibility.ReproducibilityReplayService;
 import dk.gormkrings.returns.ReturnerConfig;
 import dk.gormkrings.tax.TaxExemptionConfig;
+import dk.gormkrings.contract.PublicApi;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,6 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Profile("!local") // only active when NOT in local mode
 @RestController
 @RequestMapping("/api/simulation")
+@PublicApi
 public class FirecastingController {
 
     // Contract: when the user selects "Default" in the UI we use a fixed deterministic master seed.
