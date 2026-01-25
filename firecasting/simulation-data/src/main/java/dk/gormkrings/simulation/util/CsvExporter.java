@@ -12,13 +12,21 @@ import java.util.Objects;
 
 public class CsvExporter {
 
+    public static final String HEADER = "phase, day, month, year, date, capital, deposited, deposit, passive, returned, return, withdrawn, withdraw, taxed, tax, fees, fee, inflation, nettotal, net" +
+        ", y-return, y-withdraw, y-tax, y-net";
+
+    public static List<String> headers() {
+    return java.util.Arrays.stream(HEADER.split(","))
+        .map(String::trim)
+        .filter(s -> !s.isBlank())
+        .toList();
+    }
+
     public static File exportResultsToCsv(List<IRunResult> results, String fileName) throws IOException {
         File csvFile = new File(fileName);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvFile))) {
-            String header = "phase, day, month, year, date, capital, deposited, deposit, passive, returned, return, withdrawn, withdraw, taxed, tax, fees, fee, inflation, nettotal, net" +
-                    ", y-return, y-withdraw, y-tax, y-net";
-            writer.write(header);
+        writer.write(HEADER);
             writer.newLine();
 
             ISnapshot previousSnapshot = null;
