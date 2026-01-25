@@ -6,6 +6,7 @@ import dk.gormkrings.distribution.RegimeBasedDistribution;
 import dk.gormkrings.distribution.TDistributionImpl;
 import dk.gormkrings.distribution.factory.DistributionFactory;
 import dk.gormkrings.math.distribution.IDistribution;
+import dk.gormkrings.math.random.SeedDerivation;
 import dk.gormkrings.math.randomNumberGenerator.IRandomNumberGenerator;
 import dk.gormkrings.regime.ExpectedDurationWeightedRegimeProvider;
 import dk.gormkrings.regime.IRegimeProvider;
@@ -39,6 +40,14 @@ public class DefaultReturnFactory implements IReturnFactory {
         return returnStep.toDt();
     }
 
+    /**
+     * DefaultRandomNumberGenerator treats negative seeds as stochastic/unseeded.
+     * Seed derivation can yield negative longs, so force deterministic derived seeds to be non-negative.
+     */
+    private static long toNonNegativeDeterministicSeed(long seed) {
+        return seed & Long.MAX_VALUE;
+    }
+
     @Override
     public IReturner createReturn(String returner) {
         IReturner returnerClass = switch (returner) {
@@ -62,7 +71,11 @@ public class DefaultReturnFactory implements IReturnFactory {
             case "dataDrivenReturn" -> {
                 IReturner r = createReturn(returnType);
                 if (r instanceof DataDrivenReturn dd && config.getSeed() != null) {
-                    dd.reseed(config.getSeed());
+                    Long masterSeed = config.getSeed();
+                    long seedToUse = (masterSeed != null && masterSeed >= 0)
+                            ? toNonNegativeDeterministicSeed(SeedDerivation.derive64(masterSeed, "return:dataDriven"))
+                            : masterSeed;
+                    dd.reseed(seedToUse);
                 }
                 yield r;
             }
@@ -81,9 +94,15 @@ public class DefaultReturnFactory implements IReturnFactory {
 
     private IReturner createConfiguredDistributionReturn(ReturnerConfig config) {
         IDistribution distribution = createConfiguredDistribution(config);
-        IRandomNumberGenerator rng = (config.getSeed() == null)
+        Long masterSeed = config.getSeed();
+        Long derived = null;
+        if (masterSeed != null && masterSeed >= 0) {
+            derived = toNonNegativeDeterministicSeed(SeedDerivation.derive64(masterSeed, "return:sample"));
+        }
+
+        IRandomNumberGenerator rng = (masterSeed == null)
                 ? new DefaultRandomNumberGenerator()
-                : new DefaultRandomNumberGenerator(config.getSeed());
+                : new DefaultRandomNumberGenerator((derived != null) ? derived : masterSeed);
 
         DefaultRandomVariable rv = new DefaultRandomVariable(distribution, rng);
         return new DistributionReturn(rv);
@@ -211,7 +230,11 @@ public class DefaultReturnFactory implements IReturnFactory {
             regimeDistributions[i] = dist;
         }
 
-        IRegimeProvider provider = new ExpectedDurationWeightedRegimeProvider(0, expectedDurationMonths, weights, seed);
+        Long providerSeed = seed;
+        if (seed != null && seed >= 0) {
+            providerSeed = toNonNegativeDeterministicSeed(SeedDerivation.derive64(seed, "return:regime"));
+        }
+        IRegimeProvider provider = new ExpectedDurationWeightedRegimeProvider(0, expectedDurationMonths, weights, providerSeed);
         return context.getBean(RegimeBasedDistribution.class, regimeDistributions, provider);
     }
 }
