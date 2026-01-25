@@ -6,7 +6,6 @@ import dk.gormkrings.statistics.StatisticsService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,10 +21,11 @@ class SimulationStartServiceSeedTest {
         SimulationSseService sse = mock(SimulationSseService.class);
         StatisticsService stats = mock(StatisticsService.class);
         SimulationResultsCache cache = mock(SimulationResultsCache.class);
+        SimulationSummariesCache summariesCache = mock(SimulationSummariesCache.class);
 
         when(queue.submitWithId(anyString(), any())).thenReturn(true);
 
-        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache);
+        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache, summariesCache);
 
         // Inject config values (no Spring here)
         TestUtil.setField(svc, "runs", 1);
@@ -45,13 +45,15 @@ class SimulationStartServiceSeedTest {
                 null
         );
 
-        var resp = svc.startSimulation("/start", spec, Map.of("any", "input"));
+        var input = new dk.gormkrings.dto.AdvancedSimulationRequest();
+        input.setSeed(-1L);
+        var resp = svc.startSimulation("/start", spec, input);
 
         assertEquals(202, resp.getStatusCode().value());
         assertNotNull(resp.getBody());
         assertTrue(resp.getBody().containsKey("id"));
 
-        verify(stats, never()).findExistingRunIdForInput(any());
+        verify(stats, never()).findExistingRunIdForSignature(any());
         verify(queue, times(1)).submitWithId(anyString(), any());
     }
 
@@ -62,10 +64,11 @@ class SimulationStartServiceSeedTest {
         SimulationSseService sse = mock(SimulationSseService.class);
         StatisticsService stats = mock(StatisticsService.class);
         SimulationResultsCache cache = mock(SimulationResultsCache.class);
+        SimulationSummariesCache summariesCache = mock(SimulationSummariesCache.class);
 
-        when(stats.findExistingRunIdForInput(any())).thenReturn(Optional.of("existing-id"));
+        when(stats.findExistingRunIdForSignature(any())).thenReturn(Optional.of("existing-id"));
 
-        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache);
+        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache, summariesCache);
 
         TestUtil.setField(svc, "runs", 1);
         TestUtil.setField(svc, "batchSize", 1);
@@ -84,13 +87,15 @@ class SimulationStartServiceSeedTest {
                 null
         );
 
-        var resp = svc.startSimulation("/start", spec, Map.of("any", "input"));
+        var input = new dk.gormkrings.dto.AdvancedSimulationRequest();
+        input.setSeed(123L);
+        var resp = svc.startSimulation("/start", spec, input);
 
         assertEquals(200, resp.getStatusCode().value());
         assertNotNull(resp.getBody());
         assertEquals("existing-id", resp.getBody().get("id"));
 
-        verify(stats, times(1)).findExistingRunIdForInput(any());
+        verify(stats, times(1)).findExistingRunIdForSignature(any());
         verify(queue, never()).submitWithId(anyString(), any());
     }
 
