@@ -1,0 +1,976 @@
+---
+openapi: "3.1.0"
+info:
+  title: "OpenAPI definition"
+  version: "v0"
+servers:
+- url: "http://localhost"
+  description: "Generated server url"
+paths:
+  /api/forms/{formId}:
+    get:
+      operationId: "getForm"
+      parameters:
+      - in: "path"
+        name: "formId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "string"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/diff/{runAId}/{runBId}:
+    get:
+      operationId: "diffRuns"
+      parameters:
+      - in: "path"
+        name: "runAId"
+        required: true
+        schema:
+          type: "string"
+      - in: "path"
+        name: "runBId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunDiffResponse"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/export:
+    get:
+      operationId: "exportResultsAsCsv"
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StreamingResponseBody"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/import:
+    post:
+      operationId: "importRunBundle"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReproducibilityBundleDto"
+          multipart/form-data:
+            schema:
+              type: "object"
+              properties:
+                file:
+                  type: "string"
+                  format: "binary"
+              required:
+              - "file"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplayStartResponse"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/progress/{simulationId}:
+    get:
+      operationId: "getProgressSse"
+      parameters:
+      - in: "path"
+        name: "simulationId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/YearlySummary"
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SseEmitter"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/queue/{simulationId}:
+    get:
+      operationId: "queueInfo"
+      parameters:
+      - in: "path"
+        name: "simulationId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TaskInfo"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/replay/{replayId}:
+    get:
+      operationId: "getReplayStatus"
+      parameters:
+      - in: "path"
+        name: "replayId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplayStatusResponse"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/runs:
+    get:
+      operationId: "listRuns"
+      parameters:
+      - in: "query"
+        name: "limit"
+        required: false
+        schema:
+          type: "integer"
+          format: "int32"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/RunListItemDto"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/runs/lookup:
+    post:
+      operationId: "findRunByInput"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JsonNode"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                additionalProperties:
+                  type: "string"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/runs/{runId}:
+    get:
+      operationId: "getRunDetails"
+      parameters:
+      - in: "path"
+        name: "runId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunDetailsDto"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/runs/{runId}/input:
+    get:
+      operationId: "getRunInput"
+      parameters:
+      - in: "path"
+        name: "runId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonNode"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/runs/{runId}/summaries:
+    get:
+      operationId: "getRunSummaries"
+      parameters:
+      - in: "path"
+        name: "runId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/YearlySummary"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/schema/phase:
+    get:
+      operationId: "getPhaseSchema"
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/UISchemaField"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/schema/simulation:
+    get:
+      operationId: "getSimulationSchema"
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/UISchemaField"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/start:
+    post:
+      operationId: "startSimulation"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                additionalProperties:
+                  type: "string"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/start-advanced:
+    post:
+      operationId: "startAdvancedSimulation"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdvancedSimulationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "object"
+                additionalProperties:
+                  type: "string"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/{simulationId}/bundle:
+    get:
+      operationId: "exportRunBundle"
+      parameters:
+      - in: "path"
+        name: "simulationId"
+        required: true
+        schema:
+          type: "string"
+      - in: "query"
+        name: "uiMode"
+        required: false
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: "string"
+                format: "byte"
+          description: "OK"
+      tags:
+      - "Public API"
+  /api/simulation/{simulationId}/export:
+    get:
+      operationId: "exportResultsAsCsvForRun"
+      parameters:
+      - in: "path"
+        name: "simulationId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StreamingResponseBody"
+          description: "OK"
+      tags:
+      - "Public API"
+components:
+  schemas:
+    AdvancedSimulationRequest:
+      type: "object"
+      properties:
+        batchSize:
+          type: "integer"
+          format: "int32"
+          maximum: 100000
+          minimum: 1
+        inflationFactor:
+          type: "number"
+          format: "double"
+        overallTaxRule:
+          type: "string"
+          minLength: 1
+        paths:
+          type: "integer"
+          format: "int32"
+          maximum: 100000
+          minimum: 1
+        phases:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/PhaseRequest"
+          minItems: 1
+        returnType:
+          type: "string"
+        returnerConfig:
+          $ref: "#/components/schemas/ReturnerConfig"
+        seed:
+          type: "integer"
+          format: "int64"
+        startDate:
+          $ref: "#/components/schemas/Date"
+        taxExemptionConfig:
+          $ref: "#/components/schemas/TaxExemptionConfig"
+        taxPercentage:
+          type: "number"
+          format: "float"
+        yearlyFeePercentage:
+          type: "number"
+          format: "double"
+      required:
+      - "overallTaxRule"
+      - "phases"
+      - "startDate"
+    Attribution:
+      type: "object"
+      properties:
+        inputsChanged:
+          type: "boolean"
+        modelVersionChanged:
+          type: "boolean"
+        randomnessChanged:
+          type: "boolean"
+        summary:
+          type: "string"
+    BrownianParams:
+      type: "object"
+      properties:
+        drift:
+          type: "number"
+          format: "double"
+        volatility:
+          type: "number"
+          format: "double"
+    ComparisonResult:
+      type: "object"
+      properties:
+        exactMatch:
+          type: "boolean"
+        maxAbsDiff:
+          type: "number"
+          format: "double"
+        mismatches:
+          type: "integer"
+          format: "int32"
+        withinTolerance:
+          type: "boolean"
+    Date:
+      type: "object"
+      properties:
+        dayOfMonth:
+          type: "integer"
+          format: "int32"
+        dayOfWeek:
+          type: "integer"
+          format: "int32"
+        dayOfYear:
+          type: "integer"
+          format: "int32"
+        epochDay:
+          type: "integer"
+          format: "int32"
+        month:
+          type: "integer"
+          format: "int32"
+        year:
+          type: "integer"
+          format: "int32"
+    DistributionConfig:
+      type: "object"
+      properties:
+        brownianMotion:
+          $ref: "#/components/schemas/BrownianParams"
+        normal:
+          $ref: "#/components/schemas/NormalParams"
+        regimeBased:
+          $ref: "#/components/schemas/RegimeBasedParams"
+        studentT:
+          $ref: "#/components/schemas/StudentTParams"
+        type:
+          type: "string"
+    ExemptionCardConfig:
+      type: "object"
+      properties:
+        limit:
+          type: "number"
+          format: "float"
+        yearlyIncrease:
+          type: "number"
+          format: "float"
+    Inputs:
+      type: "object"
+      properties:
+        advanced:
+          $ref: "#/components/schemas/JsonNode"
+        kind:
+          type: "string"
+        normal:
+          $ref: "#/components/schemas/JsonNode"
+        raw:
+          $ref: "#/components/schemas/JsonNode"
+    JsonNode: {}
+    Meta:
+      type: "object"
+      properties:
+        exportedAt:
+          type: "string"
+        inputKind:
+          type: "string"
+        modelVersion:
+          $ref: "#/components/schemas/ModelVersion"
+        simulationId:
+          type: "string"
+        uiMode:
+          type: "string"
+    ModelVersion:
+      type: "object"
+      properties:
+        appVersion:
+          type: "string"
+        buildTime:
+          type: "string"
+        javaVersion:
+          type: "string"
+        springBootVersion:
+          type: "string"
+    NormalParams:
+      type: "object"
+      properties:
+        mean:
+          type: "number"
+          format: "double"
+        standardDeviation:
+          type: "number"
+          format: "double"
+    Outputs:
+      type: "object"
+      properties:
+        yearlySummaries:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/YearlySummaryWithGrid"
+    PhaseRequest:
+      type: "object"
+      properties:
+        durationInMonths:
+          type: "integer"
+          format: "int32"
+        initialDeposit:
+          type: "number"
+          format: "double"
+        lowerVariationPercentage:
+          type: "number"
+          format: "double"
+        monthlyDeposit:
+          type: "number"
+          format: "double"
+        phaseType:
+          type: "string"
+          description: "Phase type."
+          enum:
+          - "DEPOSIT"
+          - "PASSIVE"
+          - "WITHDRAW"
+          example: "DEPOSIT"
+        taxRules:
+          type: "array"
+          items:
+            type: "string"
+        upperVariationPercentage:
+          type: "number"
+          format: "double"
+        withdrawAmount:
+          type: "number"
+          format: "double"
+        withdrawRate:
+          type: "number"
+          format: "double"
+        yearlyIncreaseInPercentage:
+          type: "number"
+          format: "double"
+    RegimeBasedParams:
+      type: "object"
+      properties:
+        regimes:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/RegimeParams"
+          maxItems: 3
+          minItems: 3
+        tickMonths:
+          type: "integer"
+          format: "int32"
+          maximum: 1
+          minimum: 1
+      required:
+      - "regimes"
+    RegimeParams:
+      type: "object"
+      properties:
+        distributionType:
+          type: "string"
+          minLength: 1
+        expectedDurationMonths:
+          type: "number"
+          format: "double"
+        normal:
+          $ref: "#/components/schemas/NormalParams"
+        studentT:
+          $ref: "#/components/schemas/StudentTParams"
+        supportedDistributionType:
+          type: "boolean"
+        switchWeights:
+          $ref: "#/components/schemas/SwitchWeights"
+      required:
+      - "distributionType"
+      - "expectedDurationMonths"
+      - "switchWeights"
+    ReplayStartResponse:
+      type: "object"
+      properties:
+        note:
+          type: "string"
+        replayId:
+          type: "string"
+        simulationId:
+          type: "string"
+        status:
+          type: "string"
+    ReplayStatusResponse:
+      type: "object"
+      properties:
+        exactMatch:
+          type: "boolean"
+        maxAbsDiff:
+          type: "number"
+          format: "double"
+        mismatches:
+          type: "integer"
+          format: "int32"
+        note:
+          type: "string"
+        replayId:
+          type: "string"
+        simulationId:
+          type: "string"
+        status:
+          type: "string"
+        withinTolerance:
+          type: "boolean"
+    ReproducibilityBundleDto:
+      type: "object"
+      properties:
+        inputs:
+          $ref: "#/components/schemas/Inputs"
+        meta:
+          $ref: "#/components/schemas/Meta"
+        outputs:
+          $ref: "#/components/schemas/Outputs"
+        timeline:
+          $ref: "#/components/schemas/Timeline"
+    ReturnerConfig:
+      type: "object"
+      properties:
+        distribution:
+          $ref: "#/components/schemas/DistributionConfig"
+        seed:
+          type: "integer"
+          format: "int64"
+        simpleAveragePercentage:
+          type: "number"
+          format: "double"
+    RunDetailsDto:
+      type: "object"
+      properties:
+        aggregateMs:
+          type: "integer"
+          format: "int64"
+        computeMs:
+          type: "integer"
+          format: "int64"
+        createdAt:
+          type: "string"
+        gridsMs:
+          type: "integer"
+          format: "int64"
+        id:
+          type: "string"
+        inputHash:
+          type: "string"
+        modelAppVersion:
+          type: "string"
+        modelBuildTime:
+          type: "string"
+        modelJavaVersion:
+          type: "string"
+        modelSpringBootVersion:
+          type: "string"
+        persistMs:
+          type: "integer"
+          format: "int64"
+        rngSeed:
+          type: "integer"
+          format: "int64"
+        totalMs:
+          type: "integer"
+          format: "int64"
+    RunDiffResponse:
+      type: "object"
+      properties:
+        a:
+          $ref: "#/components/schemas/RunInfo"
+        attribution:
+          $ref: "#/components/schemas/Attribution"
+        b:
+          $ref: "#/components/schemas/RunInfo"
+        output:
+          $ref: "#/components/schemas/ComparisonResult"
+    RunInfo:
+      type: "object"
+      properties:
+        createdAt:
+          type: "string"
+        id:
+          type: "string"
+        inputHash:
+          type: "string"
+        modelAppVersion:
+          type: "string"
+        modelBuildTime:
+          type: "string"
+        modelJavaVersion:
+          type: "string"
+        modelSpringBootVersion:
+          type: "string"
+        rngSeed:
+          type: "integer"
+          format: "int64"
+    RunListItemDto:
+      type: "object"
+      properties:
+        createdAt:
+          type: "string"
+        id:
+          type: "string"
+        inputHash:
+          type: "string"
+        modelAppVersion:
+          type: "string"
+        rngSeed:
+          type: "integer"
+          format: "int64"
+    SimulationRequest:
+      type: "object"
+      properties:
+        epochDay:
+          type: "integer"
+          format: "int32"
+        overallTaxRule:
+          type: "string"
+          description: "Overall tax rule used by the simulation."
+          enum:
+          - "Capital"
+          - "Notional"
+          example: "Capital"
+          minLength: 1
+        phases:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/PhaseRequest"
+          minItems: 1
+        returnPercentage:
+          type: "number"
+          format: "float"
+        seed:
+          type: "integer"
+          format: "int64"
+        startDate:
+          $ref: "#/components/schemas/Date"
+        taxPercentage:
+          type: "number"
+          format: "float"
+        totalDurationValid:
+          type: "boolean"
+      required:
+      - "overallTaxRule"
+      - "phases"
+      - "startDate"
+    SseEmitter:
+      type: "object"
+      properties:
+        timeout:
+          type: "integer"
+          format: "int64"
+    StockExemptionConfig:
+      type: "object"
+      properties:
+        limit:
+          type: "number"
+          format: "float"
+        taxRate:
+          type: "number"
+          format: "float"
+        yearlyIncrease:
+          type: "number"
+          format: "float"
+    StreamingResponseBody: {}
+    StudentTParams:
+      type: "object"
+      properties:
+        mu:
+          type: "number"
+          format: "double"
+        nu:
+          type: "number"
+          format: "double"
+        sigma:
+          type: "number"
+          format: "double"
+    SwitchWeights:
+      type: "object"
+      properties:
+        toRegime0:
+          type: "number"
+          format: "double"
+        toRegime1:
+          type: "number"
+          format: "double"
+        toRegime2:
+          type: "number"
+          format: "double"
+      required:
+      - "toRegime0"
+      - "toRegime1"
+      - "toRegime2"
+    TaskInfo:
+      type: "object"
+      properties:
+        position:
+          type: "integer"
+          format: "int32"
+        simulationId:
+          type: "string"
+        status:
+          type: "string"
+          enum:
+          - "QUEUED"
+          - "RUNNING"
+          - "DONE"
+          - "FAILED"
+    TaxExemptionConfig:
+      type: "object"
+      properties:
+        exemptionCard:
+          $ref: "#/components/schemas/ExemptionCardConfig"
+        stockExemption:
+          $ref: "#/components/schemas/StockExemptionConfig"
+    Timeline:
+      type: "object"
+      properties:
+        firstPhaseInitialDeposit:
+          type: "number"
+          format: "double"
+        phaseDurationsInMonths:
+          type: "array"
+          items:
+            type: "integer"
+            format: "int32"
+        phaseTypes:
+          type: "array"
+          items:
+            type: "string"
+        startDate:
+          type: "string"
+    UISchemaField:
+      type: "object"
+      properties:
+        key:
+          type: "string"
+        label:
+          type: "string"
+        options:
+          type: "array"
+          items:
+            type: "string"
+        required:
+          type: "boolean"
+        type:
+          type: "string"
+    YearlySummary:
+      type: "object"
+      properties:
+        averageCapital:
+          type: "number"
+          format: "double"
+        cumulativeGrowthRate:
+          type: "number"
+          format: "double"
+        cvar:
+          type: "number"
+          format: "double"
+        maxCapital:
+          type: "number"
+          format: "double"
+        medianCapital:
+          type: "number"
+          format: "double"
+        minCapital:
+          type: "number"
+          format: "double"
+        negativeCapitalPercentage:
+          type: "number"
+          format: "double"
+        phaseName:
+          type: "string"
+        quantile25:
+          type: "number"
+          format: "double"
+        quantile5:
+          type: "number"
+          format: "double"
+        quantile75:
+          type: "number"
+          format: "double"
+        quantile95:
+          type: "number"
+          format: "double"
+        stdDevCapital:
+          type: "number"
+          format: "double"
+        var:
+          type: "number"
+          format: "double"
+        year:
+          type: "integer"
+          format: "int32"
+    YearlySummaryWithGrid:
+      type: "object"
+      properties:
+        averageCapital:
+          type: "number"
+          format: "double"
+        cumulativeGrowthRate:
+          type: "number"
+          format: "double"
+        cvar:
+          type: "number"
+          format: "double"
+        maxCapital:
+          type: "number"
+          format: "double"
+        medianCapital:
+          type: "number"
+          format: "double"
+        minCapital:
+          type: "number"
+          format: "double"
+        negativeCapitalPercentage:
+          type: "number"
+          format: "double"
+        percentiles:
+          type: "array"
+          items:
+            type: "number"
+            format: "double"
+        phaseName:
+          type: "string"
+        quantile25:
+          type: "number"
+          format: "double"
+        quantile5:
+          type: "number"
+          format: "double"
+        quantile75:
+          type: "number"
+          format: "double"
+        quantile95:
+          type: "number"
+          format: "double"
+        stdDevCapital:
+          type: "number"
+          format: "double"
+        var:
+          type: "number"
+          format: "double"
+        year:
+          type: "integer"
+          format: "int32"
