@@ -167,6 +167,94 @@ class NegativeRealReturnsWithdrawalCorrectnessTest {
         assertTrue(realYear2 < realYear1, "Expected real capital to decline in year 2 under negative real returns");
     }
 
+    @Test
+    void multiYearNegativeRealReturns_withCapitalGainsTax_neverWithdrawsMoreThanCapital() {
+        // Arrange
+        final double initialBalance = 100_000.0;
+        final double baseMonthlySpendingReal = 50_000.0; // intentionally aggressive
+
+        // Several years of negative nominal returns.
+        final double[] annualNominalReturns = new double[] { -0.30, -0.20, -0.10 };
+        final double annualInflationFactor = 1.00;
+
+        IDateFactory dateFactory = new DefaultDateFactory();
+        IResultFactory resultFactory = new DefaultResultFactory();
+        ISnapshotFactory snapshotFactory = new DefaultSnapshotFactory();
+
+        var scheduleFactory = new DefaultScheduleFactory(dateFactory);
+        var engine = new ScheduleEngine(resultFactory, snapshotFactory, scheduleFactory);
+
+        IDate startDate = dateFactory.dateOf(2020, 1, 1);
+
+        ITaxRule highCapitalGainsTax = new dk.gormkrings.tax.CapitalGainsTax(75.0);
+        IReturner sequencedReturner = new SequencedAnnualReturner(annualNominalReturns);
+
+        IInflation fixedInflation = new IInflation() {
+            @Override
+            public double calculateInflation() {
+                return annualInflationFactor;
+            }
+
+            @Override
+            public IInflation copy() {
+                return this;
+            }
+        };
+
+        ISpecification specification = new Specification(startDate.getEpochDay(), highCapitalGainsTax, sequencedReturner, fixedInflation);
+        ILiveData liveData = (ILiveData) specification.getLiveData();
+        liveData.addToCapital(initialBalance);
+        liveData.addToDeposited(initialBalance);
+
+        // Fixed (real) spending, but extremely high relative to capital.
+        Withdraw withdrawAction = new Withdraw(baseMonthlySpendingReal, 0.0, 0.0, 0.0);
+
+        int runYears = annualNominalReturns.length;
+        IDate endDate = startDate.plusMonths(12 * runYears);
+        long durationDays = startDate.daysUntil(endDate);
+
+        List<Double> monthEndWithdrawals = new ArrayList<>();
+        List<Double> monthEndCapitals = new ArrayList<>();
+
+        IPhase withdrawPhase = new WithdrawCallPhase(
+                specification,
+                startDate,
+                List.<ITaxExemption>of(),
+                durationDays,
+                withdrawAction,
+                ReturnStep.MONTHLY,
+                new WeekdayTradingCalendar()
+        ) {
+            @Override
+            public void onMonthEnd() {
+                super.onMonthEnd();
+                ILiveData ld = getLiveData();
+                monthEndWithdrawals.add(ld.getWithdraw());
+                monthEndCapitals.add(ld.getCapital());
+            }
+
+            @Override
+            public WithdrawCallPhase copy(ISpecification specificationCopy) {
+                return this;
+            }
+        };
+
+        List<IPhase> phases = List.of(withdrawPhase);
+
+        // Act
+        engine.init(phases);
+        engine.simulatePhases(new LinkedList<>(phases));
+
+        // Assert
+        assertEquals(runYears * 12, monthEndWithdrawals.size(), "Expected one withdrawal per month-end");
+        for (int i = 0; i < monthEndWithdrawals.size(); i++) {
+            double w = monthEndWithdrawals.get(i);
+            double c = monthEndCapitals.get(i);
+            assertTrue(w >= -1e-9, "Withdrawal should never be negative");
+            assertTrue(c >= -1e-9, "Capital should never be negative (ordering/timing invariant)");
+        }
+    }
+
     /**
      * Deterministic returner that applies a fixed annual nominal return per year,
      * converted to a constant monthly rate for that year.
