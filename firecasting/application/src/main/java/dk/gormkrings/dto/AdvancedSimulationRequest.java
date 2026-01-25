@@ -5,6 +5,8 @@ import dk.gormkrings.returns.ReturnerConfig;
 import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.tax.TaxExemptionConfig;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -22,6 +24,24 @@ import java.util.List;
 @Setter
 @Getter
 public class AdvancedSimulationRequest {
+
+    /**
+     * Optional override for how many Monte Carlo paths/runs to execute.
+     * If missing, the backend uses its configured default.
+     */
+    @UIField(label = "Paths (runs)", type = "number")
+    @Min(1)
+    @Max(100000)
+    private Integer paths;
+
+    /**
+     * Optional override for the engine batch size.
+     * If missing, the backend uses its configured default.
+     */
+    @UIField(label = "Batch size", type = "number")
+    @Min(1)
+    @Max(100000)
+    private Integer batchSize;
 
     @UIField(label = "Start Date", type = "date", required = true)
     @NotNull
@@ -46,11 +66,14 @@ public class AdvancedSimulationRequest {
     private ReturnerConfig returnerConfig;
 
     /**
-    * Optional RNG seed for the Monte Carlo run.
-    * If set, this is applied to the returner RNG stream (and regime transitions).
-    * Negative or null values are treated as "generate a random positive seed".
+     * Master seed for the Monte Carlo run.
+     *
+     * Contract:
+     *  - null => use default deterministic seed (deduplicates)
+     *  - negative => random seed (new positive seed each run; not persisted)
+     *  - positive => deterministic custom seed (deduplicates)
      */
-    @UIField(label = "RNG Seed", type = "number")
+    @UIField(label = "Master seed", type = "number")
     private Long seed;
 
     /** Optional tax exemption overrides used when phases include tax rules (exemptioncard/stockexemption). */

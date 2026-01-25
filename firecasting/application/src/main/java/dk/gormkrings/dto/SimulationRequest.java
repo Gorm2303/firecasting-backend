@@ -33,7 +33,7 @@ public class SimulationRequest {
     @UIField(label = "Return Percentage", type = "number", required = true)
     private float returnPercentage;
 
-    @UIField(label = "RNG Seed", type = "number")
+    @UIField(label = "Master seed", type = "number")
     private Long seed;
 
     public int getEpochDay() {

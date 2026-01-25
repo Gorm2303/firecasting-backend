@@ -7,6 +7,9 @@ import dk.gormkrings.dto.AdvancedSimulationRequest;
  */
 public final class AdvancedSimulationRequestMapper {
 
+    // Must match FirecastingController.DEFAULT_MASTER_SEED (kept duplicated to avoid cross-module coupling).
+    private static final long DEFAULT_MASTER_SEED = 1L;
+
     private AdvancedSimulationRequestMapper() {
     }
 
@@ -62,7 +65,11 @@ public final class AdvancedSimulationRequestMapper {
     }
 
     private static long normalizeSeed(Long seed) {
-        if (seed == null || seed < 0) {
+        // Contract:
+        // - null => deterministic default seed (deduplicates)
+        // - negative => random positive seed (stochastic)
+        if (seed == null) return DEFAULT_MASTER_SEED;
+        if (seed < 0) {
             return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
         }
         return seed;
