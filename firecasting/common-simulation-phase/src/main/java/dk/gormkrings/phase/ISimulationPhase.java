@@ -103,6 +103,8 @@ public interface ISimulationPhase {
         if (feeAmount > capital) feeAmount = capital;
 
         getLiveData().subtractFromCapital(feeAmount);
+        getLiveData().setCurrentFee(feeAmount);
+        getLiveData().addToFee(feeAmount);
     }
 }
 

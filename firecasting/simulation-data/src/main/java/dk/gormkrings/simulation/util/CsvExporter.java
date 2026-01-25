@@ -16,7 +16,7 @@ public class CsvExporter {
         File csvFile = new File(fileName);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvFile))) {
-            String header = "phase, day, month, year, date, capital, deposited, deposit, passive, returned, return, withdrawn, withdraw, taxed, tax, inflation, nettotal, net" +
+            String header = "phase, day, month, year, date, capital, deposited, deposit, passive, returned, return, withdrawn, withdraw, taxed, tax, fees, fee, inflation, nettotal, net" +
                     ", y-return, y-withdraw, y-tax, y-net";
             writer.write(header);
             writer.newLine();
