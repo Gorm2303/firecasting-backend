@@ -30,7 +30,8 @@ public class FormsController {
             }
             String json = StreamUtils.copyToString(res.getInputStream(), StandardCharsets.UTF_8);
             return ResponseEntity.ok()
-                    .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic())
+                    // These schemas may change frequently during development; avoid stale browser caches.
+                    .cacheControl(CacheControl.noStore())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(json);
         } catch (Exception e) {

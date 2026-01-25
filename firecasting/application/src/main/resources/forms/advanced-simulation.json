@@ -9,6 +9,33 @@
       "defaultValue": "2025-01-01"
     },
     {
+      "id": "paths",
+      "label": "Paths (runs)",
+      "type": "number",
+      "min": 1,
+      "max": 100000,
+      "step": 1000,
+      "defaultValue": 10000,
+      "helpText": "Number of Monte Carlo paths to run (max 100,000)."
+    },
+    {
+      "id": "batchSize",
+      "label": "Batch size",
+      "type": "number",
+      "min": 1,
+      "max": 100000,
+      "step": 1000,
+      "defaultValue": 10000,
+      "helpText": "Engine batch size used for progress/reporting granularity (max 100,000)."
+    },
+    {
+      "id": "seed",
+      "label": "Master seed (negative for stochastic)",
+      "type": "number",
+      "defaultValue": 1,
+      "helpText": "One master seed drives all stochastic components via derived sub-streams. Use a negative value to force a fresh random seed each run."
+    },
+    {
       "id": "taxRule",
       "label": "Tax Rule",
       "type": "select",
@@ -125,19 +152,6 @@
               "label": "Average Percentage",
               "type": "number",
               "defaultValue": 7
-            }
-          ]
-        },
-        {
-          "id": "random",
-          "label": "Randomness",
-          "type": "group",
-          "children": [
-            {
-              "id": "seed",
-              "label": "Seed (negative for stochastic)",
-              "type": "number",
-              "defaultValue": 1
             }
           ]
         },
