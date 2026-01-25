@@ -47,10 +47,25 @@ public class StatisticsService {
         return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
     }
 
+    /**
+     * Lookup an existing runId by a signature payload.
+     *
+     * This is intentionally separate from the persisted input JSON so we can include
+     * server-side execution parameters (e.g., number of paths/runs) in the signature
+     * without changing what is stored/returned as the user input.
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> findExistingRunIdForSignature(Object signatureParams) {
+        String signatureJson = toCanonicalJson(signatureParams);
+        String inputHash = sha256Hex(signatureJson);
+        return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
+    }
+
     // NEW: insert-only path for append-only storage
     @Transactional
     public String insertNewRunWithSummaries(String simulationId,
                                             Object inputParams,
+                                            Object signatureParams,
                                             Object resolvedAdvanced,
                                             List<YearlySummary> summaries,
                                             List<Double[]> percentileGrids,
@@ -59,8 +74,11 @@ public class StatisticsService {
             throw new IllegalArgumentException("Summaries and grids must have same size.");
         }
 
-        String inputJson = toCanonicalJson(inputParams);
-        String inputHash = sha256Hex(inputJson);
+    String inputJson = toCanonicalJson(inputParams);
+    // Hash signature can differ from persisted inputJson (e.g. include server-side run count)
+    Object signature = (signatureParams != null) ? signatureParams : inputParams;
+    String signatureJson = toCanonicalJson(signature);
+    String inputHash = sha256Hex(signatureJson);
         String resolvedInputJson = resolvedAdvanced != null ? toCanonicalJson(resolvedAdvanced) : null;
 
         // 1) Persist parent RUN first
@@ -104,6 +122,19 @@ public class StatisticsService {
         return simulationId;
     }
 
+    /**
+     * Backwards compatible overload: uses the input params as the signature as well.
+     */
+    @Transactional
+    public String insertNewRunWithSummaries(String simulationId,
+                                           Object inputParams,
+                                           Object resolvedAdvanced,
+                                           List<YearlySummary> summaries,
+                                           List<Double[]> percentileGrids,
+                                           Long rngSeed) {
+        return insertNewRunWithSummaries(simulationId, inputParams, null, resolvedAdvanced, summaries, percentileGrids, rngSeed);
+    }
+
     public boolean hasCompletedSummaries(String runId) {
         return summaryRepo.existsByRunId(runId);
     }
@@ -124,6 +155,50 @@ public class StatisticsService {
     @Transactional(readOnly = true)
     public SimulationRunEntity getRun(String simulationId) {
         return runRepo.findById(simulationId).orElse(null);
+    }
+
+    @Transactional
+    public void updateRunTimings(String runId,
+                                 Long computeMs,
+                                 Long aggregateMs,
+                                 Long gridsMs,
+                                 Long persistMs,
+                                 Long totalMs) {
+        var opt = runRepo.findById(runId);
+        if (opt.isEmpty()) return;
+        var run = opt.get();
+
+        run.setComputeMs(computeMs != null ? Math.max(0L, computeMs) : null);
+        run.setAggregateMs(aggregateMs != null ? Math.max(0L, aggregateMs) : null);
+        run.setGridsMs(gridsMs != null ? Math.max(0L, gridsMs) : null);
+        run.setPersistMs(persistMs != null ? Math.max(0L, persistMs) : null);
+        run.setTotalMs(totalMs != null ? Math.max(0L, totalMs) : null);
+
+        runRepo.save(run);
+    }
+
+    public record ModelVersionInfo(
+            String modelAppVersion,
+            String modelBuildTime,
+            String modelSpringBootVersion,
+            String modelJavaVersion
+    ) {
+    }
+
+    /**
+     * Best-effort model/runtime version information.
+     * Used both for persisted runs and for non-persisted (random seed) runs.
+     */
+    public ModelVersionInfo getModelVersionInfo() {
+        BuildProperties bp = buildPropertiesProvider.getIfAvailable();
+        String appVersion = bp != null ? bp.getVersion() : "unknown";
+        String buildTime = (bp != null && bp.getTime() != null) ? bp.getTime().toString() : null;
+        return new ModelVersionInfo(
+                appVersion,
+                buildTime,
+                SpringBootVersion.getVersion(),
+                Runtime.version().toString()
+        );
     }
 
     @Transactional(readOnly = true)

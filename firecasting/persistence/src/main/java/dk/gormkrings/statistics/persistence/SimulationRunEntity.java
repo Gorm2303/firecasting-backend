@@ -57,6 +57,23 @@ public class SimulationRunEntity {
         @Column(name = "rng_seed")
         private Long rngSeed;
 
+        // --- Timing breakdown (milliseconds) ---
+
+        @Column(name = "compute_ms")
+        private Long computeMs;
+
+        @Column(name = "aggregate_ms")
+        private Long aggregateMs;
+
+        @Column(name = "grids_ms")
+        private Long gridsMs;
+
+        @Column(name = "persist_ms")
+        private Long persistMs;
+
+        @Column(name = "total_ms")
+        private Long totalMs;
+
     @OneToMany(mappedBy = "run", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<YearlySummaryEntity> summaries = new ArrayList<>();
 }
