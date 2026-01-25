@@ -133,17 +133,23 @@ public class MonteCarloSimulation implements ISimulation {
         final int basePerTask = thisBatch / taskCount;
         final int remainder   = thisBatch % taskCount;
 
+        // IMPORTANT:
+        // - Specification.copy() can deterministically "split" RNG streams (SplittableRandom.split via RNG.copy()).
+        // - Those splits mutate the source RNG state.
+        // - Therefore, copying the *same* base specification concurrently across worker threads can produce
+        //   nondeterministic results.
+        // Pre-create independent per-task spec bases on this (calling) thread to avoid concurrent mutation.
+        final ISpecification batchSpecBase = phases.getFirst().getSpecification().copy();
+
         List<Callable<List<IRunResult>>> tasks = new ArrayList<>(taskCount);
         for (int ti = 0; ti < taskCount; ti++) {
             final int quota = basePerTask + (ti < remainder ? 1 : 0);
 
+            // Create a per-task base spec deterministically/sequentially.
+            final ISpecification taskSpecBase = batchSpecBase.copy();
+
             tasks.add(() -> {
                 List<IRunResult> chunk = new ArrayList<>(quota);
-
-                // Important: do NOT share the same specification instance across worker threads.
-                // Spec/returner copying can mutate internal RNG state (seed increments / SplittableRandom.split),
-                // and SplittableRandom is not thread-safe.
-                final ISpecification taskSpecBase = phases.getFirst().getSpecification().copy();
 
                 for (int k = 0; k < quota; k++) {
                     // fresh copies per run for isolation
