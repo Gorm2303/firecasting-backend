@@ -16,10 +16,10 @@ public class CsvExporter {
         ", y-return, y-withdraw, y-tax, y-net";
 
     public static List<String> headers() {
-    return java.util.Arrays.stream(HEADER.split(","))
-        .map(String::trim)
-        .filter(s -> !s.isBlank())
-        .toList();
+        return java.util.Arrays.stream(HEADER.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isBlank())
+            .toList();
     }
 
     public static File exportResultsToCsv(List<IRunResult> results, String fileName) throws IOException {
