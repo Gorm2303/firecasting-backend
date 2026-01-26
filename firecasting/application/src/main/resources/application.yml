@@ -60,6 +60,8 @@ management:
 
 settings:
   debug: false
+  openapi:
+    expose: false
   runs: 10000
   batch-size: 10000
   run-local: false

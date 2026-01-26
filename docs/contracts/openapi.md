@@ -2,10 +2,17 @@
 
 The backend publishes an OpenAPI document for the **Public API** group.
 
+See also:
+
+- `docs/contracts/api-versioning.md`
+
 ## Scope control
 
 Only controllers/methods marked with `@PublicApi` are included in the public contract.
 This prevents accidental exposure of internal endpoints.
+
+The OpenAPI snapshot is generated from **versioned endpoints only** (for example `/api/simulation/v3/**`).
+This ensures the spec always represents an explicit, stable major version.
 
 ## Snapshot + drift guard
 

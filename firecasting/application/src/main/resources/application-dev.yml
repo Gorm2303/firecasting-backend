@@ -13,3 +13,8 @@ springdoc:
   # Keep default docs disabled; we only expose the explicit "public" group.
   enable-default-api-docs: false
   writer-with-order-by-keys: true
+
+settings:
+  openapi:
+    expose: true
+

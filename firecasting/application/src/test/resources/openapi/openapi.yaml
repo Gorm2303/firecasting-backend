@@ -7,7 +7,7 @@ servers:
 - url: "http://localhost"
   description: "Generated server url"
 paths:
-  /api/forms/{formId}:
+  /api/forms/v1/{formId}:
     get:
       operationId: "getForm"
       parameters:
@@ -25,7 +25,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/diff/{runAId}/{runBId}:
+  /api/simulation/v3/diff/{runAId}/{runBId}:
     get:
       operationId: "diffRuns"
       parameters:
@@ -48,7 +48,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/export:
+  /api/simulation/v3/export:
     get:
       operationId: "exportResultsAsCsv"
       responses:
@@ -60,7 +60,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/import:
+  /api/simulation/v3/import:
     post:
       operationId: "importRunBundle"
       requestBody:
@@ -87,7 +87,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/progress/{simulationId}:
+  /api/simulation/v3/progress/{simulationId}:
     get:
       operationId: "getProgressSse"
       parameters:
@@ -110,7 +110,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/queue/{simulationId}:
+  /api/simulation/v3/queue/{simulationId}:
     get:
       operationId: "queueInfo"
       parameters:
@@ -128,7 +128,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/replay/{replayId}:
+  /api/simulation/v3/replay/{replayId}:
     get:
       operationId: "getReplayStatus"
       parameters:
@@ -146,7 +146,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/runs:
+  /api/simulation/v3/runs:
     get:
       operationId: "listRuns"
       parameters:
@@ -167,7 +167,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/runs/lookup:
+  /api/simulation/v3/runs/lookup:
     post:
       operationId: "findRunByInput"
       requestBody:
@@ -187,7 +187,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/runs/{runId}:
+  /api/simulation/v3/runs/{runId}:
     get:
       operationId: "getRunDetails"
       parameters:
@@ -205,7 +205,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/runs/{runId}/input:
+  /api/simulation/v3/runs/{runId}/input:
     get:
       operationId: "getRunInput"
       parameters:
@@ -223,7 +223,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/runs/{runId}/summaries:
+  /api/simulation/v3/runs/{runId}/summaries:
     get:
       operationId: "getRunSummaries"
       parameters:
@@ -243,7 +243,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/schema/phase:
+  /api/simulation/v3/schema/phase:
     get:
       operationId: "getPhaseSchema"
       responses:
@@ -257,7 +257,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/schema/simulation:
+  /api/simulation/v3/schema/simulation:
     get:
       operationId: "getSimulationSchema"
       responses:
@@ -271,7 +271,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/start:
+  /api/simulation/v3/start:
     post:
       operationId: "startSimulation"
       requestBody:
@@ -291,7 +291,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/start-advanced:
+  /api/simulation/v3/start-advanced:
     post:
       operationId: "startAdvancedSimulation"
       requestBody:
@@ -311,7 +311,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/{simulationId}/bundle:
+  /api/simulation/v3/{simulationId}/bundle:
     get:
       operationId: "exportRunBundle"
       parameters:
@@ -335,7 +335,7 @@ paths:
           description: "OK"
       tags:
       - "Public API"
-  /api/simulation/{simulationId}/export:
+  /api/simulation/v3/{simulationId}/export:
     get:
       operationId: "exportResultsAsCsvForRun"
       parameters:

@@ -16,8 +16,12 @@ public class OpenApiContractConfig {
     public GroupedOpenApi publicApi() {
         return GroupedOpenApi.builder()
                 .group(PUBLIC_GROUP)
-                // Defense-in-depth: only include /api/** paths
-                .pathsToMatch("/api/**")
+            // Defense-in-depth: only include explicitly versioned public endpoints.
+            // This ensures the OpenAPI snapshot represents a stable, versioned contract.
+            .pathsToMatch(
+                "/api/**/v1/**",
+                "/api/**/v3/**"
+            )
                 // Primary gate: only include endpoints explicitly marked PublicApi
                 .addOpenApiMethodFilter(OpenApiContractConfig::isPublicApi)
                 .build();

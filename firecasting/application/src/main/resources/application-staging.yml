@@ -1,0 +1,12 @@
+# Staging overrides: allow OpenAPI JSON (Swagger UI is still served separately in dev stack).
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: false
+  enable-default-api-docs: false
+  writer-with-order-by-keys: true
+
+settings:
+  openapi:
+    expose: true
