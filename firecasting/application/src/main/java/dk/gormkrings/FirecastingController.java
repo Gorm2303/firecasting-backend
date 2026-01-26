@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @Profile("!local") // only active when NOT in local mode
 @RestController
-@RequestMapping("/api/simulation")
+@RequestMapping({"/api/simulation", "/api/simulation/v3"})
 @PublicApi
 public class FirecastingController {
 

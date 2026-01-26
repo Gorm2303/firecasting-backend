@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-@RequestMapping("/api/forms")
+@RequestMapping({"/api/forms", "/api/forms/v1"})
 @PublicApi
 public class FormsController {
 
