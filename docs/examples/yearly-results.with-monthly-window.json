@@ -1,0 +1,56 @@
+{
+  "yearlySummaries": [
+    {
+      "phaseName": "Deposit",
+      "year": 0,
+      "averageCapital": 104500.12,
+      "medianCapital": 103980.55,
+      "minCapital": 81234.22,
+      "maxCapital": 128990.77,
+      "stdDevCapital": 7420.13,
+      "cumulativeGrowthRate": 0.0398,
+      "quantile5": 86510.11,
+      "quantile25": 97700.0,
+      "quantile75": 111250.42,
+      "quantile95": 123400.33,
+      "var": 86510.11,
+      "cvar": 84200.55,
+      "negativeCapitalPercentage": 0.0
+    },
+    {
+      "phaseName": "Deposit",
+      "year": 1,
+      "averageCapital": 109800.0,
+      "medianCapital": 109120.0,
+      "minCapital": 83500.0,
+      "maxCapital": 139900.0,
+      "stdDevCapital": 8100.0,
+      "cumulativeGrowthRate": 0.0509,
+      "quantile5": 88800.0,
+      "quantile25": 101200.0,
+      "quantile75": 116900.0,
+      "quantile95": 131600.0,
+      "var": 88800.0,
+      "cvar": 86250.0,
+      "negativeCapitalPercentage": 0.0
+    }
+  ],
+  "monthlyWindow": {
+    "startDate": "2025-01-01",
+    "source": "derived-linear-interpolation",
+    "points": [
+      {
+        "phaseName": "Deposit",
+        "month": 0,
+        "date": "2025-01-31",
+        "medianCapital": 104355.0
+      },
+      {
+        "phaseName": "Deposit",
+        "month": 1,
+        "date": "2025-02-28",
+        "medianCapital": 104735.0
+      }
+    ]
+  }
+}
