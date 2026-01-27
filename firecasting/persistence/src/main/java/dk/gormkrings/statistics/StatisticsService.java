@@ -145,6 +145,21 @@ public class StatisticsService {
     }
 
     /**
+     * Overload for call sites that provide a separate signature payload.
+     * Metric summaries are optional and default to empty.
+     */
+    @Transactional
+    public String insertNewRunWithSummaries(String simulationId,
+                                           Object inputParams,
+                                           Object signatureParams,
+                                           Object resolvedAdvanced,
+                                           List<YearlySummary> summaries,
+                                           List<Double[]> percentileGrids,
+                                           Long rngSeed) {
+        return insertNewRunWithSummaries(simulationId, inputParams, signatureParams, resolvedAdvanced, summaries, percentileGrids, List.of(), rngSeed);
+    }
+
+    /**
      * Overload keeping call sites readable when providing metric summaries.
      */
     @Transactional
