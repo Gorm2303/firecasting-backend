@@ -7,6 +7,7 @@ import dk.gormkrings.result.ISnapshot;
 import dk.gormkrings.simulation.IProgressCallback;
 import dk.gormkrings.simulation.data.Date;
 import dk.gormkrings.simulation.result.Snapshot;
+import dk.gormkrings.statistics.MetricSummary;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -76,6 +77,185 @@ public class SimulationAggregationService {
             grids.add(buildNoInterpolationGrid(samples)); // 101 points
         }
         return grids;
+    }
+
+    /**
+     * Compute percentile summaries for supported metrics:
+     * - YEARLY: per (phase, year)
+     * - PHASE_TOTAL: totals aggregated over the whole phase
+     * - OVERALL_TOTAL: totals aggregated over all phases
+     *
+     * Metrics:
+     * - capital (year/phase end)
+     * - inflation (year/phase end)
+     * - deposit/withdraw/tax/fee/return (summed deltas across the year/phase)
+     */
+    public List<MetricSummary> aggregateMetricSummaries(List<IRunResult> results) {
+        if (results == null || results.isEmpty()) return List.of();
+
+        record Key(String phaseName, int year) {
+        }
+
+        // Global aggregators across runs
+        Map<Key, Map<String, List<Double>>> yearly = new HashMap<>();
+        Map<String, Map<String, List<Double>>> phaseTotals = new HashMap<>();
+        Map<String, List<Double>> overallTotals = new HashMap<>();
+
+        for (IRunResult run : results) {
+            if (run == null || run.getSnapshots() == null || run.getSnapshots().isEmpty()) continue;
+
+            // Per-run accumulators
+            Map<Key, Map<String, Double>> yearlySums = new HashMap<>();
+            Map<Key, Double> yearlyLastCapital = new HashMap<>();
+            Map<Key, Double> yearlyLastInflation = new HashMap<>();
+
+            Map<String, Map<String, Double>> phaseSums = new HashMap<>();
+            Map<String, Double> phaseLastInflation = new HashMap<>();
+
+            Map<String, Double> overallSums = new HashMap<>();
+            Double overallLastInflation = null;
+
+            ISnapshot prevSnap = null;
+            for (ISnapshot snap0 : run.getSnapshots()) {
+                if (snap0 == null) continue;
+                Snapshot snap = (Snapshot) snap0;
+                var state = snap.getState();
+
+                int year = new Date((int) state.getStartTime()).plusDays(state.getTotalDurationAlive()).getYear();
+                String phase = state.getPhaseName();
+
+                if (prevSnap == null) prevSnap = snap0;
+                var prev = ((Snapshot) prevSnap).getState();
+
+                double dDeposit = state.getDeposited() - prev.getDeposited();
+                double dWithdraw = state.getWithdrawn() - prev.getWithdrawn();
+                double dTax = state.getTax() - prev.getTax();
+                double dFee = state.getFee() - prev.getFee();
+                double dReturn = state.getReturned() - prev.getReturned();
+
+                Key k = new Key(phase, year);
+                Map<String, Double> sumsForKey = yearlySums.computeIfAbsent(k, __ -> new HashMap<>());
+                sumsForKey.merge("deposit", dDeposit, Double::sum);
+                sumsForKey.merge("withdraw", dWithdraw, Double::sum);
+                sumsForKey.merge("tax", dTax, Double::sum);
+                sumsForKey.merge("fee", dFee, Double::sum);
+                sumsForKey.merge("return", dReturn, Double::sum);
+
+                yearlyLastCapital.put(k, state.getCapital());
+                yearlyLastInflation.put(k, state.getInflation());
+
+                Map<String, Double> phaseSumsForPhase = phaseSums.computeIfAbsent(phase, __ -> new HashMap<>());
+                phaseSumsForPhase.merge("deposit", dDeposit, Double::sum);
+                phaseSumsForPhase.merge("withdraw", dWithdraw, Double::sum);
+                phaseSumsForPhase.merge("tax", dTax, Double::sum);
+                phaseSumsForPhase.merge("fee", dFee, Double::sum);
+                phaseSumsForPhase.merge("return", dReturn, Double::sum);
+                phaseLastInflation.put(phase, state.getInflation());
+
+                overallSums.merge("deposit", dDeposit, Double::sum);
+                overallSums.merge("withdraw", dWithdraw, Double::sum);
+                overallSums.merge("tax", dTax, Double::sum);
+                overallSums.merge("fee", dFee, Double::sum);
+                overallSums.merge("return", dReturn, Double::sum);
+                overallLastInflation = state.getInflation();
+
+                prevSnap = snap0;
+            }
+
+            // Flush per-run yearly to global
+            for (var e : yearlySums.entrySet()) {
+                Key k = e.getKey();
+                yearly.computeIfAbsent(k, __ -> new HashMap<>());
+
+                // flows
+                for (var me : e.getValue().entrySet()) {
+                    yearly.get(k).computeIfAbsent(me.getKey(), __ -> new ArrayList<>()).add(me.getValue());
+                }
+
+                // end-of-year/phase series
+                Double cap = yearlyLastCapital.get(k);
+                if (cap != null) yearly.get(k).computeIfAbsent("capital", __ -> new ArrayList<>()).add(cap);
+                Double infl = yearlyLastInflation.get(k);
+                if (infl != null) yearly.get(k).computeIfAbsent("inflation", __ -> new ArrayList<>()).add(infl);
+            }
+
+            // Flush per-run phase totals
+            for (var pe : phaseSums.entrySet()) {
+                String phase = pe.getKey();
+                phaseTotals.computeIfAbsent(phase, __ -> new HashMap<>());
+                for (var me : pe.getValue().entrySet()) {
+                    phaseTotals.get(phase).computeIfAbsent(me.getKey(), __ -> new ArrayList<>()).add(me.getValue());
+                }
+                Double infl = phaseLastInflation.get(phase);
+                if (infl != null) phaseTotals.get(phase).computeIfAbsent("inflation", __ -> new ArrayList<>()).add(infl);
+            }
+
+            // Flush per-run overall totals
+            for (var me : overallSums.entrySet()) {
+                overallTotals.computeIfAbsent(me.getKey(), __ -> new ArrayList<>()).add(me.getValue());
+            }
+            if (overallLastInflation != null) {
+                overallTotals.computeIfAbsent("inflation", __ -> new ArrayList<>()).add(overallLastInflation);
+            }
+        }
+
+        List<MetricSummary> out = new ArrayList<>();
+
+        // YEARLY
+        yearly.entrySet().stream()
+            .sorted(Comparator
+                .comparing((Map.Entry<Key, ?> e) -> e.getKey().year())
+                .thenComparing(e -> e.getKey().phaseName(), Comparator.nullsFirst(String::compareTo)))
+            .forEach(e -> {
+                Key k = e.getKey();
+                e.getValue().entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(me -> out.add(buildSummary(MetricSummary.Scope.YEARLY, k.phaseName(), k.year(), me.getKey(), me.getValue())));
+            });
+
+        // PHASE_TOTAL
+        phaseTotals.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey(Comparator.nullsFirst(String::compareTo)))
+            .forEach(e -> e.getValue().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(me -> out.add(buildSummary(MetricSummary.Scope.PHASE_TOTAL, e.getKey(), null, me.getKey(), me.getValue()))));
+
+        // OVERALL_TOTAL
+        overallTotals.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(me -> out.add(buildSummary(MetricSummary.Scope.OVERALL_TOTAL, null, null, me.getKey(), me.getValue())));
+
+        return out;
+    }
+
+    private static MetricSummary buildSummary(MetricSummary.Scope scope, String phaseName, Integer year, String metric, List<Double> values) {
+        List<Double> sorted = (values == null) ? List.of() : values.stream().filter(Objects::nonNull).sorted().toList();
+
+        MetricSummary s = new MetricSummary();
+        s.setScope(scope);
+        s.setPhaseName(phaseName);
+        s.setYear(year);
+        s.setMetric(metric);
+
+        if (sorted.isEmpty()) {
+            s.setP5(Double.NaN);
+            s.setP10(Double.NaN);
+            s.setP25(Double.NaN);
+            s.setP50(Double.NaN);
+            s.setP75(Double.NaN);
+            s.setP90(Double.NaN);
+            s.setP95(Double.NaN);
+            return s;
+        }
+
+        s.setP5(quantile(sorted, 0.05));
+        s.setP10(quantile(sorted, 0.10));
+        s.setP25(quantile(sorted, 0.25));
+        s.setP50(quantile(sorted, 0.50));
+        s.setP75(quantile(sorted, 0.75));
+        s.setP90(quantile(sorted, 0.90));
+        s.setP95(quantile(sorted, 0.95));
+        return s;
     }
 
     // ---------- pipeline shared by summaries & grids ----------
