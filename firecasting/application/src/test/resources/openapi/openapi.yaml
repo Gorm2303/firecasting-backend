@@ -368,7 +368,9 @@ components:
           format: "double"
         overallTaxRule:
           type: "string"
-          minLength: 1
+          enum:
+          - "Capital"
+          - "Notional"
         paths:
           type: "integer"
           format: "int32"
@@ -553,8 +555,13 @@ components:
           example: "DEPOSIT"
         taxRules:
           type: "array"
+          description: "Optional tax exemption rules applied in this phase (factory\
+            \ keys)."
           items:
             type: "string"
+            enum:
+            - "exemptioncard"
+            - "stockexemption"
         upperVariationPercentage:
           type: "number"
           format: "double"
@@ -567,6 +574,8 @@ components:
         yearlyIncreaseInPercentage:
           type: "number"
           format: "double"
+      required:
+      - "phaseType"
     RegimeBasedParams:
       type: "object"
       properties:
@@ -741,9 +750,6 @@ components:
     SimulationRequest:
       type: "object"
       properties:
-        epochDay:
-          type: "integer"
-          format: "int32"
         overallTaxRule:
           type: "string"
           description: "Overall tax rule used by the simulation."
@@ -751,7 +757,6 @@ components:
           - "Capital"
           - "Notional"
           example: "Capital"
-          minLength: 1
         phases:
           type: "array"
           items:
@@ -768,8 +773,6 @@ components:
         taxPercentage:
           type: "number"
           format: "float"
-        totalDurationValid:
-          type: "boolean"
       required:
       - "overallTaxRule"
       - "phases"
