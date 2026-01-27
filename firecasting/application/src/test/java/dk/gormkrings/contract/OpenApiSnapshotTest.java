@@ -78,28 +78,66 @@ class OpenApiSnapshotTest {
 
     @Test
     void openApiSnapshot_matchesRuntimeOrUpdates() throws Exception {
-        Path snapshotPath = findFileUpwards(Path.of("src", "test", "resources", "openapi", "openapi.yaml"));
+        Path snapshotPath = resolveSnapshotPath();
 
         JsonNode runtime = fetchRuntimeOpenApiJson();
 
-        boolean update = Boolean.parseBoolean(System.getProperty("openapi.snapshot.update", "false"));
+        boolean update = Boolean.parseBoolean(System.getProperty("openapi.snapshot.update",
+            System.getProperty("openApiSnapshotUpdate", "false")));
         if (update) {
             writeYamlSnapshot(snapshotPath, runtime);
             return;
         }
 
         if (!Files.exists(snapshotPath)) {
-            fail("Missing OpenAPI snapshot at %s. Regenerate with -Dopenapi.snapshot.update=true".formatted(snapshotPath));
+            fail("Missing OpenAPI snapshot at %s. Regenerate with: ./mvnw.cmd -pl application -am -Dtest=%s -Dsurefire.failIfNoSpecifiedTests=false -Dopenapi.snapshot.update=true test"
+                    .formatted(snapshotPath, OpenApiSnapshotTest.class.getName()));
         }
 
         JsonNode expected = readYamlSnapshotAsJson(snapshotPath);
 
         if (!Objects.equals(expected, runtime)) {
-            fail("OpenAPI snapshot drift detected. Regenerate with: ./mvnw.cmd -pl application -Dtest=%s -Dopenapi.snapshot.update=true test\n\nExpected (canonical JSON) vs Runtime (canonical JSON) differ."
-                    .formatted(OpenApiSnapshotTest.class.getName()));
+            Path debugDir = Path.of("target", "openapi-snapshot-debug");
+            Files.createDirectories(debugDir);
+
+            Path expectedJsonPath = debugDir.resolve("expected.canonical.json");
+            Path runtimeJsonPath = debugDir.resolve("runtime.canonical.json");
+            Files.writeString(
+                expectedJsonPath,
+                canonicalObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(expected),
+                StandardCharsets.UTF_8);
+            Files.writeString(
+                runtimeJsonPath,
+                canonicalObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(runtime),
+                StandardCharsets.UTF_8);
+
+                fail("OpenAPI snapshot drift detected. Regenerate with: ./mvnw.cmd -pl application -am -Dtest=%s -Dsurefire.failIfNoSpecifiedTests=false -Dopenapi.snapshot.update=true test\n\nExpected (canonical JSON) vs Runtime (canonical JSON) differ. Debug dumps written to:\n- %s\n- %s"
+                    .formatted(OpenApiSnapshotTest.class.getName(), expectedJsonPath, runtimeJsonPath));
         }
 
         assertThat(runtime).isEqualTo(expected);
+    }
+
+    private static Path resolveSnapshotPath() {
+        Path relative = Path.of("src", "test", "resources", "openapi", "openapi.yaml");
+
+        // Maven sets this in both single-module and reactor builds. Using it avoids
+        // flakiness where Surefire's working directory differs depending on how Maven
+        // is invoked.
+        String multiModuleRoot = System.getProperty("maven.multiModuleProjectDirectory");
+        if (multiModuleRoot != null && !multiModuleRoot.isBlank()) {
+            Path root = Path.of(multiModuleRoot).toAbsolutePath().normalize();
+
+            // Reactor build: root is the multi-module directory (e.g. .../firecasting)
+            Path candidate = root.resolve("application").resolve(relative).normalize();
+            if (Files.exists(candidate)) return candidate;
+
+            // Single-module build: root may already be the module directory
+            candidate = root.resolve(relative).normalize();
+            if (Files.exists(candidate)) return candidate;
+        }
+
+        return findFileUpwards(relative);
     }
 
     private JsonNode fetchRuntimeOpenApiJson() throws Exception {
