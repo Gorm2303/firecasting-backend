@@ -38,3 +38,8 @@ Some outputs also include a percentiles grid:
 - `percentiles`: 101 values representing p0..p100 in **1% increments**.
 - Contractually, clients should assume that the subset p0..p100 in **5% steps** is always present (indices 0,5,10,…,100).
 	- If/when the contract is narrowed to only 5% steps, clients should treat any intermediate 1% points as optional.
+
+Metric summaries also expose a fixed percentile set:
+
+- `p5`, `p10`, `p25`, `p50`, `p75`, `p90`, `p95`
+	- This is intended as a compact, stable set for UI charts and tooltips.

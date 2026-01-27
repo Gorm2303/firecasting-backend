@@ -14,6 +14,7 @@ Concrete JSON examples live under `docs/examples/`:
 
 - `examples/yearly-results.standard.json`
 - `examples/yearly-results.with-monthly-window.json`
+- `examples/standard-results-v3.json`
 - `examples/deep-dive.representative-path.json`
 - `examples/manipulation-trace.json`
 
@@ -48,6 +49,52 @@ Some endpoints/exports include a percentiles grid:
 - `percentiles`: 101 values for p0..p100 at 1% increments.
 	- p0 is index 0, p100 is index 100.
 	- The contract guarantees the subset p0..p100 at 5% steps at indices 0,5,10,…,100.
+
+## Standard results payload (v3)
+
+The backend exposes a single “standard results” response that bundles the pieces the UI typically needs.
+
+Endpoint:
+
+- `GET /api/simulation/v3/results/{simulationId}`
+
+Fields:
+
+- `simulationId`: the run ID.
+- `yearlySummaries`: the same yearly summaries described above.
+- `metricSummaries`: percentile summaries for supported metrics, for different scopes.
+
+### Metric summaries
+
+Each `metricSummaries[]` item is a `MetricSummary`:
+
+- `metric`: metric id (string).
+- `scope`: one of:
+	- `YEARLY` – values per `{phaseName, year}`
+	- `PHASE_TOTAL` – totals per phase across its full duration
+	- `OVERALL_TOTAL` – totals across all phases
+- `phaseName`:
+	- Present for `YEARLY` and `PHASE_TOTAL`.
+	- Omitted/null for `OVERALL_TOTAL`.
+- `year`:
+	- Present for `YEARLY`.
+	- Omitted/null for `PHASE_TOTAL` and `OVERALL_TOTAL`.
+- `p5`, `p10`, `p25`, `p50`, `p75`, `p90`, `p95`: the selected percentiles across simulated paths.
+
+### Metric semantics (what each number means)
+
+Unless otherwise stated, values are computed across paths by aggregating the engine’s snapshots and then taking percentiles.
+
+Supported metrics (current set):
+
+- Flow totals (deltas): `deposit`, `withdraw`, `tax`, `fee`, `return`
+	- `YEARLY`: the change over the given year within the given phase.
+	- `PHASE_TOTAL`: the sum over all years in the phase.
+	- `OVERALL_TOTAL`: the sum over all phases.
+- State values: `capital`, `inflation`
+	- `YEARLY`: end-of-year value for the given phase/year.
+	- `PHASE_TOTAL`: end-of-phase value.
+	- `OVERALL_TOTAL`: end-of-simulation value.
 
 ## Monthly view (derived)
 
