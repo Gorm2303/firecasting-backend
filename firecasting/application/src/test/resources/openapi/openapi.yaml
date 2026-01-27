@@ -605,8 +605,6 @@ components:
           $ref: "#/components/schemas/NormalParams"
         studentT:
           $ref: "#/components/schemas/StudentTParams"
-        supportedDistributionType:
-          type: "boolean"
         switchWeights:
           $ref: "#/components/schemas/SwitchWeights"
       required:
