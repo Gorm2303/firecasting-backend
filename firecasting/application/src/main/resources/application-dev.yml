@@ -5,6 +5,11 @@ spring:
     pathmatch:
       matching-strategy: ant_path_matcher
 
+# Behind Traefik in the dev docker stack (TLS terminates at Traefik).
+# Ensure Spring uses X-Forwarded-* to reconstruct the external URL scheme/host.
+server:
+  forward-headers-strategy: framework
+
 springdoc:
   api-docs:
     enabled: true
