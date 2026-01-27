@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import dk.gormkrings.diff.RunDiffResponse;
+import dk.gormkrings.dto.StandardResultsV3Response;
 import dk.gormkrings.export.ReproducibilityBundleDto;
+import dk.gormkrings.statistics.MetricSummary;
 import dk.gormkrings.statistics.YearlySummary;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +37,8 @@ class ResponseSchemaSnapshotTest {
         Map<String, Object> schemas = new LinkedHashMap<>();
         Set<Class<?>> roots = Set.of(
             YearlySummary.class,
+            MetricSummary.class,
+            StandardResultsV3Response.class,
             ReproducibilityBundleDto.class,
             RunDiffResponse.class
         );
@@ -49,7 +53,8 @@ class ResponseSchemaSnapshotTest {
         String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schemas);
         JsonNode runtime = mapper.readTree(json);
 
-        boolean update = Boolean.parseBoolean(System.getProperty("schema.snapshot.update", "false"));
+        boolean update = Boolean.parseBoolean(System.getProperty("schema.snapshot.update",
+            System.getProperty("schemaSnapshotUpdate", "false")));
         if (update) {
             Files.createDirectories(SNAPSHOT.getParent());
             Files.writeString(SNAPSHOT, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(runtime), StandardCharsets.UTF_8);
