@@ -59,7 +59,7 @@ public class SimulationRunner {
         var spec = new SimulationRunSpec(
                 request.getStartDate(),
                 request.getPhases(),
-                request.getOverallTaxRule(),
+                request.getOverallTaxRule() == null ? null : request.getOverallTaxRule().toFactoryKey(),
                 request.getTaxPercentage(),
                 "dataDrivenReturn",
                 1.02D
@@ -224,13 +224,14 @@ public class SimulationRunner {
                 for (PhaseRequest pr : spec.getPhases()) {
                         List<ITaxExemption> taxExemptions = new LinkedList<>();
                         if (pr.getTaxRules() != null) {
-                                for (String taxExemption : pr.getTaxRules()) {
-                                        taxExemptions.add(taxExemptionFactory.create(taxExemption, spec.getTaxExemptionConfig()));
+                                for (dk.gormkrings.dto.TaxExemptionRule taxExemption : pr.getTaxRules()) {
+                                        if (taxExemption == null) continue;
+                                        taxExemptions.add(taxExemptionFactory.create(taxExemption.toFactoryKey(), spec.getTaxExemptionConfig()));
                                 }
                         }
 
                         long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
-                        String phaseType = pr.getPhaseType().toLowerCase();
+                        String phaseType = pr.getPhaseType().toFactoryKey();
 
                         IAction action = switch (phaseType) {
                                 case "deposit" -> actionFactory.createDepositAction(

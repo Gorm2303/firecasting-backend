@@ -124,7 +124,7 @@ class NormalAdvancedServiceReproducibilityHighLoadTest {
     private SimulationRequest createNormalRequest(long seed) {
         SimulationRequest request = new SimulationRequest();
         request.setStartDate(new dk.gormkrings.simulation.data.Date(START_DATE));
-        request.setOverallTaxRule("CAPITAL");
+        request.setOverallTaxRule(dk.gormkrings.dto.OverallTaxRule.CAPITAL);
         request.setTaxPercentage(TAX_PERCENTAGE);
         request.setReturnPercentage(0.0f);
         request.setSeed(seed);
@@ -155,7 +155,7 @@ class NormalAdvancedServiceReproducibilityHighLoadTest {
     private AdvancedSimulationRequest createAdvancedRequest(long seed) {
         AdvancedSimulationRequest request = new AdvancedSimulationRequest();
         request.setStartDate(new dk.gormkrings.simulation.data.Date(START_DATE));
-        request.setOverallTaxRule("CAPITAL");
+        request.setOverallTaxRule(dk.gormkrings.dto.OverallTaxRule.CAPITAL);
         request.setTaxPercentage(TAX_PERCENTAGE);
         request.setSeed(seed);
         request.setReturnType("dataDrivenReturn");
@@ -172,8 +172,8 @@ class NormalAdvancedServiceReproducibilityHighLoadTest {
         List<PhaseRequest> phases = new ArrayList<>();
         
         // Deposit phase: 20 years of monthly contributions
-        PhaseRequest deposit = new PhaseRequest();
-        deposit.setPhaseType("DEPOSIT");
+            PhaseRequest deposit = new PhaseRequest();
+            deposit.setPhaseType(dk.gormkrings.dto.PhaseType.DEPOSIT);
         deposit.setDurationInMonths(12 * DEPOSIT_YEARS);
         deposit.setInitialDeposit(INITIAL_DEPOSIT);
         deposit.setMonthlyDeposit(MONTHLY_DEPOSIT);
@@ -183,7 +183,7 @@ class NormalAdvancedServiceReproducibilityHighLoadTest {
 
         // Withdrawal phase: 5 years of systematic withdrawals
         PhaseRequest withdrawal = new PhaseRequest();
-        withdrawal.setPhaseType("WITHDRAW");
+            withdrawal.setPhaseType(dk.gormkrings.dto.PhaseType.WITHDRAW);
         withdrawal.setDurationInMonths(12 * WITHDRAWAL_YEARS);
         phases.add(withdrawal);
         

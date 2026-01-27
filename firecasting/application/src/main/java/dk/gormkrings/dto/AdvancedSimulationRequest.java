@@ -7,7 +7,6 @@ import dk.gormkrings.tax.TaxExemptionConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -52,8 +51,8 @@ public class AdvancedSimulationRequest {
     private List<@Valid PhaseRequest> phases;
 
     @UIField(label = "Overall Tax Rule", type = "dropdown", options = {"Capital", "Notional"}, required = true)
-    @NotBlank
-    private String overallTaxRule;
+    @NotNull
+    private OverallTaxRule overallTaxRule;
 
     @UIField(label = "Tax Percentage", type = "number", required = true)
     private float taxPercentage;

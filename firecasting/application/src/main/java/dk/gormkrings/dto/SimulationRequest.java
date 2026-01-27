@@ -1,5 +1,6 @@
 package dk.gormkrings.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import dk.gormkrings.annotations.UIField;
 import dk.gormkrings.simulation.data.Date;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,11 +28,10 @@ public class SimulationRequest {
     @UIField(label = "Overall Tax Rule", type = "dropdown", options = {"Capital", "Notional"}, required = true)
         @Schema(
             description = "Overall tax rule used by the simulation.",
-            allowableValues = {"Capital", "Notional"},
             example = "Capital"
         )
-    @NotBlank
-    private String overallTaxRule;
+    @NotNull
+    private OverallTaxRule overallTaxRule;
 
     @UIField(label = "Tax Percentage", type = "number", required = true)
     private float taxPercentage;
@@ -42,12 +42,15 @@ public class SimulationRequest {
     @UIField(label = "Master seed", type = "number")
     private Long seed;
 
+    @JsonIgnore
     public int getEpochDay() {
         return startDate.getEpochDay();
     }
 
     /** Cross-field rule: total months across all phases must be ≤ 1200. */
     @AssertTrue(message = "Total duration across phases must be ≤ 1200 months")
+    @JsonIgnore
+    @Schema(hidden = true)
     public boolean isTotalDurationValid() {
         if (phases == null) return false;                 // guarded by @NotEmpty, but explicit
         int total = phases.stream()

@@ -54,7 +54,7 @@ public final class AdvancedSimulationRequestMapper {
         return new SimulationRunSpec(
                 req.getStartDate(),
                 req.getPhases(),
-                req.getOverallTaxRule(),
+            req.getOverallTaxRule() == null ? null : req.getOverallTaxRule().toFactoryKey(),
                 req.getTaxPercentage(),
                 returnType,
                 inflationFactor,

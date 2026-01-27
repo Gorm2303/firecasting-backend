@@ -553,7 +553,7 @@ public class FirecastingController {
 
         // Normalize to match typical frontend legacy requests (CAPITAL/NOTIONAL).
         String rule = (spec.getOverallTaxRule() == null) ? null : spec.getOverallTaxRule().trim().toUpperCase();
-        legacy.setOverallTaxRule(rule);
+        legacy.setOverallTaxRule(rule == null ? null : dk.gormkrings.dto.OverallTaxRule.fromJson(rule));
 
         legacy.setTaxPercentage(request.getTaxPercentage());
         // returnPercentage intentionally left at default (0.0f)

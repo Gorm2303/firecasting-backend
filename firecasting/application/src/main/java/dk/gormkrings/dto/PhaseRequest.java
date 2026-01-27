@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
+import jakarta.validation.constraints.NotNull;
+
 @Getter
 @Setter
 public class PhaseRequest {
@@ -12,10 +14,10 @@ public class PhaseRequest {
     @UIField(label = "Phase Type", type = "dropdown", options = {"DEPOSIT", "PASSIVE", "WITHDRAW"}, required = true)
         @Schema(
             description = "Phase type.",
-            allowableValues = {"DEPOSIT", "PASSIVE", "WITHDRAW"},
             example = "DEPOSIT"
         )
-    private String phaseType;
+    @NotNull
+    private PhaseType phaseType;
 
     @UIField(label = "Duration (months)", type = "number", required = true)
     private int durationInMonths;
@@ -42,6 +44,8 @@ public class PhaseRequest {
     private Double upperVariationPercentage;
 
     @UIField(label = "Tax Rules", type = "text") // Could be an array widget
-    private String[] taxRules;
+    @Schema(
+        description = "Optional tax exemption rules applied in this phase (factory keys).")
+    private TaxExemptionRule[] taxRules;
 }
 
