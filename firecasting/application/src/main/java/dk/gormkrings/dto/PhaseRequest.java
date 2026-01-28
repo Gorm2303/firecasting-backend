@@ -1,15 +1,23 @@
 package dk.gormkrings.dto;
 
 import dk.gormkrings.annotations.UIField;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+
+import jakarta.validation.constraints.NotNull;
 
 @Getter
 @Setter
 public class PhaseRequest {
 
     @UIField(label = "Phase Type", type = "dropdown", options = {"DEPOSIT", "PASSIVE", "WITHDRAW"}, required = true)
-    private String phaseType;
+        @Schema(
+            description = "Phase type.",
+            example = "DEPOSIT"
+        )
+    @NotNull
+    private PhaseType phaseType;
 
     @UIField(label = "Duration (months)", type = "number", required = true)
     private int durationInMonths;
@@ -36,6 +44,8 @@ public class PhaseRequest {
     private Double upperVariationPercentage;
 
     @UIField(label = "Tax Rules", type = "text") // Could be an array widget
-    private String[] taxRules;
+    @Schema(
+        description = "Optional tax exemption rules applied in this phase (factory keys).")
+    private TaxExemptionRule[] taxRules;
 }
 

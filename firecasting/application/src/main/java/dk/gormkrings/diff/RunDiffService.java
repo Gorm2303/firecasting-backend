@@ -42,6 +42,7 @@ public class RunDiffService {
         i.setCreatedAt(e.getCreatedAt() != null ? e.getCreatedAt().toString() : null);
         i.setInputHash(e.getInputHash());
         i.setRngSeed(e.getRngSeed());
+        i.setRngSeedText(e.getRngSeed() != null ? e.getRngSeed().toString() : null);
         i.setModelAppVersion(e.getModelAppVersion());
         i.setModelBuildTime(e.getModelBuildTime());
         i.setModelSpringBootVersion(e.getModelSpringBootVersion());

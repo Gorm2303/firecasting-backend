@@ -122,7 +122,7 @@ class NormalAdvancedServiceReproducibilityTest {
     private SimulationRequest createNormalRequest(long seed) {
         SimulationRequest request = new SimulationRequest();
         request.setStartDate(new dk.gormkrings.simulation.data.Date(START_DATE));
-        request.setOverallTaxRule("CAPITAL");
+        request.setOverallTaxRule(dk.gormkrings.dto.OverallTaxRule.CAPITAL);
         request.setTaxPercentage(TAX_PERCENTAGE);
         request.setReturnPercentage(0.0f);
         request.setSeed(seed);
@@ -153,7 +153,7 @@ class NormalAdvancedServiceReproducibilityTest {
     private AdvancedSimulationRequest createAdvancedRequest(long seed) {
         AdvancedSimulationRequest request = new AdvancedSimulationRequest();
         request.setStartDate(new dk.gormkrings.simulation.data.Date(START_DATE));
-        request.setOverallTaxRule("CAPITAL");
+        request.setOverallTaxRule(dk.gormkrings.dto.OverallTaxRule.CAPITAL);
         request.setTaxPercentage(TAX_PERCENTAGE);
         request.setSeed(seed);
         request.setReturnType("dataDrivenReturn");
@@ -171,7 +171,7 @@ class NormalAdvancedServiceReproducibilityTest {
         
         // Deposit phase: 10 years of monthly contributions
         PhaseRequest deposit = new PhaseRequest();
-        deposit.setPhaseType("DEPOSIT");
+        deposit.setPhaseType(dk.gormkrings.dto.PhaseType.DEPOSIT);
         deposit.setDurationInMonths(12 * DEPOSIT_YEARS);
         deposit.setInitialDeposit(INITIAL_DEPOSIT);
         deposit.setMonthlyDeposit(MONTHLY_DEPOSIT);

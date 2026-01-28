@@ -1,0 +1,25 @@
+# Dev-only overrides (used by docker dev stack: SPRING_PROFILES_ACTIVE=dev)
+# Springdoc's Swagger UI resource handler uses patterns that require the legacy Ant matcher.
+spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+# Behind Traefik in the dev docker stack (TLS terminates at Traefik).
+# Ensure Spring uses X-Forwarded-* to reconstruct the external URL scheme/host.
+server:
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: false
+  # Keep default docs disabled; we only expose the explicit "public" group.
+  enable-default-api-docs: false
+  writer-with-order-by-keys: true
+
+settings:
+  openapi:
+    expose: true
+

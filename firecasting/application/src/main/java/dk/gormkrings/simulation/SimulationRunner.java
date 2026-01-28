@@ -10,6 +10,7 @@ import dk.gormkrings.factory.ISimulationFactory;
 import dk.gormkrings.factory.ISpecificationFactory;
 import dk.gormkrings.phase.IPhase;
 import dk.gormkrings.result.IRunResult;
+import dk.gormkrings.statistics.MetricSummary;
 import dk.gormkrings.statistics.SimulationAggregationService;
 import dk.gormkrings.statistics.StatisticsService;
 import dk.gormkrings.tax.ITaxExemption;
@@ -59,7 +60,7 @@ public class SimulationRunner {
         var spec = new SimulationRunSpec(
                 request.getStartDate(),
                 request.getPhases(),
-                request.getOverallTaxRule(),
+                request.getOverallTaxRule() == null ? null : request.getOverallTaxRule().toFactoryKey(),
                 request.getTaxPercentage(),
                 "dataDrivenReturn",
                 1.02D
@@ -98,7 +99,11 @@ public class SimulationRunner {
         public record RunTimings(long computeMs, long aggregateMs, long gridsMs, long persistMs, long totalMs) {
         }
 
-        public record RunOutcome(List<IRunResult> results, List<dk.gormkrings.statistics.YearlySummary> summaries, Long rngSeed, RunTimings timings) {
+                public record RunOutcome(List<IRunResult> results,
+                                                                 List<dk.gormkrings.statistics.YearlySummary> summaries,
+                                                                 List<MetricSummary> metricSummaries,
+                                                                 Long rngSeed,
+                                                                 RunTimings timings) {
     }
 
     /**
@@ -115,21 +120,23 @@ public class SimulationRunner {
             int batchSize,
             boolean persistToDb,
             IProgressCallback onProgress) {
-        final long t0 = System.nanoTime();
-
         final long tCompute0 = System.nanoTime();
         var simulationResults = computeSimulationResults(spec, runs, batchSize, onProgress);
         final long tCompute1 = System.nanoTime();
 
-        // Aggregate + grids
+        // Aggregate (yearly summaries + metric summaries)
         final long tAgg0 = System.nanoTime();
         var summaries = aggregationService.aggregateResults(
                 simulationResults,
                 simulationId,
                 onProgress
         );
+
+        // Metric summaries (yearly series + totals per phase + overall)
+        var metricSummaries = aggregationService.aggregateMetricSummaries(simulationResults);
         final long tAgg1 = System.nanoTime();
 
+        // Percentile grids
         final long tGrids0 = System.nanoTime();
         var grids = aggregationService.buildPercentileGrids(simulationResults);
         final long tGrids1 = System.nanoTime();
@@ -139,34 +146,33 @@ public class SimulationRunner {
         long persistMs = 0L;
         if (persistToDb && rngSeed != null) {
             final long tPersist0 = System.nanoTime();
-            statisticsService.insertNewRunWithSummaries(
+            statisticsService.insertNewRunWithSummariesAndMetrics(
                     simulationId,
                     inputForStorage,
                     SimulationSignature.of(runs, batchSize, inputForStorage),
                     resolvedAdvanced,
                     summaries,
                     grids,
+                    metricSummaries,
                     rngSeed
             );
             final long tPersist1 = System.nanoTime();
             persistMs = TimeUnit.NANOSECONDS.toMillis(tPersist1 - tPersist0);
         }
 
-        final long t1 = System.nanoTime();
         final long computeMs = TimeUnit.NANOSECONDS.toMillis(tCompute1 - tCompute0);
         final long aggregateMs = TimeUnit.NANOSECONDS.toMillis(tAgg1 - tAgg0);
         final long gridsMs = TimeUnit.NANOSECONDS.toMillis(tGrids1 - tGrids0);
-        final long totalMs = TimeUnit.NANOSECONDS.toMillis(t1 - t0);
+        // By construction, totalMs should add up to the components we report.
+        final long totalMs = computeMs + aggregateMs + gridsMs + persistMs;
 
-                if (persistToDb && rngSeed != null) {
-                        try {
-                                statisticsService.updateRunTimings(simulationId, computeMs, aggregateMs, gridsMs, persistMs, totalMs);
-                        } catch (Exception ignore) {
-                                // best-effort
-                        }
-                }
-
-        return new RunOutcome(simulationResults, summaries, rngSeed, new RunTimings(computeMs, aggregateMs, gridsMs, persistMs, totalMs));
+        return new RunOutcome(
+                simulationResults,
+                summaries,
+                metricSummaries,
+                rngSeed,
+                new RunTimings(computeMs, aggregateMs, gridsMs, persistMs, totalMs)
+        );
     }
 
     /**
@@ -224,13 +230,14 @@ public class SimulationRunner {
                 for (PhaseRequest pr : spec.getPhases()) {
                         List<ITaxExemption> taxExemptions = new LinkedList<>();
                         if (pr.getTaxRules() != null) {
-                                for (String taxExemption : pr.getTaxRules()) {
-                                        taxExemptions.add(taxExemptionFactory.create(taxExemption, spec.getTaxExemptionConfig()));
+                                for (dk.gormkrings.dto.TaxExemptionRule taxExemption : pr.getTaxRules()) {
+                                        if (taxExemption == null) continue;
+                                        taxExemptions.add(taxExemptionFactory.create(taxExemption.toFactoryKey(), spec.getTaxExemptionConfig()));
                                 }
                         }
 
                         long days = currentDate.daysUntil(currentDate.plusMonths(pr.getDurationInMonths()));
-                        String phaseType = pr.getPhaseType().toLowerCase();
+                        String phaseType = pr.getPhaseType().toFactoryKey();
 
                         IAction action = switch (phaseType) {
                                 case "deposit" -> actionFactory.createDepositAction(

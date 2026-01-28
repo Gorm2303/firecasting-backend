@@ -1,5 +1,6 @@
 package dk.gormkrings.returns;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
@@ -164,6 +165,7 @@ public class ReturnerConfig {
         private SwitchWeights switchWeights;
 
         @AssertTrue(message = "distributionType must be one of: normal, studentT")
+        @JsonIgnore
         public boolean isSupportedDistributionType() {
             if (distributionType == null) return false;
             String t = distributionType.trim();
@@ -171,6 +173,7 @@ public class ReturnerConfig {
         }
 
         @AssertTrue(message = "normal params required when distributionType=normal; studentT params required when distributionType=studentT")
+        @JsonIgnore
         public boolean hasParamsForType() {
             if (distributionType == null) return false;
             String t = distributionType.trim();

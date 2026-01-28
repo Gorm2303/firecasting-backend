@@ -60,6 +60,8 @@ management:
 
 settings:
   debug: false
+  openapi:
+    expose: false
   runs: 10000
   batch-size: 10000
   run-local: false
@@ -78,4 +80,12 @@ simulation:
   queue:
     capacity: 1000
   progressStep: 1000      # emit progress every N runs
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+  enable-default-api-docs: false
+  writer-with-order-by-keys: true
 

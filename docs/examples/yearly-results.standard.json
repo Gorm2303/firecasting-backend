@@ -1,0 +1,19 @@
+[
+  {
+    "phaseName": "Deposit",
+    "year": 0,
+    "averageCapital": 104500.12,
+    "medianCapital": 103980.55,
+    "minCapital": 81234.22,
+    "maxCapital": 128990.77,
+    "stdDevCapital": 7420.13,
+    "cumulativeGrowthRate": 0.0398,
+    "quantile5": 86510.11,
+    "quantile25": 97700.00,
+    "quantile75": 111250.42,
+    "quantile95": 123400.33,
+    "var": 86510.11,
+    "cvar": 84200.55,
+    "negativeCapitalPercentage": 0.0
+  }
+]

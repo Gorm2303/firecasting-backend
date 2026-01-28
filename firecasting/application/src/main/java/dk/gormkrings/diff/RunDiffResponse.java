@@ -18,6 +18,8 @@ public class RunDiffResponse {
         private String createdAt;
         private String inputHash;
         private Long rngSeed;
+        /** String form to avoid JS number precision loss in clients. */
+        private String rngSeedText;
         private String modelAppVersion;
         private String modelBuildTime;
         private String modelSpringBootVersion;

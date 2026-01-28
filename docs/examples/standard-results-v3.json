@@ -1,0 +1,48 @@
+{
+  "simulationId": "c7a6e90e-3575-448b-ba9e-f051b412692a",
+  "yearlySummaries": [
+    {
+      "phaseName": "Deposit",
+      "year": 2025,
+      "averageCapital": 100000.0,
+      "medianCapital": 100000.0,
+      "minCapital": 95000.0,
+      "maxCapital": 110000.0,
+      "stdDevCapital": 2000.0,
+      "cumulativeGrowthRate": 0.02,
+      "quantile5": 96000.0,
+      "quantile25": 99000.0,
+      "quantile75": 103000.0,
+      "quantile95": 108000.0,
+      "var": 96000.0,
+      "cvar": 95500.0,
+      "negativeCapitalPercentage": 0.0
+    }
+  ],
+  "metricSummaries": [
+    {
+      "metric": "deposit",
+      "scope": "YEARLY",
+      "phaseName": "Deposit",
+      "year": 2025,
+      "p5": 11000.0,
+      "p10": 11500.0,
+      "p25": 12000.0,
+      "p50": 12500.0,
+      "p75": 13000.0,
+      "p90": 13500.0,
+      "p95": 14000.0
+    },
+    {
+      "metric": "return",
+      "scope": "OVERALL_TOTAL",
+      "p5": -5000.0,
+      "p10": -2000.0,
+      "p25": 0.0,
+      "p50": 2000.0,
+      "p75": 6000.0,
+      "p90": 11000.0,
+      "p95": 15000.0
+    }
+  ]
+}

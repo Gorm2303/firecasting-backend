@@ -1,5 +1,7 @@
 package dk.gormkrings.ui.forms;
 
+import dk.gormkrings.contract.PublicApi;
+
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -14,7 +16,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-@RequestMapping("/api/forms")
+@RequestMapping({"/api/forms", "/api/forms/v1"})
+@PublicApi
 public class FormsController {
 
     @GetMapping(value = "/{formId}", produces = MediaType.APPLICATION_JSON_VALUE)

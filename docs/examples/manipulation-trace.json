@@ -1,0 +1,46 @@
+{
+  "trace": [
+    {
+      "event": "MONTH_END",
+      "phase": "Withdraw",
+      "date": "2045-01-31",
+      "steps": [
+        {
+          "kind": "RETURN_APPLIED",
+          "deltaCapital": 520.12
+        },
+        {
+          "kind": "WITHDRAW_APPLIED",
+          "deltaCapital": -3000.0
+        },
+        {
+          "kind": "CAPITAL_GAINS_TAX_APPLIED",
+          "deltaCapital": -120.0
+        },
+        {
+          "kind": "NET_EARNINGS_RECORDED",
+          "deltaCapital": 0.0
+        }
+      ]
+    },
+    {
+      "event": "YEAR_END",
+      "phase": "Withdraw",
+      "date": "2045-12-31",
+      "steps": [
+        {
+          "kind": "NOTIONAL_TAX_APPLIED",
+          "deltaCapital": -450.0
+        },
+        {
+          "kind": "INFLATION_COMPOUNDED",
+          "inflationMultiplier": 1.02
+        },
+        {
+          "kind": "YEARLY_FEE_APPLIED",
+          "deltaCapital": -75.0
+        }
+      ]
+    }
+  ]
+}

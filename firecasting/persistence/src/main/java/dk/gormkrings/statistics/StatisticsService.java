@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import dk.gormkrings.statistics.mapper.YearlySummaryMapper;
+import dk.gormkrings.statistics.mapper.MetricSummaryMapper;
 import dk.gormkrings.statistics.persistence.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,6 +34,7 @@ public class StatisticsService {
 
     private final SimulationRunRepository runRepo;
     private final YearlySummaryRepository summaryRepo;
+    private final MetricSummaryRepository metricSummaryRepo;
     private final @Qualifier("canonicalObjectMapper") ObjectMapper canonicalObjectMapper;
     private final ObjectProvider<BuildProperties> buildPropertiesProvider;
 
@@ -44,7 +46,7 @@ public class StatisticsService {
     public Optional<String> findExistingRunIdForInput(Object inputParams) {
         String inputJson = toCanonicalJson(inputParams);
         String inputHash = sha256Hex(inputJson);
-        return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
+        return runRepo.findFirstByInputHashOrderByCreatedAtDesc(inputHash).map(SimulationRunEntity::getId);
     }
 
     /**
@@ -58,27 +60,28 @@ public class StatisticsService {
     public Optional<String> findExistingRunIdForSignature(Object signatureParams) {
         String signatureJson = toCanonicalJson(signatureParams);
         String inputHash = sha256Hex(signatureJson);
-        return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
+        return runRepo.findFirstByInputHashOrderByCreatedAtDesc(inputHash).map(SimulationRunEntity::getId);
     }
 
     // NEW: insert-only path for append-only storage
     @Transactional
     public String insertNewRunWithSummaries(String simulationId,
-                                            Object inputParams,
-                                            Object signatureParams,
-                                            Object resolvedAdvanced,
-                                            List<YearlySummary> summaries,
-                                            List<Double[]> percentileGrids,
-                                            Long rngSeed) {
+                                           Object inputParams,
+                                           Object signatureParams,
+                                           Object resolvedAdvanced,
+                                           List<YearlySummary> summaries,
+                                           List<Double[]> percentileGrids,
+                                           List<dk.gormkrings.statistics.MetricSummary> metricSummaries,
+                                           Long rngSeed) {
         if (summaries.size() != percentileGrids.size()) {
             throw new IllegalArgumentException("Summaries and grids must have same size.");
         }
 
-    String inputJson = toCanonicalJson(inputParams);
-    // Hash signature can differ from persisted inputJson (e.g. include server-side run count)
-    Object signature = (signatureParams != null) ? signatureParams : inputParams;
-    String signatureJson = toCanonicalJson(signature);
-    String inputHash = sha256Hex(signatureJson);
+        String inputJson = toCanonicalJson(inputParams);
+        // Hash signature can differ from persisted inputJson (e.g. include server-side run count)
+        Object signature = (signatureParams != null) ? signatureParams : inputParams;
+        String signatureJson = toCanonicalJson(signature);
+        String inputHash = sha256Hex(signatureJson);
         String resolvedInputJson = resolvedAdvanced != null ? toCanonicalJson(resolvedAdvanced) : null;
 
         // 1) Persist parent RUN first
@@ -119,6 +122,12 @@ public class StatisticsService {
             // optional batching relief
             // if ((i + 1) % 500 == 0) { em.flush(); em.clear(); }
         }
+
+        if (metricSummaries != null && !metricSummaries.isEmpty()) {
+            for (var ms : metricSummaries) {
+                metricSummaryRepo.save(MetricSummaryMapper.toEntity(ms, runRef));
+            }
+        }
         return simulationId;
     }
 
@@ -132,11 +141,45 @@ public class StatisticsService {
                                            List<YearlySummary> summaries,
                                            List<Double[]> percentileGrids,
                                            Long rngSeed) {
-        return insertNewRunWithSummaries(simulationId, inputParams, null, resolvedAdvanced, summaries, percentileGrids, rngSeed);
+        return insertNewRunWithSummaries(simulationId, inputParams, null, resolvedAdvanced, summaries, percentileGrids, List.of(), rngSeed);
+    }
+
+    /**
+     * Overload for call sites that provide a separate signature payload.
+     * Metric summaries are optional and default to empty.
+     */
+    @Transactional
+    public String insertNewRunWithSummaries(String simulationId,
+                                           Object inputParams,
+                                           Object signatureParams,
+                                           Object resolvedAdvanced,
+                                           List<YearlySummary> summaries,
+                                           List<Double[]> percentileGrids,
+                                           Long rngSeed) {
+        return insertNewRunWithSummaries(simulationId, inputParams, signatureParams, resolvedAdvanced, summaries, percentileGrids, List.of(), rngSeed);
+    }
+
+    /**
+     * Overload keeping call sites readable when providing metric summaries.
+     */
+    @Transactional
+    public String insertNewRunWithSummariesAndMetrics(String simulationId,
+                                                      Object inputParams,
+                                                      Object signatureParams,
+                                                      Object resolvedAdvanced,
+                                                      List<YearlySummary> summaries,
+                                                      List<Double[]> percentileGrids,
+                                                      List<dk.gormkrings.statistics.MetricSummary> metricSummaries,
+                                                      Long rngSeed) {
+        return insertNewRunWithSummaries(simulationId, inputParams, signatureParams, resolvedAdvanced, summaries, percentileGrids, metricSummaries, rngSeed);
     }
 
     public boolean hasCompletedSummaries(String runId) {
         return summaryRepo.existsByRunId(runId);
+    }
+
+    public boolean hasCompletedMetricSummaries(String runId) {
+        return metricSummaryRepo.existsByRunId(runId);
     }
 
     @Transactional(readOnly = true)
@@ -148,6 +191,14 @@ public class StatisticsService {
     }
 
     @Transactional(readOnly = true)
+    public List<dk.gormkrings.statistics.MetricSummary> getMetricSummariesForRun(String simulationId) {
+        return metricSummaryRepo.findByRunIdOrderByScopeAscPhaseNameAscYearAscMetricAsc(simulationId)
+            .stream()
+            .map(MetricSummaryMapper::toDto)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<YearlySummaryEntity> getSummaryEntitiesForRun(String simulationId) {
         return summaryRepo.findByRunIdOrderByPhaseNameAscYearAsc(simulationId);
     }
@@ -155,26 +206,6 @@ public class StatisticsService {
     @Transactional(readOnly = true)
     public SimulationRunEntity getRun(String simulationId) {
         return runRepo.findById(simulationId).orElse(null);
-    }
-
-    @Transactional
-    public void updateRunTimings(String runId,
-                                 Long computeMs,
-                                 Long aggregateMs,
-                                 Long gridsMs,
-                                 Long persistMs,
-                                 Long totalMs) {
-        var opt = runRepo.findById(runId);
-        if (opt.isEmpty()) return;
-        var run = opt.get();
-
-        run.setComputeMs(computeMs != null ? Math.max(0L, computeMs) : null);
-        run.setAggregateMs(aggregateMs != null ? Math.max(0L, aggregateMs) : null);
-        run.setGridsMs(gridsMs != null ? Math.max(0L, gridsMs) : null);
-        run.setPersistMs(persistMs != null ? Math.max(0L, persistMs) : null);
-        run.setTotalMs(totalMs != null ? Math.max(0L, totalMs) : null);
-
-        runRepo.save(run);
     }
 
     public record ModelVersionInfo(

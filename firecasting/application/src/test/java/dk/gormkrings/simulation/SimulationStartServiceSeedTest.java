@@ -22,10 +22,12 @@ class SimulationStartServiceSeedTest {
         StatisticsService stats = mock(StatisticsService.class);
         SimulationResultsCache cache = mock(SimulationResultsCache.class);
         SimulationSummariesCache summariesCache = mock(SimulationSummariesCache.class);
+        SimulationMetricSummariesCache metricSummariesCache = mock(SimulationMetricSummariesCache.class);
+        SimulationTimingsCache timingsCache = mock(SimulationTimingsCache.class);
 
         when(queue.submitWithId(anyString(), any())).thenReturn(true);
 
-        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache, summariesCache);
+        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache, summariesCache, metricSummariesCache, timingsCache);
 
         // Inject config values (no Spring here)
         TestUtil.setField(svc, "runs", 1);
@@ -65,10 +67,12 @@ class SimulationStartServiceSeedTest {
         StatisticsService stats = mock(StatisticsService.class);
         SimulationResultsCache cache = mock(SimulationResultsCache.class);
         SimulationSummariesCache summariesCache = mock(SimulationSummariesCache.class);
+        SimulationMetricSummariesCache metricSummariesCache = mock(SimulationMetricSummariesCache.class);
+        SimulationTimingsCache timingsCache = mock(SimulationTimingsCache.class);
 
         when(stats.findExistingRunIdForSignature(any())).thenReturn(Optional.of("existing-id"));
 
-        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache, summariesCache);
+        SimulationStartService svc = new SimulationStartService(queue, runner, sse, stats, cache, summariesCache, metricSummariesCache, timingsCache);
 
         TestUtil.setField(svc, "runs", 1);
         TestUtil.setField(svc, "batchSize", 1);

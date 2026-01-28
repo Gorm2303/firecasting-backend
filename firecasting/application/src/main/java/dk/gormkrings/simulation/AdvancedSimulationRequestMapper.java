@@ -9,6 +9,8 @@ public final class AdvancedSimulationRequestMapper {
 
     // Must match FirecastingController.DEFAULT_MASTER_SEED (kept duplicated to avoid cross-module coupling).
     private static final long DEFAULT_MASTER_SEED = 1L;
+    // Keep random seeds within JS safe integer range (2^53-1) to avoid client precision loss.
+    private static final long MAX_SAFE_JS_INTEGER = 9_007_199_254_740_991L;
 
     private AdvancedSimulationRequestMapper() {
     }
@@ -54,7 +56,7 @@ public final class AdvancedSimulationRequestMapper {
         return new SimulationRunSpec(
                 req.getStartDate(),
                 req.getPhases(),
-                req.getOverallTaxRule(),
+            req.getOverallTaxRule() == null ? null : req.getOverallTaxRule().toFactoryKey(),
                 req.getTaxPercentage(),
                 returnType,
                 inflationFactor,
@@ -70,7 +72,8 @@ public final class AdvancedSimulationRequestMapper {
         // - negative => random positive seed (stochastic)
         if (seed == null) return DEFAULT_MASTER_SEED;
         if (seed < 0) {
-            return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
+            // Use an exclusive upper bound.
+            return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, MAX_SAFE_JS_INTEGER + 1);
         }
         return seed;
     }
