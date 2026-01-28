@@ -4,16 +4,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import dk.gormkrings.dto.PhaseRequest;
 import dk.gormkrings.dto.AdvancedSimulationRequest;
 import dk.gormkrings.dto.SimulationRequest;
+import dk.gormkrings.dto.StandardResultsV3Response;
 import dk.gormkrings.api.ApiValidationException;
 import dk.gormkrings.queue.SimulationQueueService;
 import dk.gormkrings.result.IRunResult;
 import dk.gormkrings.simulation.AdvancedSimulationRequestMapper;
+import dk.gormkrings.simulation.SimulationMetricSummariesCache;
+import dk.gormkrings.simulation.SimulationTimingsCache;
 import dk.gormkrings.simulation.SimulationRunSpec;
 import dk.gormkrings.simulation.SimulationStartService;
 import dk.gormkrings.simulation.SimulationResultsCache;
 import dk.gormkrings.simulation.SimulationSummariesCache;
 import dk.gormkrings.simulation.SimulationRunner;
 import dk.gormkrings.simulation.util.ConcurrentCsvExporter;
+import dk.gormkrings.statistics.MetricSummary;
 import dk.gormkrings.statistics.StatisticsService;
 import dk.gormkrings.statistics.YearlySummary;
 import dk.gormkrings.sse.SimulationSseService;
@@ -72,6 +76,8 @@ public class FirecastingController {
     private final SimulationRunner simulationRunner;
     private final SimulationResultsCache resultsCache;
     private final SimulationSummariesCache summariesCache;
+    private final SimulationMetricSummariesCache metricSummariesCache;
+    private final SimulationTimingsCache timingsCache;
     private final ReproducibilityBundleService reproducibilityBundleService;
     private final java.util.Optional<ReproducibilityReplayService> reproducibilityReplayService;
     private final RunDiffService runDiffService;
@@ -98,6 +104,8 @@ public class FirecastingController {
                                  SimulationRunner simulationRunner,
                                  SimulationResultsCache resultsCache,
                                  SimulationSummariesCache summariesCache,
+                                 SimulationMetricSummariesCache metricSummariesCache,
+                                 SimulationTimingsCache timingsCache,
                                  ReproducibilityBundleService reproducibilityBundleService,
                                  java.util.Optional<ReproducibilityReplayService> reproducibilityReplayService,
                                  RunDiffService runDiffService,
@@ -111,6 +119,8 @@ public class FirecastingController {
         this.simulationRunner = simulationRunner;
         this.resultsCache = resultsCache;
         this.summariesCache = summariesCache;
+        this.metricSummariesCache = metricSummariesCache;
+        this.timingsCache = timingsCache;
         this.reproducibilityBundleService = reproducibilityBundleService;
         this.reproducibilityReplayService = reproducibilityReplayService;
         this.runDiffService = runDiffService;
@@ -133,6 +143,7 @@ public class FirecastingController {
                     d.setId(r.getId());
                     d.setCreatedAt(r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
                     d.setRngSeed(r.getRngSeed());
+                    d.setRngSeedText(r.getRngSeed() != null ? r.getRngSeed().toString() : null);
                     d.setModelAppVersion(r.getModelAppVersion());
                     d.setInputHash(r.getInputHash());
                     return d;
@@ -150,16 +161,26 @@ public class FirecastingController {
         d.setId(run.getId());
         d.setCreatedAt(run.getCreatedAt() != null ? run.getCreatedAt().toString() : null);
         d.setRngSeed(run.getRngSeed());
+        d.setRngSeedText(run.getRngSeed() != null ? run.getRngSeed().toString() : null);
         d.setModelAppVersion(run.getModelAppVersion());
         d.setModelBuildTime(run.getModelBuildTime());
         d.setModelSpringBootVersion(run.getModelSpringBootVersion());
         d.setModelJavaVersion(run.getModelJavaVersion());
         d.setInputHash(run.getInputHash());
-        d.setComputeMs(run.getComputeMs());
-        d.setAggregateMs(run.getAggregateMs());
-        d.setGridsMs(run.getGridsMs());
-        d.setPersistMs(run.getPersistMs());
-        d.setTotalMs(run.getTotalMs());
+
+        // Timings are not persisted; best-effort from in-memory cache (recent runs).
+        try {
+            var t = timingsCache.getTimings(runId);
+            if (t != null) {
+                d.setComputeMs(t.computeMs());
+                d.setAggregateMs(t.aggregateMs());
+                d.setGridsMs(t.gridsMs());
+                d.setPersistMs(t.persistMs());
+                d.setTotalMs(t.totalMs());
+            }
+        } catch (Exception ignore) {
+            // best-effort
+        }
 
         return ResponseEntity.ok(d);
     }
@@ -169,6 +190,37 @@ public class FirecastingController {
         var run = statisticsService.getRun(runId);
         if (run == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(statisticsService.getSummariesForRun(runId));
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Standard results payload (v3)
+    // ------------------------------------------------------------------------------------
+
+    @GetMapping(value = "/results/{simulationId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardResultsV3Response> getStandardResultsV3(@PathVariable String simulationId) {
+        if (statisticsService.hasCompletedSummaries(simulationId)) {
+            var summaries = statisticsService.getSummariesForRun(simulationId);
+            var metricSummaries = statisticsService.getMetricSummariesForRun(simulationId);
+
+            var resp = new StandardResultsV3Response();
+            resp.setSimulationId(simulationId);
+            resp.setYearlySummaries(summaries);
+            resp.setMetricSummaries(metricSummaries);
+            return ResponseEntity.ok(resp);
+        }
+
+        // Non-persisted (random-seed) runs: serve from caches if still available.
+        var cachedSummaries = summariesCache.get(simulationId);
+        List<MetricSummary> cachedMetricSummaries = metricSummariesCache.get(simulationId);
+        if (cachedSummaries == null || cachedSummaries.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var resp = new StandardResultsV3Response();
+        resp.setSimulationId(simulationId);
+        resp.setYearlySummaries(cachedSummaries);
+        resp.setMetricSummaries(cachedMetricSummaries == null ? List.of() : cachedMetricSummaries);
+        return ResponseEntity.ok(resp);
     }
 
     @GetMapping(value = "/runs/{runId}/input", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -399,7 +451,10 @@ public class FirecastingController {
     private static long normalizeSeed(Long seed) {
         if (seed == null) return DEFAULT_MASTER_SEED;
         if (seed < 0) {
-            return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
+            // Keep random seeds within JS safe integer range (2^53-1) to avoid client precision loss.
+            final long maxSafeJsInteger = 9_007_199_254_740_991L;
+            // nextLong uses an exclusive upper bound.
+            return java.util.concurrent.ThreadLocalRandom.current().nextLong(1, maxSafeJsInteger + 1);
         }
         return seed;
     }
@@ -680,20 +735,13 @@ public class FirecastingController {
                 meta.put("dedupHit", true);
                 meta.put("source", "db");
                 meta.put("persisted", true);
+                // This request performed no work (dedup hit), so report zero timings.
                 meta.put("queueMs", 0);
-
-                try {
-                    var run = statisticsService.getRun(simulationId);
-                    if (run != null) {
-                        if (run.getComputeMs() != null) meta.put("computeMs", run.getComputeMs());
-                        if (run.getAggregateMs() != null) meta.put("aggregateMs", run.getAggregateMs());
-                        if (run.getGridsMs() != null) meta.put("gridsMs", run.getGridsMs());
-                        if (run.getPersistMs() != null) meta.put("persistMs", run.getPersistMs());
-                        if (run.getTotalMs() != null) meta.put("totalMs", run.getTotalMs());
-                    }
-                } catch (Exception ignore) {
-                    // best-effort
-                }
+                meta.put("computeMs", 0);
+                meta.put("aggregateMs", 0);
+                meta.put("gridsMs", 0);
+                meta.put("persistMs", 0);
+                meta.put("totalMs", 0);
 
                 emitter.send(SseEmitter.event()
                         .name("meta")
@@ -841,7 +889,7 @@ public class FirecastingController {
                     spec = new SimulationRunSpec(
                             req.getStartDate(),
                             req.getPhases(),
-                            req.getOverallTaxRule(),
+                            req.getOverallTaxRule() == null ? null : req.getOverallTaxRule().toFactoryKey(),
                             req.getTaxPercentage(),
                             "dataDrivenReturn",
                             1.02D
