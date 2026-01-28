@@ -46,7 +46,7 @@ public class StatisticsService {
     public Optional<String> findExistingRunIdForInput(Object inputParams) {
         String inputJson = toCanonicalJson(inputParams);
         String inputHash = sha256Hex(inputJson);
-        return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
+        return runRepo.findFirstByInputHashOrderByCreatedAtDesc(inputHash).map(SimulationRunEntity::getId);
     }
 
     /**
@@ -60,7 +60,7 @@ public class StatisticsService {
     public Optional<String> findExistingRunIdForSignature(Object signatureParams) {
         String signatureJson = toCanonicalJson(signatureParams);
         String inputHash = sha256Hex(signatureJson);
-        return runRepo.findByInputHash(inputHash).map(SimulationRunEntity::getId);
+        return runRepo.findFirstByInputHashOrderByCreatedAtDesc(inputHash).map(SimulationRunEntity::getId);
     }
 
     // NEW: insert-only path for append-only storage
@@ -206,26 +206,6 @@ public class StatisticsService {
     @Transactional(readOnly = true)
     public SimulationRunEntity getRun(String simulationId) {
         return runRepo.findById(simulationId).orElse(null);
-    }
-
-    @Transactional
-    public void updateRunTimings(String runId,
-                                 Long computeMs,
-                                 Long aggregateMs,
-                                 Long gridsMs,
-                                 Long persistMs,
-                                 Long totalMs) {
-        var opt = runRepo.findById(runId);
-        if (opt.isEmpty()) return;
-        var run = opt.get();
-
-        run.setComputeMs(computeMs != null ? Math.max(0L, computeMs) : null);
-        run.setAggregateMs(aggregateMs != null ? Math.max(0L, aggregateMs) : null);
-        run.setGridsMs(gridsMs != null ? Math.max(0L, gridsMs) : null);
-        run.setPersistMs(persistMs != null ? Math.max(0L, persistMs) : null);
-        run.setTotalMs(totalMs != null ? Math.max(0L, totalMs) : null);
-
-        runRepo.save(run);
     }
 
     public record ModelVersionInfo(

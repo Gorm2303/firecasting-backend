@@ -110,9 +110,11 @@ public class SimulationAggregationService {
             Map<Key, Double> yearlyLastInflation = new HashMap<>();
 
             Map<String, Map<String, Double>> phaseSums = new HashMap<>();
+            Map<String, Double> phaseLastCapital = new HashMap<>();
             Map<String, Double> phaseLastInflation = new HashMap<>();
 
             Map<String, Double> overallSums = new HashMap<>();
+            Double overallLastCapital = null;
             Double overallLastInflation = null;
 
             ISnapshot prevSnap = null;
@@ -121,17 +123,36 @@ public class SimulationAggregationService {
                 Snapshot snap = (Snapshot) snap0;
                 var state = snap.getState();
 
-                int year = new Date((int) state.getStartTime()).plusDays(state.getTotalDurationAlive()).getYear();
+                // IMPORTANT: flows (deposit/withdraw/tax/fee/return) are deltas between snapshots.
+                // We attribute those flows to the *period that just ended* (i.e., snapshotTime - 1 day)
+                // so boundary snapshots on Jan 1 don't shift the whole prior year's flows into the next year.
+                int year = yearForPeriodEndingAt(state);
                 String phase = state.getPhaseName();
 
-                if (prevSnap == null) prevSnap = snap0;
+                if (prevSnap == null) {
+                    prevSnap = snap0;
+                    // Still capture end-of-period series values for this snapshot.
+                    Key k0 = new Key(phase, year);
+                    yearlyLastCapital.put(k0, finiteOrNull(state.getCapital()));
+                    yearlyLastInflation.put(k0, finiteOrNull(state.getInflation()));
+                    phaseLastCapital.put(phase, finiteOrNull(state.getCapital()));
+                    phaseLastInflation.put(phase, finiteOrNull(state.getInflation()));
+                    overallLastCapital = finiteOrNull(state.getCapital());
+                    overallLastInflation = finiteOrNull(state.getInflation());
+                    continue;
+                }
+
                 var prev = ((Snapshot) prevSnap).getState();
 
-                double dDeposit = state.getDeposited() - prev.getDeposited();
-                double dWithdraw = state.getWithdrawn() - prev.getWithdrawn();
-                double dTax = state.getTax() - prev.getTax();
-                double dFee = state.getFee() - prev.getFee();
-                double dReturn = state.getReturned() - prev.getReturned();
+                // Deposited is a "principal basis" that is reduced during withdrawals.
+                // For the "deposit" flow metric we only want actual deposits (non-negative).
+                double dDepositRaw = safeDelta(state.getDeposited(), prev.getDeposited());
+                double dDeposit = Math.max(0.0, dDepositRaw);
+
+                double dWithdraw = safeDelta(state.getWithdrawn(), prev.getWithdrawn());
+                double dTax = safeDelta(state.getTax(), prev.getTax());
+                double dFee = safeDelta(state.getFee(), prev.getFee());
+                double dReturn = safeDelta(state.getReturned(), prev.getReturned());
 
                 Key k = new Key(phase, year);
                 Map<String, Double> sumsForKey = yearlySums.computeIfAbsent(k, __ -> new HashMap<>());
@@ -141,8 +162,8 @@ public class SimulationAggregationService {
                 sumsForKey.merge("fee", dFee, Double::sum);
                 sumsForKey.merge("return", dReturn, Double::sum);
 
-                yearlyLastCapital.put(k, state.getCapital());
-                yearlyLastInflation.put(k, state.getInflation());
+                yearlyLastCapital.put(k, finiteOrNull(state.getCapital()));
+                yearlyLastInflation.put(k, finiteOrNull(state.getInflation()));
 
                 Map<String, Double> phaseSumsForPhase = phaseSums.computeIfAbsent(phase, __ -> new HashMap<>());
                 phaseSumsForPhase.merge("deposit", dDeposit, Double::sum);
@@ -150,14 +171,16 @@ public class SimulationAggregationService {
                 phaseSumsForPhase.merge("tax", dTax, Double::sum);
                 phaseSumsForPhase.merge("fee", dFee, Double::sum);
                 phaseSumsForPhase.merge("return", dReturn, Double::sum);
-                phaseLastInflation.put(phase, state.getInflation());
+                phaseLastCapital.put(phase, finiteOrNull(state.getCapital()));
+                phaseLastInflation.put(phase, finiteOrNull(state.getInflation()));
 
                 overallSums.merge("deposit", dDeposit, Double::sum);
                 overallSums.merge("withdraw", dWithdraw, Double::sum);
                 overallSums.merge("tax", dTax, Double::sum);
                 overallSums.merge("fee", dFee, Double::sum);
                 overallSums.merge("return", dReturn, Double::sum);
-                overallLastInflation = state.getInflation();
+                overallLastCapital = finiteOrNull(state.getCapital());
+                overallLastInflation = finiteOrNull(state.getInflation());
 
                 prevSnap = snap0;
             }
@@ -186,6 +209,8 @@ public class SimulationAggregationService {
                 for (var me : pe.getValue().entrySet()) {
                     phaseTotals.get(phase).computeIfAbsent(me.getKey(), __ -> new ArrayList<>()).add(me.getValue());
                 }
+                Double cap = phaseLastCapital.get(phase);
+                if (cap != null) phaseTotals.get(phase).computeIfAbsent("capital", __ -> new ArrayList<>()).add(cap);
                 Double infl = phaseLastInflation.get(phase);
                 if (infl != null) phaseTotals.get(phase).computeIfAbsent("inflation", __ -> new ArrayList<>()).add(infl);
             }
@@ -193,6 +218,9 @@ public class SimulationAggregationService {
             // Flush per-run overall totals
             for (var me : overallSums.entrySet()) {
                 overallTotals.computeIfAbsent(me.getKey(), __ -> new ArrayList<>()).add(me.getValue());
+            }
+            if (overallLastCapital != null) {
+                overallTotals.computeIfAbsent("capital", __ -> new ArrayList<>()).add(overallLastCapital);
             }
             if (overallLastInflation != null) {
                 overallTotals.computeIfAbsent("inflation", __ -> new ArrayList<>()).add(overallLastInflation);
@@ -229,7 +257,13 @@ public class SimulationAggregationService {
     }
 
     private static MetricSummary buildSummary(MetricSummary.Scope scope, String phaseName, Integer year, String metric, List<Double> values) {
-        List<Double> sorted = (values == null) ? List.of() : values.stream().filter(Objects::nonNull).sorted().toList();
+        List<Double> sorted = (values == null)
+            ? List.of()
+            : values.stream()
+            .filter(Objects::nonNull)
+            .filter(Double::isFinite)
+            .sorted()
+            .toList();
 
         MetricSummary s = new MetricSummary();
         s.setScope(scope);
@@ -256,6 +290,26 @@ public class SimulationAggregationService {
         s.setP90(quantile(sorted, 0.90));
         s.setP95(quantile(sorted, 0.95));
         return s;
+    }
+
+    /**
+     * Year for the period that ends at this snapshot.
+     * If a snapshot is exactly on a boundary (e.g., Jan 1), using "minus 1 day" keeps yearly flows aligned.
+     */
+    private static int yearForPeriodEndingAt(dk.gormkrings.data.ILiveData state) {
+        long alive = Math.max(0L, state.getTotalDurationAlive());
+        long days = alive > 0 ? (alive - 1) : 0;
+        return new Date((int) state.getStartTime()).plusDays(days).getYear();
+    }
+
+    private static double safeDelta(double current, double previous) {
+        if (!Double.isFinite(current) || !Double.isFinite(previous)) return 0.0;
+        double d = current - previous;
+        return Double.isFinite(d) ? d : 0.0;
+    }
+
+    private static Double finiteOrNull(double v) {
+        return Double.isFinite(v) ? v : null;
     }
 
     // ---------- pipeline shared by summaries & grids ----------
