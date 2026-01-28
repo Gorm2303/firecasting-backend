@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,8 @@ public class SimulationStartService {
     private final StatisticsService statisticsService;
     private final SimulationResultsCache resultsCache;
     private final SimulationSummariesCache summariesCache;
+    private final SimulationMetricSummariesCache metricSummariesCache;
+    private final SimulationTimingsCache timingsCache;
 
     @Value("${settings.runs}")
     private int runs;
@@ -167,9 +170,9 @@ public class SimulationStartService {
                     }
                     log.info("[{}] Dedup miss -> creating new run", logPrefix);
                 } catch (Exception e) {
-                    log.error("[{}] Dedup check failed", logPrefix, e);
-                    return ResponseEntity.badRequest()
-                            .body(Map.of("error", "Invalid input for dedup: " + e.getMessage()));
+                    // Dedup failures can be caused by DB anomalies (e.g. historical duplicates).
+                    // Do not fail the request; proceed as a dedup miss.
+                    log.warn("[{}] Dedup check failed (treating as miss): {}", logPrefix, e.getMessage());
                 }
             } else {
                 log.info("[{}] Skipping dedup due to random seed request ({})", logPrefix, requestedSeedForDedup);
@@ -211,18 +214,31 @@ public class SimulationStartService {
                 // Emit final timing breakdown before completion payload.
                 try {
                     var t = outcome.timings();
-                    sseService.sendMeta(simulationId, Map.of(
-                            "dedupHit", false,
-                            "persisted", allowPersist,
-                            "effectiveRuns", effectiveRuns,
-                            "effectiveBatchSize", effectiveBatchSize,
-                            "queueMs", queueMs,
-                            "computeMs", t != null ? t.computeMs() : 0,
-                            "aggregateMs", t != null ? t.aggregateMs() : 0,
-                            "gridsMs", t != null ? t.gridsMs() : 0,
-                            "persistMs", t != null ? t.persistMs() : 0,
-                            "totalMs", t != null ? t.totalMs() : 0
-                    ));
+                    long computeMs = t != null ? t.computeMs() : 0;
+                    long aggregateMs = t != null ? t.aggregateMs() : 0;
+                    long gridsMs = t != null ? t.gridsMs() : 0;
+                    long persistMs = t != null ? t.persistMs() : 0;
+                    long totalMs = t != null ? t.totalMs() : (computeMs + aggregateMs + gridsMs + persistMs);
+
+                    var meta = new HashMap<String, Object>();
+                    meta.put("dedupHit", false);
+                    meta.put("persisted", allowPersist);
+                    meta.put("effectiveRuns", effectiveRuns);
+                    meta.put("effectiveBatchSize", effectiveBatchSize);
+                    meta.put("queueMs", queueMs);
+                    meta.put("computeMs", computeMs);
+                    meta.put("aggregateMs", aggregateMs);
+                    meta.put("gridsMs", gridsMs);
+                    meta.put("persistMs", persistMs);
+                    meta.put("totalMs", totalMs);
+
+                    timingsCache.put(
+                            simulationId,
+                            Map.copyOf(meta),
+                            new SimulationTimingsCache.Timings(queueMs, computeMs, aggregateMs, gridsMs, persistMs, totalMs)
+                    );
+
+                    sseService.sendMeta(simulationId, meta);
                 } catch (Exception ignore) {
                     // best-effort
                 }
@@ -252,6 +268,7 @@ public class SimulationStartService {
                     // Random runs are intentionally not persisted. Cache summaries in-memory
                     // so /progress/{id} JSON and SSE can still return completed data.
                     summariesCache.put(simulationId, outcome.summaries());
+                    metricSummariesCache.put(simulationId, outcome.metricSummaries());
                     sseService.sendCompleted(simulationId, outcome.summaries());
                 }
             } catch (Exception e) {
