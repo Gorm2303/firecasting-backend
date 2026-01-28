@@ -146,6 +146,24 @@ paths:
           description: "OK"
       tags:
       - "Public API"
+  /api/simulation/v3/results/{simulationId}:
+    get:
+      operationId: "getStandardResultsV3"
+      parameters:
+      - in: "path"
+        name: "simulationId"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResultsV3Response"
+          description: "OK"
+      tags:
+      - "Public API"
   /api/simulation/v3/runs:
     get:
       operationId: "listRuns"
@@ -503,6 +521,43 @@ components:
           type: "string"
         uiMode:
           type: "string"
+    MetricSummary:
+      type: "object"
+      properties:
+        metric:
+          type: "string"
+        p10:
+          type: "number"
+          format: "double"
+        p25:
+          type: "number"
+          format: "double"
+        p5:
+          type: "number"
+          format: "double"
+        p50:
+          type: "number"
+          format: "double"
+        p75:
+          type: "number"
+          format: "double"
+        p90:
+          type: "number"
+          format: "double"
+        p95:
+          type: "number"
+          format: "double"
+        phaseName:
+          type: "string"
+        scope:
+          type: "string"
+          enum:
+          - "YEARLY"
+          - "PHASE_TOTAL"
+          - "OVERALL_TOTAL"
+        year:
+          type: "integer"
+          format: "int32"
     ModelVersion:
       type: "object"
       properties:
@@ -781,6 +836,19 @@ components:
         timeout:
           type: "integer"
           format: "int64"
+    StandardResultsV3Response:
+      type: "object"
+      properties:
+        metricSummaries:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/MetricSummary"
+        simulationId:
+          type: "string"
+        yearlySummaries:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/YearlySummary"
     StockExemptionConfig:
       type: "object"
       properties:

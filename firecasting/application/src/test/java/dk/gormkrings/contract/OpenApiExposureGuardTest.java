@@ -7,6 +7,8 @@ import dk.gormkrings.config.SecurityConfig;
 import dk.gormkrings.diff.RunDiffService;
 import dk.gormkrings.export.ReproducibilityBundleService;
 import dk.gormkrings.queue.SimulationQueueService;
+import dk.gormkrings.simulation.SimulationMetricSummariesCache;
+import dk.gormkrings.simulation.SimulationTimingsCache;
 import dk.gormkrings.simulation.SimulationResultsCache;
 import dk.gormkrings.simulation.SimulationRunner;
 import dk.gormkrings.simulation.SimulationStartService;
@@ -138,6 +140,16 @@ class OpenApiExposureGuardTest {
             @Bean
             SimulationSummariesCache simulationSummariesCache() {
                 return Mockito.mock(SimulationSummariesCache.class);
+            }
+
+            @Bean
+            SimulationMetricSummariesCache simulationMetricSummariesCache() {
+                return Mockito.mock(SimulationMetricSummariesCache.class);
+            }
+
+            @Bean
+            SimulationTimingsCache simulationTimingsCache() {
+                return Mockito.mock(SimulationTimingsCache.class);
             }
 
             @Bean
