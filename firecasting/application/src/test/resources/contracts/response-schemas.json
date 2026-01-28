@@ -1,49 +1,10 @@
 {
-  "dk.gormkrings.statistics.YearlySummary" : {
-    "phaseName" : "string",
-    "year" : "integer",
-    "averageCapital" : "number",
-    "medianCapital" : "number",
-    "minCapital" : "number",
-    "maxCapital" : "number",
-    "stdDevCapital" : "number",
-    "cumulativeGrowthRate" : "number",
-    "quantile5" : "number",
-    "quantile25" : "number",
-    "quantile75" : "number",
-    "quantile95" : "number",
-    "var" : "number",
-    "cvar" : "number",
-    "negativeCapitalPercentage" : "number"
-  },
-  "dk.gormkrings.statistics.MetricSummary$Scope" : {
-    "YEARLY" : "object:dk.gormkrings.statistics.MetricSummary$Scope",
-    "PHASE_TOTAL" : "object:dk.gormkrings.statistics.MetricSummary$Scope",
-    "OVERALL_TOTAL" : "object:dk.gormkrings.statistics.MetricSummary$Scope"
-  },
-  "dk.gormkrings.statistics.MetricSummary" : {
-    "scope" : "object:dk.gormkrings.statistics.MetricSummary$Scope",
-    "phaseName" : "string",
-    "year" : "integer",
-    "metric" : "string",
-    "p5" : "number",
-    "p10" : "number",
-    "p25" : "number",
-    "p50" : "number",
-    "p75" : "number",
-    "p90" : "number",
-    "p95" : "number"
-  },
-  "dk.gormkrings.dto.StandardResultsV3Response" : {
-    "simulationId" : "string",
-    "yearlySummaries" : "array<object:dk.gormkrings.statistics.YearlySummary>",
-    "metricSummaries" : "array<object:dk.gormkrings.statistics.MetricSummary>"
-  },
   "dk.gormkrings.diff.RunDiffResponse$RunInfo" : {
     "id" : "string",
     "createdAt" : "string",
     "inputHash" : "string",
     "rngSeed" : "integer",
+    "rngSeedText" : "string",
     "modelAppVersion" : "string",
     "modelBuildTime" : "string",
     "modelSpringBootVersion" : "string",
@@ -66,6 +27,24 @@
     "b" : "object:dk.gormkrings.diff.RunDiffResponse$RunInfo",
     "attribution" : "object:dk.gormkrings.diff.RunDiffResponse$Attribution",
     "output" : "object:dk.gormkrings.diff.RunDiffComparator$ComparisonResult"
+  },
+  "dk.gormkrings.statistics.MetricSummary$Scope" : {
+    "YEARLY" : "object:dk.gormkrings.statistics.MetricSummary$Scope",
+    "PHASE_TOTAL" : "object:dk.gormkrings.statistics.MetricSummary$Scope",
+    "OVERALL_TOTAL" : "object:dk.gormkrings.statistics.MetricSummary$Scope"
+  },
+  "dk.gormkrings.statistics.MetricSummary" : {
+    "scope" : "object:dk.gormkrings.statistics.MetricSummary$Scope",
+    "phaseName" : "string",
+    "year" : "integer",
+    "metric" : "string",
+    "p5" : "number",
+    "p10" : "number",
+    "p25" : "number",
+    "p50" : "number",
+    "p75" : "number",
+    "p90" : "number",
+    "p95" : "number"
   },
   "dk.gormkrings.export.ReproducibilityBundleDto$ModelVersion" : {
     "appVersion" : "string",
@@ -118,5 +97,27 @@
     "inputs" : "object:dk.gormkrings.export.ReproducibilityBundleDto$Inputs",
     "timeline" : "object:dk.gormkrings.export.ReproducibilityBundleDto$Timeline",
     "outputs" : "object:dk.gormkrings.export.ReproducibilityBundleDto$Outputs"
+  },
+  "dk.gormkrings.statistics.YearlySummary" : {
+    "phaseName" : "string",
+    "year" : "integer",
+    "averageCapital" : "number",
+    "medianCapital" : "number",
+    "minCapital" : "number",
+    "maxCapital" : "number",
+    "stdDevCapital" : "number",
+    "cumulativeGrowthRate" : "number",
+    "quantile5" : "number",
+    "quantile25" : "number",
+    "quantile75" : "number",
+    "quantile95" : "number",
+    "var" : "number",
+    "cvar" : "number",
+    "negativeCapitalPercentage" : "number"
+  },
+  "dk.gormkrings.dto.StandardResultsV3Response" : {
+    "simulationId" : "string",
+    "yearlySummaries" : "array<object:dk.gormkrings.statistics.YearlySummary>",
+    "metricSummaries" : "array<object:dk.gormkrings.statistics.MetricSummary>"
   }
 }

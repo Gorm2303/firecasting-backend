@@ -752,6 +752,8 @@ components:
         rngSeed:
           type: "integer"
           format: "int64"
+        rngSeedText:
+          type: "string"
         totalMs:
           type: "integer"
           format: "int64"
@@ -786,6 +788,8 @@ components:
         rngSeed:
           type: "integer"
           format: "int64"
+        rngSeedText:
+          type: "string"
     RunListItemDto:
       type: "object"
       properties:
@@ -800,6 +804,8 @@ components:
         rngSeed:
           type: "integer"
           format: "int64"
+        rngSeedText:
+          type: "string"
     SimulationRequest:
       type: "object"
       properties:
