@@ -96,7 +96,7 @@ public class SimulationRunner {
         ).results();
     }
 
-        public record RunTimings(long computeMs, long aggregateMs, long gridsMs, long persistMs, long totalMs) {
+        public record RunTimings(long computeMs, long aggregateMs, long persistMs, long totalMs) {
         }
 
                 public record RunOutcome(List<IRunResult> results,
@@ -136,11 +136,6 @@ public class SimulationRunner {
         var metricSummaries = aggregationService.aggregateMetricSummaries(simulationResults);
         final long tAgg1 = System.nanoTime();
 
-        // Percentile grids
-        final long tGrids0 = System.nanoTime();
-        var grids = aggregationService.buildPercentileGrids(simulationResults);
-        final long tGrids1 = System.nanoTime();
-
         // Persist run + summaries using the normalized seed (always positive at request mapping).
         Long rngSeed = (spec.getReturnerConfig() == null) ? null : spec.getReturnerConfig().getSeed();
         long persistMs = 0L;
@@ -152,7 +147,6 @@ public class SimulationRunner {
                     SimulationSignature.of(runs, batchSize, inputForStorage),
                     resolvedAdvanced,
                     summaries,
-                    grids,
                     metricSummaries,
                     rngSeed
             );
@@ -162,16 +156,15 @@ public class SimulationRunner {
 
         final long computeMs = TimeUnit.NANOSECONDS.toMillis(tCompute1 - tCompute0);
         final long aggregateMs = TimeUnit.NANOSECONDS.toMillis(tAgg1 - tAgg0);
-        final long gridsMs = TimeUnit.NANOSECONDS.toMillis(tGrids1 - tGrids0);
         // By construction, totalMs should add up to the components we report.
-        final long totalMs = computeMs + aggregateMs + gridsMs + persistMs;
+        final long totalMs = computeMs + aggregateMs + persistMs;
 
         return new RunOutcome(
                 simulationResults,
                 summaries,
                 metricSummaries,
                 rngSeed,
-                new RunTimings(computeMs, aggregateMs, gridsMs, persistMs, totalMs)
+                new RunTimings(computeMs, aggregateMs, persistMs, totalMs)
         );
     }
 

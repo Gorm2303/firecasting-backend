@@ -174,7 +174,6 @@ public class FirecastingController {
             if (t != null) {
                 d.setComputeMs(t.computeMs());
                 d.setAggregateMs(t.aggregateMs());
-                d.setGridsMs(t.gridsMs());
                 d.setPersistMs(t.persistMs());
                 d.setTotalMs(t.totalMs());
             }
@@ -739,7 +738,6 @@ public class FirecastingController {
                 meta.put("queueMs", 0);
                 meta.put("computeMs", 0);
                 meta.put("aggregateMs", 0);
-                meta.put("gridsMs", 0);
                 meta.put("persistMs", 0);
                 meta.put("totalMs", 0);
 

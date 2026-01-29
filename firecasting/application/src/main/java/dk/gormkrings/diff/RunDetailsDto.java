@@ -22,7 +22,6 @@ public class RunDetailsDto {
     // --- Timing breakdown (milliseconds) ---
     private Long computeMs;
     private Long aggregateMs;
-    private Long gridsMs;
     private Long persistMs;
     private Long totalMs;
 }
