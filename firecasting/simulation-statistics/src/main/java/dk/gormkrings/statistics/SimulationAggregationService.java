@@ -59,25 +59,6 @@ public class SimulationAggregationService {
         return summaries;
     }
 
-    /**
-     * Build 101-point percentile grids (0.0%..100.0%) per (phase,year), NO interpolation.
-     * Order matches aggregateResults: year ASC, phaseName ASC.
-     */
-    public List<Double[]> buildPercentileGrids(List<IRunResult> results) {
-        var dataByKey = computeMarkedDataByPhaseYear(results);
-
-        List<Double[]> grids = new ArrayList<>(dataByKey.size());
-        for (var e : dataByKey.entrySet()) {
-            Double[] samples = e.getValue().stream()
-                    .filter(dp -> !dp.runFailed())
-                    .mapToDouble(DataPoint::capital) // primitive
-                    .sorted()
-                    .boxed()                         // turn DoubleStream -> Stream<Double>
-                    .toArray(Double[]::new);         // -> Double[]
-            grids.add(buildNoInterpolationGrid(samples)); // 101 points
-        }
-        return grids;
-    }
 
     /**
      * Compute percentile summaries for supported metrics:
@@ -446,35 +427,6 @@ public class SimulationAggregationService {
         }
         double finalCap = out.isEmpty() ? 0.0 : out.get(out.size() - 1).capital();
         return new SimulationRunData(finalCap, out);
-    }
-
-    // ---------- grid builder: NO interpolation ----------
-
-    /**
-     * 101-point grid using EDF inverse (Type-1, no interpolation).
-     * For p in {0/100..100/100}, index = ceil(p*n)-1 clamped to [0..n-1].
-     * If no samples, returns an all-NaN grid.
-     */
-    private static Double[] buildNoInterpolationGrid(Double[] sortedAsc) {
-        Double[] grid = new Double[101];
-        int n = sortedAsc.length;
-        if (n == 0) {
-            Arrays.fill(grid, Double.NaN);
-            return grid;
-        }
-        for (int i = 0; i <= 100; i++) {
-            double p = i / 100.0;
-            int idx;
-            if (p <= 0.0) idx = 0;
-            else if (p >= 1.0) idx = n - 1;
-            else {
-                idx = (int) Math.ceil(p * n) - 1;
-                if (idx < 0) idx = 0;
-                if (idx >= n) idx = n - 1;
-            }
-            grid[i] = sortedAsc[idx];
-        }
-        return grid;
     }
 
     // ---------- internal data carriers ----------

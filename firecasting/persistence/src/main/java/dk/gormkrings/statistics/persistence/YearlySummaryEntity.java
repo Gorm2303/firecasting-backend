@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(
@@ -50,8 +48,4 @@ public class YearlySummaryEntity {
     @Column(name = "cvar_value")      private double cvar;
     @Column(name = "neg_capital_pct") private double negativeCapitalPercentage;
 
-    // 101 doubles: p0..p100 at 1% increments
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "percentiles", columnDefinition = "double precision[]", nullable = false)
-    private Double[] percentiles;   // <- use wrapper array with Hibernate 6
 }

@@ -23,13 +23,12 @@ public interface YearlySummaryMapper {
         d.setVar(e.getVar());
         d.setCvar(e.getCvar());
         d.setNegativeCapitalPercentage(e.getNegativeCapitalPercentage());
-        // Note: your DTO doesn't have the 101-point grid; expose it via another DTO/endpoint if needed.
         return d;
     }
 
     /** Optional helper if you sometimes build entities from DTO + grid */
     public static YearlySummaryEntity toEntity(
-            YearlySummary d, SimulationRunEntity run, Double[] percentilesGrid) {
+            YearlySummary d, SimulationRunEntity run) {
         YearlySummaryEntity e = new YearlySummaryEntity();
         e.setRun(run);
         e.setPhaseName(d.getPhaseName());
@@ -47,7 +46,6 @@ public interface YearlySummaryMapper {
         e.setVar(d.getVar());
         e.setCvar(d.getCvar());
         e.setNegativeCapitalPercentage(d.getNegativeCapitalPercentage());
-        e.setPercentiles(percentilesGrid);
         return e;
     }
 }
