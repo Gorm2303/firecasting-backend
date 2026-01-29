@@ -50,7 +50,6 @@ These fields exist on the **yearly summaries** returned by the API.
 - `var`: Value-at-Risk (VaR) at 5% (equal to `quantile5`).
 - `cvar`: Conditional VaR (average of values at/below VaR).
 - `negativeCapitalPercentage`: Share of runs that failed (capital <= 0 after the failure point).
-- `percentiles`: 101-point grid: p0..p100 at 1% increments (so p0,p5,…,p100 are included as a subset).
 
 ## Accounting integrity
 

@@ -584,7 +584,7 @@ components:
         yearlySummaries:
           type: "array"
           items:
-            $ref: "#/components/schemas/YearlySummaryWithGrid"
+            $ref: "#/components/schemas/YearlySummary"
     PhaseRequest:
       type: "object"
       properties:
@@ -731,9 +731,6 @@ components:
           format: "int64"
         createdAt:
           type: "string"
-        gridsMs:
-          type: "integer"
-          format: "int64"
         id:
           type: "string"
         inputHash:
@@ -997,7 +994,7 @@ components:
         year:
           type: "integer"
           format: "int32"
-    YearlySummaryWithGrid:
+    YearlySummary:
       type: "object"
       properties:
         averageCapital:
@@ -1021,11 +1018,6 @@ components:
         negativeCapitalPercentage:
           type: "number"
           format: "double"
-        percentiles:
-          type: "array"
-          items:
-            type: "number"
-            format: "double"
         phaseName:
           type: "string"
         quantile25:

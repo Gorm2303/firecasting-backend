@@ -4,7 +4,7 @@ Date: 2026-01-26
 
 ## Context
 
-We want to expose richer results than the existing yearly capital distribution summaries (and, in some cases, a full p0..p100 grid).
+We want to expose richer results than the existing yearly capital distribution summaries.
 
 The new standard v3 results payload adds percentile summaries for additional metrics (flows + selected state values) at multiple scopes:
 
@@ -53,12 +53,6 @@ Row count per run (approx):
 - Total ≈ 272 rows
 
 Even with generous per-row overhead, this is typically on the order of **tens of KB per run**, i.e. very manageable.
-
-### Percentile grids (p0..p100)
-
-A 101-point grid is 101 doubles ≈ 808 bytes of raw numeric payload, plus row/array overhead.
-
-If stored per {phaseName, year} (≈ 30), this is still on the order of **~tens of KB per run**.
 
 ### Per-path per-step arrays (the expensive option)
 

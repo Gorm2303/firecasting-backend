@@ -42,14 +42,6 @@ Each yearly summary describes the distribution of **effective capital** across a
 - `cvar`: average of values at/below VaR.
 - `negativeCapitalPercentage`: percent of runs that “failed” (capital <= 0 after the failure point).
 
-### Percentiles grid
-
-Some endpoints/exports include a percentiles grid:
-
-- `percentiles`: 101 values for p0..p100 at 1% increments.
-	- p0 is index 0, p100 is index 100.
-	- The contract guarantees the subset p0..p100 at 5% steps at indices 0,5,10,…,100.
-
 ## Standard results payload (v3)
 
 The backend exposes a single “standard results” response that bundles the pieces the UI typically needs.

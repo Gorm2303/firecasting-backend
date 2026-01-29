@@ -61,4 +61,3 @@ Each metric is also tagged with:
 - `var`: Value-at-Risk (VaR) at 5% (equal to `quantile5`). Provenance: INTERNAL. Storage: COMPUTED.
 - `cvar`: Conditional VaR (average of values at/below VaR). Provenance: INTERNAL. Storage: COMPUTED.
 - `negativeCapitalPercentage`: Share of runs that failed (capital <= 0 after the failure point). Provenance: INTERNAL. Storage: COMPUTED.
-- `percentiles`: Percentiles grid (p0..p100) for the capital distribution. Provenance: INTERNAL. Storage: COMPUTED.
