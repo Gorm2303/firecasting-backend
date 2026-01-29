@@ -120,44 +120,6 @@ public final class RunDiffComparator {
                 maxAbs = Math.max(maxAbs, d);
             }
 
-            // Percentiles
-            Double[] lg = left.getPercentiles();
-            Double[] rg = right.getPercentiles();
-            int ll = lg == null ? 0 : lg.length;
-            int rl = rg == null ? 0 : rg.length;
-            if (ll != rl) {
-                exact = false;
-                tolOk = false;
-                mismatches++;
-                continue;
-            }
-            if (lg != null) {
-                for (int i = 0; i < lg.length; i++) {
-                    Double lv = lg[i];
-                    Double rv = rg[i];
-                    if (lv == null || rv == null) {
-                        if (lv != rv) {
-                            exact = false;
-                            tolOk = false;
-                            mismatches++;
-                            break;
-                        }
-                        continue;
-                    }
-                    if (Double.compare(lv, rv) != 0) {
-                        exact = false;
-                    }
-                    double d = Math.abs(lv - rv);
-                    if (d > eps) {
-                        tolOk = false;
-                        entryMismatch = true;
-                    }
-                    if (d > 0) {
-                        maxAbs = Math.max(maxAbs, d);
-                    }
-                }
-            }
-
             if (entryMismatch) {
                 mismatches++;
             }
