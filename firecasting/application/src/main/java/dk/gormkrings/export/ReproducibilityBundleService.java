@@ -55,7 +55,7 @@ public class ReproducibilityBundleService {
                 statisticsService.getSummaryEntitiesForRun(simulationId)
                         .stream()
                         .map(e -> {
-                            var d = new ReproducibilityBundleDto.YearlySummaryWithGrid();
+                            var d = new ReproducibilityBundleDto.YearlySummary();
                             d.setPhaseName(e.getPhaseName());
                             d.setYear(e.getYear());
                             d.setAverageCapital(e.getAverageCapital());
@@ -71,7 +71,6 @@ public class ReproducibilityBundleService {
                             d.setVar(e.getVar());
                             d.setCvar(e.getCvar());
                             d.setNegativeCapitalPercentage(e.getNegativeCapitalPercentage());
-                            d.setPercentiles(e.getPercentiles());
                             return d;
                         })
                         .toList()

@@ -6,7 +6,6 @@ import dk.gormkrings.statistics.persistence.YearlySummaryEntity;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public final class ReproducibilityReplayComparator {
 
@@ -18,7 +17,7 @@ public final class ReproducibilityReplayComparator {
 
     public static ComparisonResult compare(
             List<YearlySummaryEntity> actual,
-            List<ReproducibilityBundleDto.YearlySummaryWithGrid> expected,
+            List<ReproducibilityBundleDto.YearlySummary> expected,
             double eps) {
 
         if (expected == null) {
@@ -63,41 +62,6 @@ public final class ReproducibilityReplayComparator {
             maxAbs = max(maxAbs, cmp("cvar", act.getCvar(), exp.getCvar(), eps));
             maxAbs = max(maxAbs, cmp("negativeCapitalPercentage", act.getNegativeCapitalPercentage(), exp.getNegativeCapitalPercentage(), eps));
 
-            // Compare percentiles grid
-            Double[] expGrid = exp.getPercentiles();
-            Double[] actGrid = act.getPercentiles();
-
-            if (!Objects.equals(expGrid == null ? 0 : expGrid.length, actGrid == null ? 0 : actGrid.length)) {
-                exact = false;
-                tolOk = false;
-                mismatches++;
-                continue;
-            }
-            if (expGrid != null) {
-                for (int i = 0; i < expGrid.length; i++) {
-                    Double ev = expGrid[i];
-                    Double av = actGrid[i];
-                    if (ev == null || av == null) {
-                        if (ev != av) {
-                            exact = false;
-                            tolOk = false;
-                            mismatches++;
-                            break;
-                        }
-                        continue;
-                    }
-                    if (Double.compare(av, ev) != 0) {
-                        exact = false;
-                    }
-                    double d = Math.abs(av - ev);
-                    if (d > eps) {
-                        tolOk = false;
-                    }
-                    if (d > 0) {
-                        maxAbs = Math.max(maxAbs, d);
-                    }
-                }
-            }
         }
 
         if (!exact || !tolOk) {
