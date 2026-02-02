@@ -6,6 +6,7 @@ import dk.gormkrings.phase.IWithdrawPhase;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.event.Type;
 import dk.gormkrings.event.MonthEvent;
+import dk.gormkrings.event.RunEvent;
 import dk.gormkrings.simulation.util.Formatter;
 import dk.gormkrings.specification.ISpecification;
 import dk.gormkrings.simulation.ReturnStep;
@@ -47,6 +48,19 @@ public class WithdrawEventPhase extends SimulationEventPhase implements IWithdra
     @Override
     public void onApplicationEvent(@NonNull ApplicationEvent event) {
         super.onApplicationEvent(event);
+
+        // If the phase duration is 0 days (0 months), allow a one-shot withdrawal at phase start.
+        // EventEngine emits RunEvent START/END around each phase.
+        if (event instanceof RunEvent runEvent && runEvent.getType() == Type.START) {
+            if (getDuration() <= 0 && getLiveData().getCapital() > 0.0001) {
+                withdrawMoney();
+                addCapitalTax();
+                addNetEarnings();
+                if (Formatter.debug) log.debug(prettyString());
+            }
+            return;
+        }
+
         if (event instanceof MonthEvent monthEvent &&
                 monthEvent.getType() == Type.END) {
             withdrawMoney();
