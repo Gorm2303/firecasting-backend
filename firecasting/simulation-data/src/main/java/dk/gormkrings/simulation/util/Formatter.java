@@ -3,6 +3,7 @@ package dk.gormkrings.simulation.util;
 import dk.gormkrings.data.IDate;
 import dk.gormkrings.data.ILiveData;
 import dk.gormkrings.factory.IDateFactory;
+import dk.gormkrings.simulation.data.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -33,7 +34,9 @@ public class Formatter {
     public static String getPrettyDate(ILiveData data) {
         long session = data.getSessionDuration();
         long alive = data.getTotalDurationAlive();
-        IDate startDate = dateFactory.fromEpochDay((int) data.getStartTime());
+        IDate startDate = (dateFactory != null)
+                ? dateFactory.fromEpochDay((int) data.getStartTime())
+                : new Date((int) data.getStartTime());
         IDate currentDate = startDate.plusDays(alive - 1);
         IDate sessionDate = startDate.plusDays(session - 1);
         int years = (sessionDate.getYear()-startDate.getYear());
