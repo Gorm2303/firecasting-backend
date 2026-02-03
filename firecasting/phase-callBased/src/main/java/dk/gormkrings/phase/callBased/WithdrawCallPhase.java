@@ -73,6 +73,15 @@ public class WithdrawCallPhase extends SimulationCallPhase implements IWithdrawP
     public void onPhaseStart() {
         super.onPhaseStart();
         totalReturnLastMonth = getLiveData().getReturned();
+
+        // If the phase duration is 0 days (0 months), allow a one-shot withdrawal at phase start.
+        // This enables "withdraw all at once" modeling without requiring a month-end boundary.
+        if (getDuration() <= 0 && getLiveData().getCapital() > 0.0001) {
+            withdrawMoney();
+            addCapitalTax();
+            addNetEarnings();
+            if (Formatter.debug) log.debug(prettyString());
+        }
     }
 
     @Override

@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS yearly_summary (
     var_value                  double precision,
     cvar_value                 double precision,
     neg_capital_pct            double precision,
-    percentiles                double precision[] NOT NULL,
     CONSTRAINT uk_summary_run_phase_year UNIQUE (run_id, phase_name, year)
     );
 

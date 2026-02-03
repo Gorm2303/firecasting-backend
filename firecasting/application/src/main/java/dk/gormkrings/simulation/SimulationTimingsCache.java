@@ -14,7 +14,6 @@ public class SimulationTimingsCache {
     public record Timings(long queueMs,
                           long computeMs,
                           long aggregateMs,
-                          long gridsMs,
                           long persistMs,
                           long totalMs) {
     }

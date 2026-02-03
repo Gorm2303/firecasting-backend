@@ -62,11 +62,11 @@ public class ReproducibilityBundleDto {
 
     @Data
     public static class Outputs {
-        private List<YearlySummaryWithGrid> yearlySummaries;
+        private List<YearlySummary> yearlySummaries;
     }
 
     @Data
-    public static class YearlySummaryWithGrid {
+    public static class YearlySummary {
         private String phaseName;
         private int year;
         private double averageCapital;
@@ -82,7 +82,5 @@ public class ReproducibilityBundleDto {
         private double var;
         private double cvar;
         private double negativeCapitalPercentage;
-        /** 101 values: p0..p100 at 1% increments. */
-        private Double[] percentiles;
     }
 }

@@ -71,7 +71,7 @@
     "phaseDurationsInMonths" : "array<integer>",
     "firstPhaseInitialDeposit" : "number"
   },
-  "dk.gormkrings.export.ReproducibilityBundleDto$YearlySummaryWithGrid" : {
+  "dk.gormkrings.export.ReproducibilityBundleDto$YearlySummary" : {
     "phaseName" : "string",
     "year" : "integer",
     "averageCapital" : "number",
@@ -86,11 +86,10 @@
     "quantile95" : "number",
     "var" : "number",
     "cvar" : "number",
-    "negativeCapitalPercentage" : "number",
-    "percentiles" : "array<number>"
+    "negativeCapitalPercentage" : "number"
   },
   "dk.gormkrings.export.ReproducibilityBundleDto$Outputs" : {
-    "yearlySummaries" : "array<object:dk.gormkrings.export.ReproducibilityBundleDto$YearlySummaryWithGrid>"
+    "yearlySummaries" : "array<object:dk.gormkrings.export.ReproducibilityBundleDto$YearlySummary>"
   },
   "dk.gormkrings.export.ReproducibilityBundleDto" : {
     "meta" : "object:dk.gormkrings.export.ReproducibilityBundleDto$Meta",

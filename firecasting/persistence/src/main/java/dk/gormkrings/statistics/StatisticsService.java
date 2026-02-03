@@ -70,13 +70,8 @@ public class StatisticsService {
                                            Object signatureParams,
                                            Object resolvedAdvanced,
                                            List<YearlySummary> summaries,
-                                           List<Double[]> percentileGrids,
                                            List<dk.gormkrings.statistics.MetricSummary> metricSummaries,
                                            Long rngSeed) {
-        if (summaries.size() != percentileGrids.size()) {
-            throw new IllegalArgumentException("Summaries and grids must have same size.");
-        }
-
         String inputJson = toCanonicalJson(inputParams);
         // Hash signature can differ from persisted inputJson (e.g. include server-side run count)
         Object signature = (signatureParams != null) ? signatureParams : inputParams;
@@ -108,12 +103,7 @@ public class StatisticsService {
         // 2) Insert children, always setting the managed runRef
         for (int i = 0; i < summaries.size(); i++) {
             var dto  = summaries.get(i);
-            var grid = percentileGrids.get(i);
-            if (grid == null || grid.length != 101) {
-                throw new IllegalArgumentException("Each percentile grid must have length 101.");
-            }
-
-            var ent = YearlySummaryMapper.toEntity(dto, runRef, grid); // <-- pass runRef
+            var ent = YearlySummaryMapper.toEntity(dto, runRef); // <-- pass runRef
             // If your mapper does NOT use the given run instance, set it explicitly:
             // ent.setRun(runRef);
 
@@ -139,9 +129,8 @@ public class StatisticsService {
                                            Object inputParams,
                                            Object resolvedAdvanced,
                                            List<YearlySummary> summaries,
-                                           List<Double[]> percentileGrids,
                                            Long rngSeed) {
-        return insertNewRunWithSummaries(simulationId, inputParams, null, resolvedAdvanced, summaries, percentileGrids, List.of(), rngSeed);
+        return insertNewRunWithSummaries(simulationId, inputParams, null, resolvedAdvanced, summaries, List.of(), rngSeed);
     }
 
     /**
@@ -154,9 +143,8 @@ public class StatisticsService {
                                            Object signatureParams,
                                            Object resolvedAdvanced,
                                            List<YearlySummary> summaries,
-                                           List<Double[]> percentileGrids,
                                            Long rngSeed) {
-        return insertNewRunWithSummaries(simulationId, inputParams, signatureParams, resolvedAdvanced, summaries, percentileGrids, List.of(), rngSeed);
+        return insertNewRunWithSummaries(simulationId, inputParams, signatureParams, resolvedAdvanced, summaries, List.of(), rngSeed);
     }
 
     /**
@@ -168,10 +156,9 @@ public class StatisticsService {
                                                       Object signatureParams,
                                                       Object resolvedAdvanced,
                                                       List<YearlySummary> summaries,
-                                                      List<Double[]> percentileGrids,
                                                       List<dk.gormkrings.statistics.MetricSummary> metricSummaries,
                                                       Long rngSeed) {
-        return insertNewRunWithSummaries(simulationId, inputParams, signatureParams, resolvedAdvanced, summaries, percentileGrids, metricSummaries, rngSeed);
+        return insertNewRunWithSummaries(simulationId, inputParams, signatureParams, resolvedAdvanced, summaries, metricSummaries, rngSeed);
     }
 
     public boolean hasCompletedSummaries(String runId) {

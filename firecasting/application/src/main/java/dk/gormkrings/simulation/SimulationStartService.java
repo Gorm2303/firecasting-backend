@@ -216,9 +216,8 @@ public class SimulationStartService {
                     var t = outcome.timings();
                     long computeMs = t != null ? t.computeMs() : 0;
                     long aggregateMs = t != null ? t.aggregateMs() : 0;
-                    long gridsMs = t != null ? t.gridsMs() : 0;
                     long persistMs = t != null ? t.persistMs() : 0;
-                    long totalMs = t != null ? t.totalMs() : (computeMs + aggregateMs + gridsMs + persistMs);
+                    long totalMs = t != null ? t.totalMs() : (computeMs + aggregateMs + persistMs);
 
                     var meta = new HashMap<String, Object>();
                     meta.put("dedupHit", false);
@@ -228,14 +227,13 @@ public class SimulationStartService {
                     meta.put("queueMs", queueMs);
                     meta.put("computeMs", computeMs);
                     meta.put("aggregateMs", aggregateMs);
-                    meta.put("gridsMs", gridsMs);
                     meta.put("persistMs", persistMs);
                     meta.put("totalMs", totalMs);
 
                     timingsCache.put(
                             simulationId,
                             Map.copyOf(meta),
-                            new SimulationTimingsCache.Timings(queueMs, computeMs, aggregateMs, gridsMs, persistMs, totalMs)
+                            new SimulationTimingsCache.Timings(queueMs, computeMs, aggregateMs, persistMs, totalMs)
                     );
 
                     sseService.sendMeta(simulationId, meta);

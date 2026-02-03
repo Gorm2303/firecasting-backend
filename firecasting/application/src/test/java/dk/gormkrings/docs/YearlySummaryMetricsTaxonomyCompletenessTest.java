@@ -46,7 +46,7 @@ class YearlySummaryMetricsTaxonomyCompletenessTest {
 
         Set<String> required = new HashSet<>();
         required.addAll(jsonFieldNames(YearlySummary.class));
-        required.addAll(jsonFieldNames(ReproducibilityBundleDto.YearlySummaryWithGrid.class));
+        required.addAll(jsonFieldNames(ReproducibilityBundleDto.YearlySummary.class));
         required.removeAll(NON_METRIC_FIELDS);
 
         List<String> missingTaxonomy = required.stream().sorted().filter(f -> !mentioned.contains(f)).toList();
