@@ -411,11 +411,22 @@ public class SimulationAggregationService {
 
     private SimulationRunData markFailures(SimulationRunData runData) {
         boolean failed = false;
+        boolean everHadPositiveCapital = false;
         List<DataPoint> out = new ArrayList<>(runData.dataPoints().size());
         for (DataPoint dp : runData.dataPoints()) {
             DataPoint failPoint = new DataPoint(0.0, true, dp.year(), dp.phaseName());
             if (!failed) {
-                if (!"Deposit".equalsIgnoreCase(dp.phaseName()) && dp.capital() <= 0.0) {
+                boolean isDeposit = "Deposit".equalsIgnoreCase(dp.phaseName());
+                boolean isWithdraw = "Withdraw".equalsIgnoreCase(dp.phaseName());
+
+                // "Wait" behavior without new UI:
+                // We don't treat a run as failed just because it has 0 capital before any money was ever added.
+                // But withdrawals with <= 0 capital should still count as failure even if the run never had capital.
+                boolean shouldFailHere = !isDeposit
+                        && dp.capital() <= 0.0
+                        && (everHadPositiveCapital || isWithdraw);
+
+                if (shouldFailHere) {
                     failed = true;
                     out.add(failPoint);      // mark this and all next as failed
                 } else {
@@ -423,6 +434,10 @@ public class SimulationAggregationService {
                 }
             } else {
                 out.add(failPoint);
+            }
+
+            if (dp.capital() > 0.0) {
+                everHadPositiveCapital = true;
             }
         }
         double finalCap = out.isEmpty() ? 0.0 : out.get(out.size() - 1).capital();
